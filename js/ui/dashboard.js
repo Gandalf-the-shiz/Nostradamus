@@ -20,6 +20,9 @@ import { getItem } from '../storage/cache.js';
 import { runPrediction, demoPrediction } from '../ml/prediction.js';
 import { renderStockCard } from './stockcard.js';
 import { openStockDetail } from './detail.js';
+import { storePrediction } from '../ml/tracker.js';
+import { resolveAll } from '../ml/tracker.js';
+import { autoRetrain } from '../ml/retraining.js';
 
 const DEFAULT_WATCHLIST = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA'];
 
@@ -55,6 +58,23 @@ export async function initDashboard(appState) {
 
   renderMarketOverview(stocks);
 
+  // Build a price map for resolving any pending predictions from earlier runs
+  const priceMap = {};
+  for (const stock of stocks) {
+    if (stock.symbol && stock.quote?.current) {
+      priceMap[stock.symbol] = stock.quote.current;
+    }
+  }
+  try { resolveAll(priceMap); } catch (e) { console.warn('[Dashboard] resolveAll failed:', e); }
+
+  // Collect candles for auto-retraining
+  const allCandles = [];
+  for (const stock of stocks) {
+    if (Array.isArray(stock.candles) && stock.candles.length > 0) {
+      allCandles.push(...stock.candles);
+    }
+  }
+
   // Render each stock card with staggered animation
   for (let i = 0; i < stocks.length; i++) {
     const stock = stocks[i];
@@ -69,10 +89,19 @@ export async function initDashboard(appState) {
     } else {
       prediction = demoPrediction(stock.symbol, stock.quote.current);
     }
+
+    // Track the prediction (graceful — never break the render loop)
+    try { storePrediction(prediction); } catch (e) { console.warn('[Dashboard] storePrediction failed:', e); }
+
     const card = renderStockCard(stock, prediction, appState.chartReady);
     card.style.animationDelay = `${i * 50}ms`;
     card.classList.add('stock-card--animate-in');
     stockGrid.appendChild(card);
+  }
+
+  // Trigger background retraining if needed (after rendering, non-blocking)
+  if (appState.tfReady && allCandles.length >= 40) {
+    try { autoRetrain(allCandles); } catch (e) { console.warn('[Dashboard] autoRetrain failed:', e); }
   }
 
   // Wire card clicks to detail overlay

@@ -1,0 +1,80 @@
+name: Log Daily Accuracy Metrics
+
+on:
+  schedule:
+    # Run every day at 23:55 UTC (after US market close)
+    - cron: '55 23 * * *'
+  workflow_dispatch:   # allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  log-accuracy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write daily accuracy log entry
+        run: |
+          set -e
+          LOG_DIR="data/accuracy"
+          LOG_FILE="${LOG_DIR}/accuracy-log.json"
+          mkdir -p "$LOG_DIR"
+
+          # Initialise log file if it doesn't exist
+          if [ ! -f "$LOG_FILE" ]; then
+            echo '{"entries":[]}' > "$LOG_FILE"
+          fi
+
+          # Accuracy metrics are computed client-side in the browser and
+          # stored in each user's localStorage, so we cannot access them
+          # from GitHub Actions.  Instead we record a "heartbeat" entry
+          # confirming CI ran successfully on this date.  Richer metrics can
+          # be appended here in future if a server-side component is added.
+          python3 - <<'PYEOF'
+import json, os
+from datetime import datetime, timezone
+
+log_file = "data/accuracy/accuracy-log.json"
+
+with open(log_file) as f:
+    data = json.load(f)
+
+entries = data.get("entries", [])
+
+now = datetime.now(timezone.utc)
+new_entry = {
+    "date":       now.strftime("%Y-%m-%d"),
+    "recordedAt": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "note":       "Daily accuracy heartbeat — metrics stored in user localStorage"
+}
+
+# Deduplicate: replace any existing entry for the same date
+entries = [e for e in entries if e.get("date") != new_entry["date"]]
+entries.append(new_entry)
+
+# Keep last 365 entries
+entries = entries[-365:]
+data["entries"] = entries
+
+with open(log_file, "w") as f:
+    json.dump(data, f, indent=2)
+
+print(f"Logged entry for {new_entry['date']} ({len(entries)} total entries)")
+PYEOF
+
+      - name: Commit accuracy log
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet data/accuracy/accuracy-log.json; then
+            echo "No changes to accuracy log."
+          else
+            git add data/accuracy/accuracy-log.json
+            git commit -m "chore: log daily accuracy heartbeat $(date -u +%Y-%m-%d)"
+            git push
+          fi

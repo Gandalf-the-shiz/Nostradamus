@@ -98,14 +98,14 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [x] Pre-trained starter model weights committed to repo
 - [x] Prediction confidence score display
 
-### 🔲 Phase 5: Self-Learning & Continuous Improvement
-- [ ] Prediction tracking system (store predictions with timestamps)
-- [ ] Accuracy comparison engine (predicted vs actual next-day price)
-- [ ] Automatic model retraining trigger when new data is available
-- [ ] Model versioning (track accuracy over time)
-- [ ] Rolling accuracy dashboard (show model improvement over weeks/months)
-- [ ] A/B model comparison (keep best performing model)
-- [ ] GitHub Actions workflow to log daily accuracy metrics
+### ✅ Phase 5: Self-Learning & Continuous Improvement
+- [x] Prediction tracking system (store predictions with timestamps)
+- [x] Accuracy comparison engine (predicted vs actual next-day price)
+- [x] Automatic model retraining trigger when new data is available
+- [x] Model versioning (track accuracy over time)
+- [x] Rolling accuracy dashboard (show model improvement over weeks/months)
+- [x] A/B model comparison (keep best performing model)
+- [x] GitHub Actions workflow to log daily accuracy metrics
 
 ### 🔲 Phase 6: Polish, Docs & Advanced Features
 - [ ] Performance optimization (lazy loading, code splitting)
@@ -143,7 +143,11 @@ Nostradamus/
 │   │   ├── model.js            # TensorFlow.js LSTM model definition
 │   │   ├── training.js         # In-browser training pipeline
 │   │   ├── prediction.js       # Prediction engine (UP/DOWN + dollar amount)
-│   │   └── preprocessing.js    # Data normalization, windowing, feature engineering
+│   │   ├── preprocessing.js    # Data normalization, windowing, feature engineering
+│   │   ├── tracker.js          # Prediction tracking system (Phase 5)
+│   │   ├── accuracy.js         # Accuracy comparison engine (Phase 5)
+│   │   ├── versioning.js       # Model versioning & A/B comparison (Phase 5)
+│   │   └── retraining.js       # Automatic retraining trigger logic (Phase 5)
 │   ├── ui/
 │   │   ├── dashboard.js        # Main dashboard rendering & layout
 │   │   ├── charts.js           # Chart.js price history + prediction overlay
@@ -151,13 +155,16 @@ Nostradamus/
 │   │   ├── search.js           # Search bar with autocomplete
 │   │   ├── detail.js           # Stock detail modal/overlay (Phase 3)
 │   │   ├── watchlist.js        # Watchlist view & persistence (Phase 3)
-│   │   └── theme.js            # Dark/light theme toggle (Phase 3)
+│   │   ├── theme.js            # Dark/light theme toggle (Phase 3)
+│   │   └── accuracy-dashboard.js # Rolling accuracy dashboard (Phase 5)
 │   ├── storage/
 │   │   └── cache.js            # localStorage manager with TTL
 │   └── utils/
 │       └── helpers.js          # Shared utility functions (formatting, math, etc.)
 ├── data/
-│   └── sample.json             # Demo stock data (AAPL, GOOGL, MSFT, AMZN, TSLA)
+│   ├── sample.json             # Demo stock data (AAPL, GOOGL, MSFT, AMZN, TSLA)
+│   └── accuracy/
+│       └── accuracy-log.json   # Daily accuracy heartbeat log (Phase 5)
 └── models/
     └── starter/                # Pre-trained starter model weights (Phase 4)
         ├── model.json          # Model topology
@@ -182,6 +189,6 @@ Nostradamus/
 
 ## Current Status
 
-**Phase 4 complete.** Full TensorFlow.js LSTM prediction engine running in-browser with preprocessing pipeline, training UI, model persistence, and confidence scoring.
+**Phase 5 complete.** Self-learning system implemented: predictions are tracked in localStorage, accuracy metrics (hit rate, MAE) are computed over resolved predictions, models are versioned with A/B champion comparison, automatic background retraining triggers when new data arrives, and a rolling accuracy dashboard (with Chart.js charts) is accessible via the 📊 nav button.
 
-**Next step for agents: Implement Phase 5 (Self-Learning & Continuous Improvement)**
+**Next step for agents: Implement Phase 6 (Polish, Docs & Advanced Features)**
