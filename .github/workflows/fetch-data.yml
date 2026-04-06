@@ -1,20 +1,8 @@
 name: Fetch Stock Data
 
-# Scheduled job: runs at market close (9 PM UTC ≈ 4 PM ET + 1h buffer)
-# Fetches daily closing prices and commits them as JSON to the repo.
-#
-# TODO (Phase 2): Implement actual data fetching using stored API keys
-#   (keys will be stored as GitHub repository secrets, not localStorage).
-#   This workflow will:
-#     1. Call Finnhub API for closing prices of tracked symbols
-#     2. Append new data to data/historical/ directory
-#     3. Commit and push the updated JSON files
-#     4. Trigger a re-deploy of the Pages site with fresh data
-
 on:
   schedule:
-    # Every weekday (Mon-Fri) at 21:00 UTC (≈ 4 PM ET, after NYSE close)
-    - cron: '0 21 * * 1-5'
+    - cron: '0 21 * * 1-5'  # Weekdays at 9 PM UTC (after NYSE close)
   workflow_dispatch:
     inputs:
       reason:
@@ -23,7 +11,7 @@ on:
         default: 'Manual data refresh'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   fetch-data:
@@ -32,18 +20,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Log status
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch stock data
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
         run: |
-          echo "============================================"
-          echo "  Nostradamus Data Fetch Workflow"
-          echo "  Status: NOT YET IMPLEMENTED (Phase 2)"
-          echo "============================================"
-          echo ""
-          echo "This workflow will be fully implemented in Phase 2."
-          echo "When complete, it will:"
-          echo "  1. Fetch daily closing prices from Finnhub API"
-          echo "  2. Update data/historical/<SYMBOL>.json files"
-          echo "  3. Commit and push changes to trigger a Pages re-deploy"
-          echo ""
-          echo "Triggered at: $(date -u)"
-          echo "Reason: ${{ github.event.inputs.reason || 'Scheduled run' }}"
+          node scripts/fetch-historical.js
+
+      - name: Commit and push
+        run: |
+          git config user.name "Nostradamus Bot"
+          git config user.email "bot@nostradamus.app"
+          git add data/historical/
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "📈 Daily stock data update [$(date -u +%Y-%m-%d)]"
+          git push

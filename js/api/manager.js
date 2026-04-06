@@ -8,12 +8,6 @@
  *   3. Polygon.io           — unlimited (prev-day only on free tier)
  *   4. localStorage cache   — any age
  *   5. Demo data (sample.json)
- *
- * TODO (Phase 2):
- *  - Implement rate-limit token bucket per provider
- *  - Implement request batching queue
- *  - Wire up all fallback logic
- *  - Integrate TTL cache checks before every network call
  */
 
 import * as finnhub   from './finnhub.js';
@@ -29,6 +23,42 @@ const RATE_LIMITS = {
   polygon:    { callsPerMinute: Infinity, callsPerDay: Infinity },
 };
 
+// ─── Token Bucket State ───────────────────────────────────────
+const _buckets = {};
+Object.keys(RATE_LIMITS).forEach(provider => {
+  _buckets[provider] = {
+    tokens: RATE_LIMITS[provider].callsPerMinute,
+    lastRefill: Date.now(),
+  };
+});
+
+/**
+ * Try to consume one token from the provider's bucket.
+ * Refills tokens every 60 seconds.
+ * @param {string} provider
+ * @returns {boolean} true if a token was consumed, false if bucket is empty
+ */
+function consumeToken(provider) {
+  const limit = RATE_LIMITS[provider].callsPerMinute;
+  if (!isFinite(limit)) return true; // unlimited
+
+  const bucket = _buckets[provider];
+  const now = Date.now();
+  const elapsed = now - bucket.lastRefill;
+
+  // Refill tokens if a minute has passed
+  if (elapsed >= 60_000) {
+    bucket.tokens = limit;
+    bucket.lastRefill = now;
+  }
+
+  if (bucket.tokens > 0) {
+    bucket.tokens--;
+    return true;
+  }
+  return false;
+}
+
 // ─── Cache TTLs ───────────────────────────────────────────────
 const CACHE_TTL = {
   QUOTE:    5  * 60 * 1000,  // 5 minutes (real-time quotes)
@@ -36,6 +66,166 @@ const CACHE_TTL = {
   PROFILE:  24 * 60 * 60 * 1000,  // 24 hours (company info)
   SEARCH:   60 * 60 * 1000,  // 1 hour (search results)
 };
+
+// ─── Normalisers ──────────────────────────────────────────────
+
+/**
+ * Normalise a Finnhub quote response.
+ * @param {string} symbol
+ * @param {Object} raw
+ * @returns {Object}
+ */
+function normaliseFinnhubQuote(symbol, raw) {
+  return {
+    symbol,
+    current:       raw.c,
+    open:          raw.o,
+    high:          raw.h,
+    low:           raw.l,
+    previousClose: raw.pc,
+    change:        raw.d,
+    changePercent: raw.dp,
+    volume:        null,
+    timestamp:     raw.t,
+  };
+}
+
+/**
+ * Normalise a Twelve Data quote response.
+ * @param {Object} raw
+ * @returns {Object}
+ */
+function normaliseTwelvedataQuote(raw) {
+  return {
+    symbol:        raw.symbol,
+    current:       parseFloat(raw.close),
+    open:          parseFloat(raw.open),
+    high:          parseFloat(raw.high),
+    low:           parseFloat(raw.low),
+    previousClose: parseFloat(raw.previous_close),
+    change:        parseFloat(raw.change),
+    changePercent: parseFloat(raw.percent_change),
+    volume:        parseInt(raw.volume, 10) || null,
+    timestamp:     raw.datetime ? new Date(raw.datetime).getTime() / 1000 : null,
+  };
+}
+
+/**
+ * Normalise a Polygon previous-close response.
+ * @param {string} symbol
+ * @param {Object} raw
+ * @returns {Object}
+ */
+function normalisePolygonPrevClose(symbol, raw) {
+  const result = (raw.results || [])[0] || {};
+  const current = result.c || 0;
+  const prevClose = result.o || 0;
+  return {
+    symbol,
+    current,
+    open:          result.o || 0,
+    high:          result.h || 0,
+    low:           result.l || 0,
+    previousClose: prevClose,
+    change:        current - prevClose,
+    changePercent: prevClose ? ((current - prevClose) / prevClose) * 100 : 0,
+    volume:        result.v || null,
+    timestamp:     result.t ? result.t / 1000 : null,
+  };
+}
+
+/**
+ * Normalise Finnhub candles response to array of OHLCV objects.
+ * @param {Object} raw  - Finnhub candles response
+ * @returns {Array<{date: string, open: number, high: number, low: number, close: number, volume: number}>}
+ */
+function normaliseFinnhubCandles(raw) {
+  if (!raw || raw.s !== 'ok' || !Array.isArray(raw.t)) return [];
+  return raw.t.map((ts, i) => ({
+    date:   new Date(ts * 1000).toISOString().slice(0, 10),
+    open:   raw.o[i],
+    high:   raw.h[i],
+    low:    raw.l[i],
+    close:  raw.c[i],
+    volume: raw.v[i],
+  }));
+}
+
+/**
+ * Normalise Twelve Data time-series response.
+ * @param {Object} raw
+ * @returns {Array<{date: string, open: number, high: number, low: number, close: number, volume: number}>}
+ */
+function normaliseTwelvedataCandles(raw) {
+  if (!raw || !Array.isArray(raw.values)) return [];
+  return raw.values
+    .map(v => ({
+      date:   v.datetime ? v.datetime.slice(0, 10) : '',
+      open:   parseFloat(v.open),
+      high:   parseFloat(v.high),
+      low:    parseFloat(v.low),
+      close:  parseFloat(v.close),
+      volume: parseInt(v.volume, 10) || 0,
+    }))
+    .reverse(); // Twelve Data returns newest first
+}
+
+/**
+ * Normalise Polygon aggregates response.
+ * @param {Object} raw
+ * @returns {Array<{date: string, open: number, high: number, low: number, close: number, volume: number}>}
+ */
+function normalisePolygonCandles(raw) {
+  if (!raw || !Array.isArray(raw.results)) return [];
+  return raw.results.map(r => ({
+    date:   new Date(r.t).toISOString().slice(0, 10),
+    open:   r.o,
+    high:   r.h,
+    low:    r.l,
+    close:  r.c,
+    volume: r.v,
+  }));
+}
+
+/**
+ * Normalise Finnhub company profile response.
+ * @param {string} symbol
+ * @param {Object} raw
+ * @returns {Object}
+ */
+function normaliseFinnhubProfile(symbol, raw) {
+  return {
+    symbol,
+    name:      raw.name || symbol,
+    industry:  raw.finnhubIndustry || null,
+    marketCap: raw.marketCapitalization ? raw.marketCapitalization * 1e6 : null,
+    logo:      raw.logo || null,
+    exchange:  raw.exchange || null,
+    country:   raw.country || null,
+    currency:  raw.currency || null,
+  };
+}
+
+/**
+ * Normalise Polygon ticker details response.
+ * @param {string} symbol
+ * @param {Object} raw
+ * @returns {Object}
+ */
+function normalisePolygonProfile(symbol, raw) {
+  return {
+    symbol,
+    name:      raw.name || symbol,
+    industry:  raw.sic_description || null,
+    marketCap: raw.market_cap || null,
+    logo:      raw.branding?.icon_url || null,
+    exchange:  raw.primary_exchange || null,
+    country:   raw.locale || null,
+    currency:  raw.currency_name || null,
+  };
+}
+
+// ─── Public API ───────────────────────────────────────────────
 
 /**
  * Get a real-time stock quote with fallback chain + caching.
@@ -50,8 +240,58 @@ export async function getQuote(symbol) {
     return cached;
   }
 
-  // TODO (Phase 2): attempt finnhub → twelvedata → polygon → demo data
-  console.warn(`[APIManager] getQuote not yet fully implemented (Phase 2). Symbol: ${symbol}`);
+  // 1. Try Finnhub
+  if (consumeToken('finnhub')) {
+    try {
+      const raw = await withRetry(() => finnhub.getQuote(symbol));
+      if (raw && raw.c) {
+        const result = normaliseFinnhubQuote(symbol, raw);
+        setWithTTL(cacheKey, result, CACHE_TTL.QUOTE);
+        return result;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Finnhub getQuote failed for ${symbol}:`, err.message);
+    }
+  } else {
+    console.warn('[APIManager] Finnhub rate limit reached, skipping.');
+  }
+
+  // 2. Try Twelve Data
+  if (consumeToken('twelvedata')) {
+    try {
+      const raw = await withRetry(() => twelvdata.getQuote(symbol));
+      if (raw && raw.close) {
+        const result = normaliseTwelvedataQuote(raw);
+        setWithTTL(cacheKey, result, CACHE_TTL.QUOTE);
+        return result;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Twelve Data getQuote failed for ${symbol}:`, err.message);
+    }
+  } else {
+    console.warn('[APIManager] Twelve Data rate limit reached, skipping.');
+  }
+
+  // 3. Try Polygon
+  if (consumeToken('polygon')) {
+    try {
+      const raw = await withRetry(() => polygon.getPreviousClose(symbol));
+      if (raw && raw.results && raw.results.length > 0) {
+        const result = normalisePolygonPrevClose(symbol, raw);
+        setWithTTL(cacheKey, result, CACHE_TTL.QUOTE);
+        return result;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Polygon getPreviousClose failed for ${symbol}:`, err.message);
+    }
+  }
+
+  // 4. Demo fallback
+  console.warn(`[APIManager] All APIs failed for ${symbol}. Falling back to demo data.`);
+  const demo = await loadDemoData();
+  const demoStock = (demo.stocks || []).find(s => s.symbol === symbol);
+  if (demoStock) return { symbol, ...demoStock.quote };
+
   return null;
 }
 
@@ -69,9 +309,58 @@ export async function getCandles(symbol, days = 30) {
     return cached;
   }
 
-  // TODO (Phase 2): attempt finnhub → twelvedata → polygon → demo data
-  console.warn(`[APIManager] getCandles not yet fully implemented (Phase 2). Symbol: ${symbol}`);
-  return null;
+  const nowSec  = Math.floor(Date.now() / 1000);
+  const fromSec = nowSec - days * 86400;
+
+  // 1. Try Finnhub
+  if (consumeToken('finnhub')) {
+    try {
+      const raw = await withRetry(() => finnhub.getCandles(symbol, 'D', fromSec, nowSec));
+      const candles = normaliseFinnhubCandles(raw);
+      if (candles.length > 0) {
+        setWithTTL(cacheKey, candles, CACHE_TTL.CANDLES);
+        return candles;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Finnhub getCandles failed for ${symbol}:`, err.message);
+    }
+  }
+
+  // 2. Try Twelve Data
+  if (consumeToken('twelvedata')) {
+    try {
+      const raw = await withRetry(() => twelvdata.getTimeSeries(symbol, '1day', days));
+      const candles = normaliseTwelvedataCandles(raw);
+      if (candles.length > 0) {
+        setWithTTL(cacheKey, candles, CACHE_TTL.CANDLES);
+        return candles;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Twelve Data getTimeSeries failed for ${symbol}:`, err.message);
+    }
+  }
+
+  // 3. Try Polygon
+  if (consumeToken('polygon')) {
+    try {
+      const fromISO = new Date(fromSec * 1000).toISOString().slice(0, 10);
+      const toISO   = new Date(nowSec  * 1000).toISOString().slice(0, 10);
+      const raw = await withRetry(() => polygon.getAggregates(symbol, 1, 'day', fromISO, toISO));
+      const candles = normalisePolygonCandles(raw);
+      if (candles.length > 0) {
+        setWithTTL(cacheKey, candles, CACHE_TTL.CANDLES);
+        return candles;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Polygon getAggregates failed for ${symbol}:`, err.message);
+    }
+  }
+
+  // 4. Demo fallback
+  console.warn(`[APIManager] All APIs failed for candles ${symbol}. Falling back to demo data.`);
+  const demo = await loadDemoData();
+  const demoStock = (demo.stocks || []).find(s => s.symbol === symbol);
+  return demoStock ? (demoStock.candles || []) : [];
 }
 
 /**
@@ -84,8 +373,49 @@ export async function getCompanyProfile(symbol) {
   const cached = getWithTTL(cacheKey);
   if (cached) return cached;
 
-  // TODO (Phase 2): implement
-  console.warn(`[APIManager] getCompanyProfile not yet implemented (Phase 2). Symbol: ${symbol}`);
+  // 1. Try Finnhub
+  if (consumeToken('finnhub')) {
+    try {
+      const raw = await withRetry(() => finnhub.getCompanyProfile(symbol));
+      if (raw && raw.name) {
+        const result = normaliseFinnhubProfile(symbol, raw);
+        setWithTTL(cacheKey, result, CACHE_TTL.PROFILE);
+        return result;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Finnhub getCompanyProfile failed for ${symbol}:`, err.message);
+    }
+  }
+
+  // 2. Try Polygon
+  if (consumeToken('polygon')) {
+    try {
+      const raw = await withRetry(() => polygon.getTickerDetails(symbol));
+      if (raw && raw.name) {
+        const result = normalisePolygonProfile(symbol, raw);
+        setWithTTL(cacheKey, result, CACHE_TTL.PROFILE);
+        return result;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Polygon getTickerDetails failed for ${symbol}:`, err.message);
+    }
+  }
+
+  // 3. Demo fallback
+  const demo = await loadDemoData();
+  const demoStock = (demo.stocks || []).find(s => s.symbol === symbol);
+  if (demoStock) {
+    return {
+      symbol,
+      name:      demoStock.name,
+      industry:  demoStock.industry || null,
+      marketCap: demoStock.marketCap || null,
+      logo:      null,
+      exchange:  demoStock.exchange || null,
+      country:   null,
+      currency:  null,
+    };
+  }
   return null;
 }
 
@@ -99,8 +429,49 @@ export async function searchSymbols(query) {
   const cached = getWithTTL(cacheKey);
   if (cached) return cached;
 
-  // TODO (Phase 2): implement fallback search
-  console.warn(`[APIManager] searchSymbols not yet implemented (Phase 2). Query: ${query}`);
+  // 1. Try Finnhub
+  if (consumeToken('finnhub')) {
+    try {
+      const raw = await withRetry(() => finnhub.searchSymbols(query));
+      if (raw && Array.isArray(raw.result) && raw.result.length > 0) {
+        const results = raw.result.map(r => ({ symbol: r.symbol, name: r.description }));
+        setWithTTL(cacheKey, results, CACHE_TTL.SEARCH);
+        return results;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Finnhub searchSymbols failed for "${query}":`, err.message);
+    }
+  }
+
+  // 2. Try Twelve Data
+  if (consumeToken('twelvedata')) {
+    try {
+      const raw = await withRetry(() => twelvdata.searchSymbols(query));
+      if (Array.isArray(raw) && raw.length > 0) {
+        const results = raw.map(r => ({ symbol: r.symbol, name: r.instrument_name }));
+        setWithTTL(cacheKey, results, CACHE_TTL.SEARCH);
+        return results;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Twelve Data searchSymbols failed for "${query}":`, err.message);
+    }
+  }
+
+  // 3. Try Polygon
+  if (consumeToken('polygon')) {
+    try {
+      const raw = await withRetry(() => polygon.searchTickers(query));
+      if (Array.isArray(raw) && raw.length > 0) {
+        const results = raw.map(r => ({ symbol: r.ticker, name: r.name }));
+        setWithTTL(cacheKey, results, CACHE_TTL.SEARCH);
+        return results;
+      }
+    } catch (err) {
+      console.warn(`[APIManager] Polygon searchTickers failed for "${query}":`, err.message);
+    }
+  }
+
+  // 4. Return empty array as final fallback
   return [];
 }
 

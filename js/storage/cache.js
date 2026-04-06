@@ -88,16 +88,58 @@ export function getWithTTL(key) {
  *
  * @param {boolean} [allKeys=false]  - If true, clears everything including
  *   persistent settings (API keys, preferences). If false (default), only
- *   clears TTL-cached API responses (keys containing "_cache_").
+ *   clears TTL-cached API responses (keys matching quote_, candles_, profile_, search_).
+ * @returns {number} The number of keys removed.
  */
 export function clearAll(allKeys = false) {
   const keysToRemove = [];
+  const API_CACHE_PATTERNS = ['quote_', 'candles_', 'profile_', 'search_'];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
     if (!k || !k.startsWith(CACHE_PREFIX)) continue;
-    // In selective mode, only remove TTL cache entries (not settings/keys)
-    if (!allKeys && !k.includes('_cache_')) continue;
-    keysToRemove.push(k);
+    if (allKeys) {
+      keysToRemove.push(k);
+    } else {
+      // Strip the namespace prefix to check the bare key pattern
+      const bare = k.slice(CACHE_PREFIX.length);
+      if (API_CACHE_PATTERNS.some(p => bare.startsWith(p))) {
+        keysToRemove.push(k);
+      }
+    }
   }
   keysToRemove.forEach(k => localStorage.removeItem(k));
+  return keysToRemove.length;
+}
+
+/**
+ * Return cache statistics for the Settings panel display.
+ * @returns {{ totalKeys: number, expiredKeys: number, sizeEstimateKB: number }}
+ */
+export function getStats() {
+  let totalKeys = 0;
+  let expiredKeys = 0;
+  let sizeBytes = 0;
+  const now = Date.now();
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith(CACHE_PREFIX)) continue;
+    totalKeys++;
+    const raw = localStorage.getItem(k) || '';
+    sizeBytes += k.length + raw.length;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.expiresAt === 'number' && now > parsed.expiresAt) {
+        expiredKeys++;
+      }
+    } catch {
+      // not a TTL entry, ignore
+    }
+  }
+
+  return {
+    totalKeys,
+    expiredKeys,
+    sizeEstimateKB: Math.round(sizeBytes / 1024),
+  };
 }

@@ -9,13 +9,16 @@
  *  - Coordinate with charts.js and prediction.js
  *
  * Phase 1: Renders demo data from data/sample.json.
- * Phase 2+: Pulls live data via api/manager.js.
+ * Phase 2: Pulls live data via api/manager.js.
  * Phase 4+: Adds prediction overlays on each card.
  */
 
-import { loadDemoData } from '../api/manager.js';
+import { loadDemoData, getQuote, getCandles } from '../api/manager.js';
+import { getItem } from '../storage/cache.js';
 import { demoPrediction } from '../ml/prediction.js';
 import { renderStockCard } from './stockcard.js';
+
+const DEFAULT_WATCHLIST = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA'];
 
 /**
  * Initialize the dashboard with the given app state.
@@ -27,8 +30,8 @@ export async function initDashboard(appState) {
   const stockGrid = document.getElementById('stock-grid');
   if (!stockGrid) return;
 
-  // Clear loading skeletons
-  stockGrid.innerHTML = '';
+  // Show loading skeletons
+  showLoadingSkeletons(stockGrid);
 
   let stocks = [];
 
@@ -36,11 +39,11 @@ export async function initDashboard(appState) {
     const demoData = await loadDemoData();
     stocks = demoData.stocks || [];
   } else {
-    // TODO (Phase 2): load live data via api/manager.js
-    console.warn('[Dashboard] Live mode not yet implemented. Falling back to demo data.');
-    const demoData = await loadDemoData();
-    stocks = demoData.stocks || [];
+    stocks = await loadLiveStocks(appState, stockGrid);
   }
+
+  // Clear skeletons
+  stockGrid.innerHTML = '';
 
   if (stocks.length === 0) {
     renderEmptyState(stockGrid);
@@ -57,6 +60,108 @@ export async function initDashboard(appState) {
   });
 
   console.log(`[Dashboard] Rendered ${stocks.length} stock cards.`);
+}
+
+/**
+ * Load live stock data for the watchlist, with per-symbol error handling.
+ * Falls back to demo data on total failure.
+ * @param {{ mode: string, chartReady: boolean }} appState
+ * @param {HTMLElement} stockGrid
+ * @returns {Promise<Array>}
+ */
+async function loadLiveStocks(appState, stockGrid) {
+  const savedWatchlist = getItem('watchlist');
+  const watchlist = Array.isArray(savedWatchlist) && savedWatchlist.length > 0
+    ? savedWatchlist
+    : DEFAULT_WATCHLIST;
+
+  const stocks = [];
+
+  await Promise.allSettled(
+    watchlist.map(async symbol => {
+      try {
+        const [quote, candles] = await Promise.all([
+          getQuote(symbol),
+          getCandles(symbol),
+        ]);
+
+        if (!quote) {
+          console.warn(`[Dashboard] No quote data for ${symbol}, skipping.`);
+          return;
+        }
+
+        stocks.push({
+          symbol,
+          name:      quote.symbol || symbol,
+          exchange:  quote.exchange || null,
+          industry:  null,
+          marketCap: null,
+          quote: {
+            current:       quote.current       || 0,
+            open:          quote.open          || 0,
+            high:          quote.high          || 0,
+            low:           quote.low           || 0,
+            previousClose: quote.previousClose || 0,
+            change:        quote.change        || 0,
+            changePercent: quote.changePercent || 0,
+            volume:        quote.volume        || 0,
+            history:       Array.isArray(candles) ? candles.map(c => c.close) : [],
+          },
+          candles: candles || [],
+        });
+      } catch (err) {
+        console.error(`[Dashboard] Failed to load ${symbol}:`, err.message);
+        renderErrorCard(stockGrid, symbol, err.message);
+      }
+    })
+  );
+
+  // If live loading produced nothing, fall back to demo
+  if (stocks.length === 0) {
+    console.warn('[Dashboard] All live loads failed. Falling back to demo data.');
+    const demoData = await loadDemoData();
+    return demoData.stocks || [];
+  }
+
+  return stocks;
+}
+
+/**
+ * Show loading skeleton cards while data is being fetched.
+ * @param {HTMLElement} container
+ */
+function showLoadingSkeletons(container) {
+  container.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const skeleton = document.createElement('div');
+    skeleton.className = 'stock-card stock-card--skeleton';
+    skeleton.setAttribute('aria-hidden', 'true');
+    skeleton.innerHTML = `
+      <div class="skeleton-line skeleton-line--short"></div>
+      <div class="skeleton-line skeleton-line--long"></div>
+      <div class="skeleton-line skeleton-line--medium"></div>
+    `;
+    container.appendChild(skeleton);
+  }
+}
+
+/**
+ * Render an error card for a symbol that failed to load.
+ * @param {HTMLElement} container
+ * @param {string} symbol
+ * @param {string} message
+ */
+function renderErrorCard(container, symbol, message) {
+  const card = document.createElement('div');
+  card.className = 'stock-card stock-card--error';
+  card.innerHTML = `
+    <div class="stock-card__header">
+      <span class="stock-card__symbol">${symbol}</span>
+    </div>
+    <p class="stock-card__error-text">Failed to load data.</p>
+    <p class="stock-card__error-detail" style="font-size:0.75rem;color:var(--color-text-muted)">${message || ''}</p>
+  `;
+  container.appendChild(card);
 }
 
 /**
