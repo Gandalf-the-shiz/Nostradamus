@@ -14,7 +14,7 @@
  * Phase 2+: Will load live data via the API manager.
  */
 
-import { getItem, setItem, removeItem } from './storage/cache.js';
+import { getItem, setItem, removeItem, clearAll } from './storage/cache.js';
 import { showToast } from './utils/helpers.js';
 import { initDashboard } from './ui/dashboard.js';
 import { initSearch } from './ui/search.js';
@@ -224,8 +224,8 @@ function clearApiKeys() {
 }
 
 function clearCache() {
-  // TODO (Phase 2): clear only TTL-cached API responses, not API keys
-  showToast('Cache cleared.', 'success');
+  const count = clearAll(false);
+  showToast(`Cache cleared (${count} entr${count === 1 ? 'y' : 'ies'} removed).`, 'success');
 }
 
 // ─── DOM Ready ────────────────────────────────────────────────

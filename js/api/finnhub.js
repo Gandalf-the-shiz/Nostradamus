@@ -4,11 +4,6 @@
  *
  * Docs: https://finnhub.io/docs/api
  * Free tier: 60 API calls/minute, WebSocket support, CORS ✅
- *
- * TODO (Phase 2):
- *  - Implement all functions below
- *  - Integrate with manager.js rate-limit queue
- *  - Add WebSocket connection for real-time quotes
  */
 
 const BASE_URL = 'https://finnhub.io/api/v1';
@@ -28,14 +23,35 @@ function getApiKey() {
 }
 
 /**
+ * Perform a fetch request to the Finnhub API.
+ * @param {string} path  - API path (e.g. "/quote")
+ * @param {Object} params  - Query parameters (excluding token)
+ * @returns {Promise<Object>}
+ */
+async function apiFetch(path, params = {}) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error('Finnhub API key not configured. Add your key in Settings.');
+  }
+  const url = new URL(`${BASE_URL}${path}`);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  url.searchParams.set('token', apiKey);
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Finnhub API error: HTTP ${response.status} for ${path}`);
+  }
+  return response.json();
+}
+
+/**
  * Fetch the real-time quote for a stock symbol.
  * @param {string} symbol  - e.g. "AAPL"
  * @returns {Promise<{c: number, d: number, dp: number, h: number, l: number, o: number, pc: number, t: number}>}
  *   c=current, d=change, dp=change%, h=high, l=low, o=open, pc=prev close, t=timestamp
  */
 export async function getQuote(symbol) {
-  // TODO (Phase 2): implement
-  throw new Error('Finnhub getQuote not yet implemented (Phase 2)');
+  return apiFetch('/quote', { symbol });
 }
 
 /**
@@ -44,8 +60,7 @@ export async function getQuote(symbol) {
  * @returns {Promise<Object>}
  */
 export async function getCompanyProfile(symbol) {
-  // TODO (Phase 2): implement
-  throw new Error('Finnhub getCompanyProfile not yet implemented (Phase 2)');
+  return apiFetch('/stock/profile2', { symbol });
 }
 
 /**
@@ -57,18 +72,16 @@ export async function getCompanyProfile(symbol) {
  * @returns {Promise<{c: number[], h: number[], l: number[], o: number[], v: number[], t: number[], s: string}>}
  */
 export async function getCandles(symbol, resolution, from, to) {
-  // TODO (Phase 2): implement
-  throw new Error('Finnhub getCandles not yet implemented (Phase 2)');
+  return apiFetch('/stock/candle', { symbol, resolution, from, to });
 }
 
 /**
  * Search for symbols matching a query string.
  * @param {string} query  - e.g. "Apple" or "AAPL"
- * @returns {Promise<Array<{description: string, displaySymbol: string, symbol: string, type: string}>>}
+ * @returns {Promise<{result: Array<{description: string, displaySymbol: string, symbol: string, type: string}>}>}
  */
 export async function searchSymbols(query) {
-  // TODO (Phase 2): implement
-  throw new Error('Finnhub searchSymbols not yet implemented (Phase 2)');
+  return apiFetch('/search', { q: query });
 }
 
 /**
@@ -90,7 +103,43 @@ export async function getCompanyNews(symbol, from, to) {
  * @returns {{ close: () => void }}  - Object with a close() method to unsubscribe
  */
 export function openTradesWebSocket(symbols, onTrade) {
-  // TODO (Phase 2): implement WebSocket connection
-  console.warn('[Finnhub] WebSocket not yet implemented (Phase 2)');
-  return { close: () => {} };
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    console.warn('[Finnhub] WebSocket: API key not configured.');
+    return { close: () => {} };
+  }
+
+  const ws = new WebSocket(`wss://ws.finnhub.io?token=${apiKey}`);
+
+  ws.addEventListener('open', () => {
+    symbols.forEach(symbol => {
+      ws.send(JSON.stringify({ type: 'subscribe', symbol }));
+    });
+  });
+
+  ws.addEventListener('message', event => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'trade' && Array.isArray(data.data)) {
+        data.data.forEach(trade => onTrade(trade));
+      }
+    } catch (err) {
+      console.warn('[Finnhub] WebSocket message parse error:', err.message);
+    }
+  });
+
+  ws.addEventListener('error', err => {
+    console.error('[Finnhub] WebSocket error:', err);
+  });
+
+  return {
+    close: () => {
+      symbols.forEach(symbol => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'unsubscribe', symbol }));
+        }
+      });
+      ws.close();
+    },
+  };
 }

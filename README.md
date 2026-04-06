@@ -68,15 +68,15 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [x] Demo data file created (`data/sample.json`)
 - [x] MIT License added
 
-### 🔲 Phase 2: Data Layer & API Integration
-- [ ] Finnhub API integration module (quotes, company profile, historical data)
-- [ ] Twelve Data API fallback module
-- [ ] Polygon.io API fallback module
-- [ ] Smart request batching and rate-limit manager
-- [ ] localStorage caching layer with TTL
-- [ ] API fallback chain logic (primary → secondary → tertiary → cache)
-- [ ] GitHub Actions workflow to pre-fetch and commit historical price data as JSON
-- [ ] Error handling and user-friendly API error messages
+### ✅ Phase 2: Data Layer & API Integration
+- [x] Finnhub API integration module (quotes, company profile, historical data)
+- [x] Twelve Data API fallback module
+- [x] Polygon.io API fallback module
+- [x] Smart request batching and rate-limit manager
+- [x] localStorage caching layer with TTL
+- [x] API fallback chain logic (primary → secondary → tertiary → cache)
+- [x] GitHub Actions workflow to pre-fetch and commit historical price data as JSON
+- [x] Error handling and user-friendly API error messages
 
 ### 🔲 Phase 3: Frontend Dashboard UI
 - [ ] Stock search bar with autocomplete
@@ -179,12 +179,12 @@ Nostradamus/
 
 ## Current Status
 
-**Phase 1 complete.** The app scaffold is live at https://gandalf-the-shiz.github.io/Nostradamus/
+**Phase 2 complete.** The data layer is live with full API integration, fallback chain, caching, and scheduled data fetching.
 
-**Next step for agents: Implement Phase 2 (Data Layer & API Integration)**
-- Read Phase 2 checklist above
-- Implement `js/api/finnhub.js`, `js/api/twelvedata.js`, `js/api/polygon.js`, `js/api/manager.js`
-- Implement `js/storage/cache.js` with full TTL logic
-- Add Settings UI panel for API key entry
-- Hook up demo data fallback in `js/app.js`
-- Update `data/sample.json` with richer historical data if needed
+**Next step for agents: Implement Phase 3 (Frontend Dashboard UI)**
+- Read Phase 3 checklist above
+- Build interactive charts with Chart.js (price history + prediction overlay)
+- Implement watchlist add/remove with localStorage persistence
+- Polish stock cards with full OHLCV detail
+- Add dark/light theme toggle
+- Add loading skeletons and full error states

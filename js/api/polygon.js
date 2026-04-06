@@ -4,10 +4,6 @@
  *
  * Docs: https://polygon.io/docs
  * Free tier: unlimited calls (prev-day data only on free tier), CORS ✅
- *
- * TODO (Phase 2):
- *  - Implement all functions below
- *  - Integrate with manager.js rate-limit queue
  */
 
 const BASE_URL = 'https://api.polygon.io';
@@ -27,13 +23,34 @@ function getApiKey() {
 }
 
 /**
+ * Perform a fetch request to the Polygon API.
+ * @param {string} path  - API path
+ * @param {Object} params  - Query parameters (excluding apiKey)
+ * @returns {Promise<Object>}
+ */
+async function apiFetch(path, params = {}) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error('Polygon API key not configured. Add your key in Settings.');
+  }
+  const url = new URL(`${BASE_URL}${path}`);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  url.searchParams.set('apiKey', apiKey);
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Polygon API error: HTTP ${response.status} for ${path}`);
+  }
+  return response.json();
+}
+
+/**
  * Fetch the previous day's OHLCV data for a ticker.
  * @param {string} ticker  - e.g. "AAPL"
  * @returns {Promise<{ticker: string, queryCount: number, resultsCount: number, adjusted: boolean, results: Array<{T: string, v: number, o: number, c: number, h: number, l: number, t: number, n: number}>}>}
  */
 export async function getPreviousClose(ticker) {
-  // TODO (Phase 2): implement
-  throw new Error('Polygon getPreviousClose not yet implemented (Phase 2)');
+  return apiFetch(`/v2/aggs/ticker/${encodeURIComponent(ticker)}/prev`, { adjusted: 'true' });
 }
 
 /**
@@ -46,8 +63,10 @@ export async function getPreviousClose(ticker) {
  * @returns {Promise<Object>}
  */
 export async function getAggregates(ticker, multiplier, timespan, from, to) {
-  // TODO (Phase 2): implement
-  throw new Error('Polygon getAggregates not yet implemented (Phase 2)');
+  return apiFetch(
+    `/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/${multiplier}/${timespan}/${from}/${to}`,
+    { adjusted: 'true', sort: 'asc' }
+  );
 }
 
 /**
@@ -56,8 +75,12 @@ export async function getAggregates(ticker, multiplier, timespan, from, to) {
  * @returns {Promise<Array<{ticker: string, name: string, market: string, locale: string, type: string, currency_name: string}>>}
  */
 export async function searchTickers(query) {
-  // TODO (Phase 2): implement
-  throw new Error('Polygon searchTickers not yet implemented (Phase 2)');
+  const data = await apiFetch('/v3/reference/tickers', {
+    search: query,
+    active: 'true',
+    limit: '10',
+  });
+  return data.results || [];
 }
 
 /**
@@ -66,6 +89,6 @@ export async function searchTickers(query) {
  * @returns {Promise<Object>}
  */
 export async function getTickerDetails(ticker) {
-  // TODO (Phase 2): implement
-  throw new Error('Polygon getTickerDetails not yet implemented (Phase 2)');
+  const data = await apiFetch(`/v3/reference/tickers/${encodeURIComponent(ticker)}`);
+  return data.results || data;
 }
