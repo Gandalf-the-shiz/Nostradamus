@@ -22,6 +22,9 @@ on:
         required: false
         default: 'Manual data refresh'
 
+permissions:
+  contents: read
+
 jobs:
   fetch-data:
     runs-on: ubuntu-latest

@@ -85,17 +85,19 @@ export function getWithTTL(key) {
 
 /**
  * Clear all Nostradamus-namespaced cache entries.
- * Does NOT clear API keys (those use plain setItem/getItem).
  *
- * @param {boolean} [allKeys=false]  - If true, also clears settings/keys.
+ * @param {boolean} [allKeys=false]  - If true, clears everything including
+ *   persistent settings (API keys, preferences). If false (default), only
+ *   clears TTL-cached API responses (keys containing "_cache_").
  */
 export function clearAll(allKeys = false) {
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && k.startsWith(CACHE_PREFIX)) {
-      keysToRemove.push(k);
-    }
+    if (!k || !k.startsWith(CACHE_PREFIX)) continue;
+    // In selective mode, only remove TTL cache entries (not settings/keys)
+    if (!allKeys && !k.includes('_cache_')) continue;
+    keysToRemove.push(k);
   }
   keysToRemove.forEach(k => localStorage.removeItem(k));
 }

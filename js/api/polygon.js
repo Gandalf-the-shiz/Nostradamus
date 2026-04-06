@@ -14,11 +14,12 @@ const BASE_URL = 'https://api.polygon.io';
 
 /**
  * Get the Polygon.io API key from localStorage.
+ * Uses the cache module's namespace prefix (nostradamus_polygon_key).
  * @returns {string|null}
  */
 function getApiKey() {
   try {
-    const raw = localStorage.getItem('nostradamus_nostradamus_polygon_key');
+    const raw = localStorage.getItem('nostradamus_polygon_key');
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;

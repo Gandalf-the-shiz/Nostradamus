@@ -14,11 +14,12 @@ const BASE_URL = 'https://api.twelvedata.com';
 
 /**
  * Get the Twelve Data API key from localStorage.
+ * Uses the cache module's namespace prefix (nostradamus_twelvedata_key).
  * @returns {string|null}
  */
 function getApiKey() {
   try {
-    const raw = localStorage.getItem('nostradamus_nostradamus_twelvedata_key');
+    const raw = localStorage.getItem('nostradamus_twelvedata_key');
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;

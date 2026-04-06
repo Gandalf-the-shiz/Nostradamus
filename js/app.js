@@ -21,9 +21,9 @@ import { initSearch } from './ui/search.js';
 
 // ─── Constants ────────────────────────────────────────────────
 const STORAGE_KEYS = {
-  FINNHUB_KEY:    'nostradamus_finnhub_key',
-  TWELVEDATA_KEY: 'nostradamus_twelvedata_key',
-  POLYGON_KEY:    'nostradamus_polygon_key',
+  FINNHUB_KEY:    'finnhub_key',
+  TWELVEDATA_KEY: 'twelvedata_key',
+  POLYGON_KEY:    'polygon_key',
 };
 
 // ─── App State ────────────────────────────────────────────────

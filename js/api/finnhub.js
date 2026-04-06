@@ -15,11 +15,12 @@ const BASE_URL = 'https://finnhub.io/api/v1';
 
 /**
  * Get the Finnhub API key from localStorage.
+ * Uses the cache module's namespace prefix (nostradamus_finnhub_key).
  * @returns {string|null}
  */
 function getApiKey() {
   try {
-    const raw = localStorage.getItem('nostradamus_nostradamus_finnhub_key');
+    const raw = localStorage.getItem('nostradamus_finnhub_key');
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
