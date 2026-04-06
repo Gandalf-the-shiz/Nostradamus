@@ -89,11 +89,10 @@ export async function searchSymbols(query) {
  * @param {string} symbol
  * @param {string} from  - YYYY-MM-DD
  * @param {string} to    - YYYY-MM-DD
- * @returns {Promise<Array<Object>>}
+ * @returns {Promise<Array<{category: string, datetime: number, headline: string, id: number, image: string, related: string, source: string, summary: string, url: string}>>}
  */
 export async function getCompanyNews(symbol, from, to) {
-  // TODO (Phase 6): implement (news sentiment)
-  throw new Error('Finnhub getCompanyNews not yet implemented (Phase 6)');
+  return apiFetch('/company-news', { symbol, from, to });
 }
 
 /**

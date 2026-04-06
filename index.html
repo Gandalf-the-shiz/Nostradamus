@@ -6,6 +6,13 @@
   <meta name="description" content="Nostradamus — The AI Stock Oracle. Predict which stocks will go up or down, powered by TensorFlow.js machine learning running entirely in your browser." />
   <meta name="theme-color" content="#0f1117" />
 
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Nostradamus" />
+  <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+
   <!-- Open Graph -->
   <meta property="og:title" content="Nostradamus — The AI Stock Oracle" />
   <meta property="og:description" content="In-browser AI stock prediction powered by TensorFlow.js" />
@@ -51,6 +58,8 @@
         <button id="nav-dashboard" class="nav-btn nav-btn--active" aria-current="page">Dashboard</button>
         <button id="nav-watchlist" class="nav-btn">Watchlist</button>
         <button id="nav-accuracy" class="nav-btn" aria-label="Prediction accuracy">📊</button>
+        <button id="nav-sectors" class="nav-btn" aria-label="Sector analysis">🏭</button>
+        <button id="nav-help" class="nav-btn" aria-label="Help and user guide">❓</button>
         <button id="theme-toggle" class="nav-btn" aria-label="Toggle dark/light theme" title="Toggle theme">🌙</button>
         <button id="nav-settings" class="nav-btn" aria-label="Settings">⚙️</button>
       </nav>
@@ -130,6 +139,11 @@
       <!-- Populated by js/ui/accuracy-dashboard.js -->
     </section>
 
+    <!-- Sectors View (hidden until nav click) -->
+    <section id="view-sectors" class="view" aria-label="Sector analysis" hidden>
+      <!-- Populated by js/ui/sectors.js -->
+    </section>
+
     <!-- Settings View (hidden until nav click) -->
     <section id="view-settings" class="view" aria-label="Settings" hidden>
       <div class="settings-panel">
@@ -199,7 +213,7 @@
         <div class="settings-group">
           <h3 class="settings-group__title">About</h3>
           <p class="settings-group__desc">
-            Nostradamus v0.5.0 — Phase 5 (Self-Learning)<br />
+            Nostradamus v0.6.0 — Phase 6 (Polish &amp; Advanced Features)<br />
             Built by GitHub Agents. Powered by TensorFlow.js &amp; Chart.js.<br />
             <a href="https://github.com/Gandalf-the-shiz/Nostradamus" target="_blank" rel="noopener noreferrer">View source on GitHub →</a>
           </p>
@@ -225,6 +239,18 @@
        APP BOOTSTRAP
        app.js initializes everything after DOM + CDN libs are loaded
   ============================================================ -->
+  <!-- PWA offline indicator (shown by sw.js message handler in app.js) -->
+  <div id="offline-banner" class="offline-banner" role="alert" hidden>
+    <span>📡 You are offline. Showing cached data.</span>
+  </div>
+
+  <!-- PWA install prompt (shown when browser fires beforeinstallprompt) -->
+  <div id="pwa-install-banner" class="pwa-install-banner" hidden>
+    <span>📱 Install Nostradamus on your device for offline access.</span>
+    <button id="pwa-install-btn" class="btn btn--primary pwa-install-banner__btn">Install</button>
+    <button id="pwa-install-dismiss" class="pwa-install-banner__dismiss" aria-label="Dismiss install prompt">✕</button>
+  </div>
+
   <!-- Stock detail overlay container (populated dynamically) -->
   <div id="stock-detail-overlay" class="detail-overlay" hidden aria-modal="true" role="dialog"></div>
 

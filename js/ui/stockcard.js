@@ -116,11 +116,11 @@ export function renderStockCard(stock, prediction, chartAvailable) {
     </div>
   `;
 
-  // Render sparkline chart
+  // Render sparkline chart lazily (only when the card enters the viewport)
   if (chartAvailable && stock.quote.history && stock.quote.history.length > 0) {
     const chartContainer = card.querySelector(`#chart-${stock.symbol}`);
     if (chartContainer) {
-      renderSparkline(chartContainer, stock.quote.history, isUp);
+      _observeSparkline(chartContainer, stock.quote.history, isUp);
     }
   }
 
@@ -157,6 +157,33 @@ function _toggleWatchlist(symbol, btn) {
   btn.classList.toggle('stock-card__watchlist-btn--active', willAdd);
   btn.textContent = willAdd ? '★' : '☆';
   btn.setAttribute('aria-label', `${willAdd ? 'Remove' : 'Add'} ${symbol} ${willAdd ? 'from' : 'to'} watchlist`);
+}
+
+/**
+ * Lazily render a sparkline when the container scrolls into the viewport.
+ * Uses IntersectionObserver if available; falls back to immediate render.
+ *
+ * @param {HTMLElement} container
+ * @param {number[]}    history  - Array of close prices
+ * @param {boolean}     isUp     - Whether today's change is positive
+ */
+function _observeSparkline(container, history, isUp) {
+  if (!('IntersectionObserver' in window)) {
+    // Fallback: render immediately
+    renderSparkline(container, history, isUp);
+    return;
+  }
+
+  const observer = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        renderSparkline(entry.target, history, isUp);
+        observer.unobserve(entry.target);
+      }
+    }
+  }, { threshold: 0.1 });
+
+  observer.observe(container);
 }
 
 /**
