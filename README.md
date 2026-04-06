@@ -78,15 +78,15 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [x] GitHub Actions workflow to pre-fetch and commit historical price data as JSON
 - [x] Error handling and user-friendly API error messages
 
-### 🔲 Phase 3: Frontend Dashboard UI
-- [ ] Stock search bar with autocomplete
-- [ ] Stock cards showing current price, change, prediction
-- [ ] Watchlist functionality (add/remove stocks, persisted in localStorage)
-- [ ] Chart.js integration for price history visualization
-- [ ] Prediction display overlay on charts (predicted vs actual)
-- [ ] Mobile-optimized layout and touch interactions
-- [ ] Dark/light theme toggle
-- [ ] Loading states, skeletons, and error states
+### ✅ Phase 3: Frontend Dashboard UI
+- [x] Stock search bar with autocomplete
+- [x] Stock cards showing current price, change, prediction
+- [x] Watchlist functionality (add/remove stocks, persisted in localStorage)
+- [x] Chart.js integration for price history visualization
+- [x] Prediction display overlay on charts (predicted vs actual)
+- [x] Mobile-optimized layout and touch interactions
+- [x] Dark/light theme toggle
+- [x] Loading states, skeletons, and error states
 
 ### 🔲 Phase 4: ML Prediction Engine
 - [ ] TensorFlow.js integration and model architecture (LSTM)
@@ -147,8 +147,11 @@ Nostradamus/
 │   ├── ui/
 │   │   ├── dashboard.js        # Main dashboard rendering & layout
 │   │   ├── charts.js           # Chart.js price history + prediction overlay
-│   │   ├── stockcard.js        # Stock card component
-│   │   └── search.js           # Search bar with autocomplete
+│   │   ├── stockcard.js        # Stock card component (OHLCV, range bar, watchlist)
+│   │   ├── search.js           # Search bar with autocomplete
+│   │   ├── detail.js           # Stock detail modal/overlay (Phase 3)
+│   │   ├── watchlist.js        # Watchlist view & persistence (Phase 3)
+│   │   └── theme.js            # Dark/light theme toggle (Phase 3)
 │   ├── storage/
 │   │   └── cache.js            # localStorage manager with TTL
 │   └── utils/
@@ -179,12 +182,6 @@ Nostradamus/
 
 ## Current Status
 
-**Phase 2 complete.** The data layer is live with full API integration, fallback chain, caching, and scheduled data fetching.
+**Phase 3 complete.** Full interactive dashboard with Chart.js visualizations, watchlist management, stock detail modal, dark/light theme toggle, and polished mobile UX.
 
-**Next step for agents: Implement Phase 3 (Frontend Dashboard UI)**
-- Read Phase 3 checklist above
-- Build interactive charts with Chart.js (price history + prediction overlay)
-- Implement watchlist add/remove with localStorage persistence
-- Polish stock cards with full OHLCV detail
-- Add dark/light theme toggle
-- Add loading skeletons and full error states
+**Next step for agents: Implement Phase 4 (ML Prediction Engine)**

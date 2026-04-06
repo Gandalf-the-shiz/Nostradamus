@@ -50,6 +50,7 @@
       <nav class="app-header__nav" aria-label="Main navigation">
         <button id="nav-dashboard" class="nav-btn nav-btn--active" aria-current="page">Dashboard</button>
         <button id="nav-watchlist" class="nav-btn">Watchlist</button>
+        <button id="theme-toggle" class="nav-btn" aria-label="Toggle dark/light theme" title="Toggle theme">🌙</button>
         <button id="nav-settings" class="nav-btn" aria-label="Settings">⚙️</button>
       </nav>
     </div>
@@ -118,10 +119,8 @@
 
     <!-- Watchlist View (hidden until nav click) -->
     <section id="view-watchlist" class="view" aria-label="Watchlist" hidden>
-      <div class="empty-state">
-        <span class="empty-state__icon">📋</span>
-        <h2 class="empty-state__title">Your Watchlist</h2>
-        <p class="empty-state__text">Search for stocks and add them to your watchlist to track them here.</p>
+      <div id="watchlist-grid" class="stock-grid" aria-label="Watchlist stocks">
+        <!-- Populated by js/ui/watchlist.js -->
       </div>
     </section>
 
@@ -165,7 +164,7 @@
         <div class="settings-group">
           <h3 class="settings-group__title">About</h3>
           <p class="settings-group__desc">
-            Nostradamus v0.2.0 — Phase 2 (Data Layer)<br />
+            Nostradamus v0.3.0 — Phase 3 (Dashboard UI)<br />
             Built by GitHub Agents. Powered by TensorFlow.js &amp; Chart.js.<br />
             <a href="https://github.com/Gandalf-the-shiz/Nostradamus" target="_blank" rel="noopener noreferrer">View source on GitHub →</a>
           </p>
@@ -191,6 +190,9 @@
        APP BOOTSTRAP
        app.js initializes everything after DOM + CDN libs are loaded
   ============================================================ -->
+  <!-- Stock detail overlay container (populated dynamically) -->
+  <div id="stock-detail-overlay" class="detail-overlay" hidden aria-modal="true" role="dialog"></div>
+
   <script type="module" src="js/app.js"></script>
 
 </body>
