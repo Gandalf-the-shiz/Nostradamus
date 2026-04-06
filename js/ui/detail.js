@@ -13,6 +13,8 @@
 import { formatCurrency, formatPercent, formatDollarChange, formatLargeNumber } from '../utils/helpers.js';
 import { renderDetailChart, renderFullChart, destroyContainerChart } from './charts.js';
 import { isInWatchlist, addToWatchlist, removeFromWatchlist } from './watchlist.js';
+import { renderNewsPanel } from './news.js';
+import { buildShareButtons } from './share.js';
 
 const OVERLAY_ID = 'stock-detail-overlay';
 
@@ -28,14 +30,15 @@ let _triggerEl = null;
  * @param {Object}  stock        - StockData object (quote + candles)
  * @param {Array}   candles      - OHLCV candle array (may be empty)
  * @param {Object|null} prediction - Prediction object or null
+ * @param {{ mode: 'demo'|'live' }} [appState]  - App state for feature flags
  */
-export function openStockDetail(symbol, stock, candles, prediction) {
+export function openStockDetail(symbol, stock, candles, prediction, appState = { mode: 'demo' }) {
   // Close any existing overlay first
   closeStockDetail();
 
   _triggerEl = document.activeElement;
 
-  const overlay = _buildOverlay(symbol, stock, candles, prediction);
+  const overlay = _buildOverlay(symbol, stock, candles, prediction, appState);
   document.body.appendChild(overlay);
   document.body.style.overflow = 'hidden';
 
@@ -62,6 +65,12 @@ export function openStockDetail(symbol, stock, candles, prediction) {
       const history = stock.quote.history.map((close, i) => ({ date: String(i), close }));
       renderDetailChart(chartContainer, history, prediction);
     }
+  }
+
+  // Async: populate news panel after overlay is shown
+  const newsContainer = overlay.querySelector('.detail-overlay__news-body');
+  if (newsContainer) {
+    renderNewsPanel(newsContainer, symbol, appState);
   }
 }
 
@@ -93,7 +102,7 @@ export function closeStockDetail() {
 
 // ─── DOM builders ─────────────────────────────────────────────
 
-function _buildOverlay(symbol, stock, candles, prediction) {
+function _buildOverlay(symbol, stock, candles, prediction, appState) {
   const q       = stock.quote || {};
   const isUp    = (q.change || 0) >= 0;
   const predUp  = prediction?.direction === 'UP';
@@ -169,6 +178,14 @@ function _buildOverlay(symbol, stock, candles, prediction) {
         </button>
       </div>
 
+      <!-- News -->
+      <div class="detail-overlay__news">
+        <h3 class="detail-overlay__section-title">📰 Recent News &amp; Sentiment</h3>
+        <div class="detail-overlay__news-body">
+          <!-- populated async by renderNewsPanel -->
+        </div>
+      </div>
+
     </div>
   `;
 
@@ -181,6 +198,14 @@ function _buildOverlay(symbol, stock, candles, prediction) {
     e.stopPropagation();
     _toggleWatchlistBtn(symbol, overlay.querySelector('#detail-watchlist-btn'));
   });
+
+  // Share buttons (append to actions row)
+  if (prediction) {
+    const actionsEl = overlay.querySelector('.detail-overlay__actions');
+    if (actionsEl) {
+      actionsEl.appendChild(buildShareButtons(symbol, prediction));
+    }
+  }
 
   return overlay;
 }

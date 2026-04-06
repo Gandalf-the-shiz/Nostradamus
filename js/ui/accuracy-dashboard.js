@@ -17,6 +17,8 @@ import { getAccuracySummary, getWeeklyMetrics } from '../ml/accuracy.js';
 import { getVersions, getChampionVersion } from '../ml/versioning.js';
 import { getLastTrainingInfo } from '../ml/retraining.js';
 import { formatCurrency } from '../utils/helpers.js';
+import { exportPredictionsCSV } from './export.js';
+import { showToast } from '../utils/helpers.js';
 
 // Chart instance registry so we can destroy/recreate on refresh
 let _accuracyChart = null;
@@ -41,6 +43,21 @@ export function initAccuracyDashboard(appState) {
   title.className = 'accuracy-panel__title';
   title.textContent = '📊 Prediction Accuracy';
   panel.appendChild(title);
+
+  // Export CSV button
+  const exportBtn = document.createElement('button');
+  exportBtn.className = 'btn btn--secondary accuracy-export-btn';
+  exportBtn.textContent = '⬇️ Export CSV';
+  exportBtn.title = 'Download all predictions as a CSV file';
+  exportBtn.addEventListener('click', () => {
+    const result = exportPredictionsCSV();
+    if (result.success) {
+      showToast(`Exported ${result.count} predictions to CSV.`, 'success');
+    } else {
+      showToast(result.message, 'info');
+    }
+  });
+  panel.appendChild(exportBtn);
 
   // Demo notice
   if (appState.mode === 'demo') {

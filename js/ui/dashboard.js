@@ -108,7 +108,7 @@ export async function initDashboard(appState) {
   stockGrid.addEventListener('stock-card-click', e => {
     const { stock, prediction } = e.detail;
     const candles = stock.candles || [];
-    openStockDetail(stock.symbol, stock, candles, prediction);
+    openStockDetail(stock.symbol, stock, candles, prediction, appState);
   });
 
   console.log(`[Dashboard] Rendered ${stocks.length} stock cards.`);

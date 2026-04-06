@@ -24,6 +24,7 @@ import { initAccuracyDashboard } from './ui/accuracy-dashboard.js';
 import { trainModel } from './ml/training.js';
 import { loadDemoData } from './api/manager.js';
 import { clearPredictions } from './ml/tracker.js';
+import { openHelp } from './ui/help.js';
 
 // ─── Constants ────────────────────────────────────────────────
 const STORAGE_KEYS = {
@@ -60,6 +61,9 @@ async function init() {
   initDemoBanner();
   initSettingsPanel();
   initThemeToggle();
+  registerServiceWorker();
+  initOfflineDetection();
+  initPWAInstallPrompt();
 
   // Initialize UI modules
   await initDashboard(appState);
@@ -130,24 +134,29 @@ function initNavigation() {
   const navDashboard = document.getElementById('nav-dashboard');
   const navWatchlist = document.getElementById('nav-watchlist');
   const navAccuracy  = document.getElementById('nav-accuracy');
+  const navSectors   = document.getElementById('nav-sectors');
+  const navHelp      = document.getElementById('nav-help');
   const navSettings  = document.getElementById('nav-settings');
 
   navDashboard?.addEventListener('click', () => navigateTo('dashboard'));
   navWatchlist?.addEventListener('click', () => navigateTo('watchlist'));
   navAccuracy?.addEventListener('click',  () => navigateTo('accuracy'));
+  navSectors?.addEventListener('click',   () => navigateTo('sectors'));
+  navHelp?.addEventListener('click',      () => openHelp());
   navSettings?.addEventListener('click',  () => navigateTo('settings'));
 }
 
 /**
  * Switch the visible view and update the active nav button.
- * @param {'dashboard'|'watchlist'|'accuracy'|'settings'} viewName
+ * @param {'dashboard'|'watchlist'|'accuracy'|'sectors'|'settings'} viewName
  */
 function navigateTo(viewName) {
-  const views = ['dashboard', 'watchlist', 'accuracy', 'settings'];
+  const views = ['dashboard', 'watchlist', 'accuracy', 'sectors', 'settings'];
   const navBtns = {
     dashboard: document.getElementById('nav-dashboard'),
     watchlist: document.getElementById('nav-watchlist'),
     accuracy:  document.getElementById('nav-accuracy'),
+    sectors:   document.getElementById('nav-sectors'),
     settings:  document.getElementById('nav-settings'),
   };
 
@@ -164,11 +173,17 @@ function navigateTo(viewName) {
 
   appState.activeView = viewName;
 
-  // Refresh view-specific content on navigation
+  // Refresh view-specific content on navigation (lazy-loaded modules)
   if (viewName === 'watchlist') {
     initWatchlist(appState);
   } else if (viewName === 'accuracy') {
     initAccuracyDashboard(appState);
+  } else if (viewName === 'sectors') {
+    // Lazy-load sectors module on first visit
+    import('./ui/sectors.js').then(({ renderSectorsPanel }) => {
+      const container = document.getElementById('view-sectors');
+      if (container) renderSectorsPanel(container, appState);
+    }).catch(err => console.error('[App] Failed to load sectors module:', err));
   }
 }
 
@@ -312,6 +327,86 @@ function clearApiKeys() {
 function clearCache() {
   const count = clearAll(false);
   showToast(`Cache cleared (${count} entr${count === 1 ? 'y' : 'ies'} removed).`, 'success');
+}
+
+// ─── Service Worker ───────────────────────────────────────────
+
+/**
+ * Register the service worker for PWA / offline support.
+ * Fails silently if service workers are not supported or if the
+ * registration fails (e.g., cross-origin, local file:// protocol).
+ */
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('[SW] Registered:', reg.scope);
+    }).catch(err => {
+      console.warn('[SW] Registration failed (non-fatal):', err.message);
+    });
+  });
+}
+
+// ─── Offline detection ────────────────────────────────────────
+
+/**
+ * Show/hide the offline indicator banner when network status changes.
+ */
+function initOfflineDetection() {
+  const banner = document.getElementById('offline-banner');
+  if (!banner) return;
+
+  function update() {
+    banner.hidden = navigator.onLine;
+    if (!navigator.onLine) {
+      showToast('You are offline. Showing cached data.', 'info');
+    }
+  }
+
+  window.addEventListener('online',  update);
+  window.addEventListener('offline', update);
+  update(); // Set initial state
+}
+
+// ─── PWA Install prompt ───────────────────────────────────────
+
+/** @type {BeforeInstallPromptEvent|null} */
+let _deferredInstallPrompt = null;
+
+/**
+ * Handle the PWA "Add to Home Screen" install prompt.
+ * Defers the browser prompt and shows our custom install banner.
+ */
+function initPWAInstallPrompt() {
+  const banner     = document.getElementById('pwa-install-banner');
+  const installBtn = document.getElementById('pwa-install-btn');
+  const dismissBtn = document.getElementById('pwa-install-dismiss');
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _deferredInstallPrompt = e;
+    if (banner) banner.hidden = false;
+  });
+
+  installBtn?.addEventListener('click', async () => {
+    if (!_deferredInstallPrompt) return;
+    _deferredInstallPrompt.prompt();
+    const { outcome } = await _deferredInstallPrompt.userChoice;
+    console.log('[PWA] Install outcome:', outcome);
+    _deferredInstallPrompt = null;
+    if (banner) banner.hidden = true;
+  });
+
+  dismissBtn?.addEventListener('click', () => {
+    if (banner) banner.hidden = true;
+  });
+
+  // Hide the banner once the app is installed
+  window.addEventListener('appinstalled', () => {
+    if (banner) banner.hidden = true;
+    _deferredInstallPrompt = null;
+    showToast('Nostradamus installed! 📱', 'success');
+  });
 }
 
 // ─── DOM Ready ────────────────────────────────────────────────
