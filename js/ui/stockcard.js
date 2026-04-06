@@ -105,11 +105,14 @@ export function renderStockCard(stock, prediction, chartAvailable) {
     </div>
 
     <div class="stock-card__prediction">
-      <span class="stock-card__prediction-label">AI Prediction:</span>
+      <span class="stock-card__prediction-label">${prediction.isDemo ? '📊' : '🧠'} Prediction:</span>
       <span class="stock-card__prediction-value stock-card__prediction-value--${predUp ? 'up' : 'down'}">
         ${predUp ? '▲' : '▼'} ${formatDollarChange(predUp ? prediction.delta : -prediction.delta)}
       </span>
-      ${prediction.isDemo ? '<span class="stock-card__prediction-badge">Demo</span>' : `<span class="stock-card__prediction-badge">${Math.round(prediction.confidence * 100)}%</span>`}
+      ${prediction.isDemo
+        ? '<span class="stock-card__prediction-badge">Demo</span>'
+        : `<span class="stock-card__prediction-badge stock-card__prediction-badge--${prediction.confidence >= 0.75 ? 'high' : prediction.confidence >= 0.6 ? 'medium' : 'low'}">${Math.round(prediction.confidence * 100)}%</span>`
+      }
     </div>
   `;
 

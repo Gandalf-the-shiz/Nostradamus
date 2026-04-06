@@ -32,8 +32,107 @@ import { buildFeatureMatrix, createWindows } from './preprocessing.js';
  * @returns {Promise<tf.LayersModel>}  The trained model
  */
 export async function trainModel(candles, onProgress) {
-  // TODO (Phase 4): implement
-  throw new Error('trainModel not yet implemented (Phase 4)');
+  if (typeof tf === 'undefined') {
+    throw new Error('TensorFlow.js is not loaded. Cannot train.');
+  }
+
+  console.log(`[Training] Starting with ${candles.length} candles…`);
+
+  // 1. Build feature matrix
+  const { features, priceMin, priceMax } = buildFeatureMatrix(candles);
+
+  if (features.length < MODEL_CONFIG.inputWindowSize + 10) {
+    throw new Error(`Not enough data for training. Need at least ${MODEL_CONFIG.inputWindowSize + 10} valid feature rows, got ${features.length}.`);
+  }
+
+  // 2. Create sliding windows
+  const { X, y } = createWindows(features, MODEL_CONFIG.inputWindowSize);
+
+  if (X.length === 0) {
+    throw new Error('No training windows could be created from the data.');
+  }
+
+  console.log(`[Training] Created ${X.length} training windows.`);
+
+  // 3. Split into train/validation (80/20)
+  const splitIdx = Math.floor(X.length * 0.8);
+  const xTrain = X.slice(0, splitIdx);
+  const yTrain = y.slice(0, splitIdx);
+  const xVal = X.slice(splitIdx);
+  const yVal = y.slice(splitIdx);
+
+  // 4. Convert to tensors
+  const xTrainTensor = tf.tensor3d(xTrain);
+  const yTrainTensor = tf.tensor2d(yTrain, [yTrain.length, 1]);
+  const xValTensor   = tf.tensor3d(xVal);
+  const yValTensor   = tf.tensor2d(yVal, [yVal.length, 1]);
+
+  // 5. Load existing model or build new one
+  let model = await loadModel('default');
+  if (!model) {
+    console.log('[Training] No saved model found. Building new model.');
+    model = buildModel();
+  }
+
+  // 6. Train with callbacks
+  const totalEpochs = MODEL_CONFIG.epochs;
+  let bestValLoss = Infinity;
+  let patienceCounter = 0;
+  const PATIENCE = MODEL_CONFIG.earlyStoppingPatience;
+
+  await model.fit(xTrainTensor, yTrainTensor, {
+    epochs: totalEpochs,
+    batchSize: MODEL_CONFIG.batchSize,
+    validationData: [xValTensor, yValTensor],
+    shuffle: true,
+    callbacks: {
+      onEpochEnd: async (epoch, logs) => {
+        const progress = {
+          epoch: epoch + 1,
+          totalEpochs,
+          loss: logs.loss,
+          valLoss: logs.val_loss,
+        };
+
+        console.log(`[Training] Epoch ${progress.epoch}/${totalEpochs} — loss: ${logs.loss.toFixed(6)}, val_loss: ${logs.val_loss.toFixed(6)}`);
+
+        if (onProgress) onProgress(progress);
+
+        // Save after each epoch
+        await saveModel(model, 'default');
+
+        // Early stopping
+        if (logs.val_loss < bestValLoss) {
+          bestValLoss = logs.val_loss;
+          patienceCounter = 0;
+          await saveModel(model, 'best'); // save best separately
+        } else {
+          patienceCounter++;
+          if (patienceCounter >= PATIENCE) {
+            console.log(`[Training] Early stopping at epoch ${epoch + 1}. Best val_loss: ${bestValLoss.toFixed(6)}`);
+            model.stopTraining = true;
+          }
+        }
+      },
+    },
+  });
+
+  // 7. Cleanup tensors
+  xTrainTensor.dispose();
+  yTrainTensor.dispose();
+  xValTensor.dispose();
+  yValTensor.dispose();
+
+  // 8. Save scaling params for prediction-time descaling
+  const scalingParams = { priceMin, priceMax };
+  try {
+    localStorage.setItem('nostradamus_scaling_params', JSON.stringify(scalingParams));
+  } catch (e) {
+    console.warn('[Training] Failed to save scaling params:', e.message);
+  }
+
+  console.log('[Training] Complete!');
+  return model;
 }
 
 /**

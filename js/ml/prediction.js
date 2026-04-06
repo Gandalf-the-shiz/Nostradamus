@@ -19,7 +19,7 @@
  *  - Store predictions in localStorage for accuracy tracking (Phase 5)
  */
 
-import { loadModel, loadStarterModel } from './model.js';
+import { loadModel, loadStarterModel, MODEL_CONFIG } from './model.js';
 import { buildFeatureMatrix, minMaxDescale } from './preprocessing.js';
 
 /**
@@ -41,15 +41,85 @@ import { buildFeatureMatrix, minMaxDescale } from './preprocessing.js';
  * @returns {Promise<Prediction>}
  */
 export async function runPrediction(symbol, candles) {
-  // TODO (Phase 4): implement
-  // 1. Load model (saved → starter → null)
+  if (typeof tf === 'undefined') {
+    console.warn('[Prediction] TensorFlow.js not loaded. Returning demo prediction.');
+    const currentPrice = candles.length > 0 ? candles[candles.length - 1].close : 100;
+    return demoPrediction(symbol, currentPrice);
+  }
+
+  const currentPrice = candles[candles.length - 1].close;
+
+  // 1. Try to load model: saved → starter → fall back to demo
+  let model = await loadModel('best');
+  if (!model) model = await loadModel('default');
+  if (!model) {
+    try {
+      model = await loadStarterModel();
+    } catch (e) {
+      // starter model not available
+    }
+  }
+
+  if (!model) {
+    console.warn('[Prediction] No model available. Returning demo prediction.');
+    return demoPrediction(symbol, currentPrice);
+  }
+
   // 2. Build feature matrix from candles
-  // 3. Take last MODEL_CONFIG.inputWindowSize rows as the input window
-  // 4. Run model.predict()
-  // 5. Descale output → dollar price
-  // 6. Compute direction & delta vs current price
-  // 7. Return Prediction object
-  throw new Error('runPrediction not yet implemented (Phase 4)');
+  const { features, priceMin, priceMax } = buildFeatureMatrix(candles);
+
+  if (features.length < MODEL_CONFIG.inputWindowSize) {
+    console.warn('[Prediction] Not enough feature data. Returning demo prediction.');
+    return demoPrediction(symbol, currentPrice);
+  }
+
+  // 3. Take the last inputWindowSize rows as the input window
+  const window = features.slice(features.length - MODEL_CONFIG.inputWindowSize);
+
+  // 4. Create tensor and run prediction
+  const inputTensor = tf.tensor3d([window]); // shape [1, 30, 7]
+  const outputTensor = model.predict(inputTensor);
+  const normalizedPrediction = (await outputTensor.data())[0];
+
+  // Cleanup tensors
+  inputTensor.dispose();
+  outputTensor.dispose();
+
+  // 5. Descale: convert normalized [0,1] back to dollar price
+  // Try to load scaling params from training; fall back to current data's range
+  let scalePriceMin = priceMin;
+  let scalePriceMax = priceMax;
+  try {
+    const saved = JSON.parse(localStorage.getItem('nostradamus_scaling_params') || 'null');
+    if (saved && saved.priceMin !== undefined) {
+      scalePriceMin = saved.priceMin;
+      scalePriceMax = saved.priceMax;
+    }
+  } catch (e) { /* use data range */ }
+
+  const predictedPrice = parseFloat(minMaxDescale(normalizedPrediction, scalePriceMin, scalePriceMax).toFixed(2));
+
+  // 6. Direction and delta
+  const delta     = parseFloat(Math.abs(predictedPrice - currentPrice).toFixed(2));
+  const direction = predictedPrice >= currentPrice ? 'UP' : 'DOWN';
+
+  // Confidence estimation: scale the distance between the normalized prediction
+  // and the current normalized price. The multiplier of 5 maps a typical
+  // ~0.02–0.05 normalized delta to a visible confidence spread within [0.5, 0.95].
+  const currentNormalized = (currentPrice - scalePriceMin) / (scalePriceMax - scalePriceMin || 1);
+  const rawConfidence = Math.abs(normalizedPrediction - currentNormalized) * 5;
+  const confidence = parseFloat(Math.min(0.95, Math.max(0.5, 0.5 + rawConfidence)).toFixed(2));
+
+  return {
+    symbol,
+    direction,
+    delta,
+    confidence,
+    predictedPrice,
+    currentPrice,
+    generatedAt: Date.now(),
+    isDemo: false,
+  };
 }
 
 /**
@@ -60,8 +130,18 @@ export async function runPrediction(symbol, candles) {
  * @returns {Promise<Prediction[]>}
  */
 export async function batchPredict(items) {
-  // TODO (Phase 4): implement
-  throw new Error('batchPredict not yet implemented (Phase 4)');
+  const predictions = [];
+  for (const item of items) {
+    try {
+      const pred = await runPrediction(item.symbol, item.candles);
+      predictions.push(pred);
+    } catch (err) {
+      console.error(`[Prediction] Failed for ${item.symbol}:`, err.message);
+      const currentPrice = item.candles.length > 0 ? item.candles[item.candles.length - 1].close : 100;
+      predictions.push(demoPrediction(item.symbol, currentPrice));
+    }
+  }
+  return predictions;
 }
 
 /**
