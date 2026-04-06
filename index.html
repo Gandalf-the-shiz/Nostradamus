@@ -50,6 +50,7 @@
       <nav class="app-header__nav" aria-label="Main navigation">
         <button id="nav-dashboard" class="nav-btn nav-btn--active" aria-current="page">Dashboard</button>
         <button id="nav-watchlist" class="nav-btn">Watchlist</button>
+        <button id="nav-accuracy" class="nav-btn" aria-label="Prediction accuracy">📊</button>
         <button id="theme-toggle" class="nav-btn" aria-label="Toggle dark/light theme" title="Toggle theme">🌙</button>
         <button id="nav-settings" class="nav-btn" aria-label="Settings">⚙️</button>
       </nav>
@@ -124,6 +125,11 @@
       </div>
     </section>
 
+    <!-- Accuracy Dashboard View (hidden until nav click) -->
+    <section id="view-accuracy" class="view" aria-label="Prediction accuracy" hidden>
+      <!-- Populated by js/ui/accuracy-dashboard.js -->
+    </section>
+
     <!-- Settings View (hidden until nav click) -->
     <section id="view-settings" class="view" aria-label="Settings" hidden>
       <div class="settings-panel">
@@ -181,9 +187,19 @@
         </div>
 
         <div class="settings-group">
+          <h3 class="settings-group__title">📊 Prediction History</h3>
+          <p class="settings-group__desc">
+            Every prediction is stored locally so accuracy can be tracked over time.
+            Visit the <button class="settings-field__link" id="settings-goto-accuracy">Accuracy dashboard →</button>
+            to see hit rates, MAE, and model version history.
+          </p>
+          <button id="setting-clear-predictions-btn" class="btn btn--danger">Clear Prediction History</button>
+        </div>
+
+        <div class="settings-group">
           <h3 class="settings-group__title">About</h3>
           <p class="settings-group__desc">
-            Nostradamus v0.4.0 — Phase 4 (ML Engine)<br />
+            Nostradamus v0.5.0 — Phase 5 (Self-Learning)<br />
             Built by GitHub Agents. Powered by TensorFlow.js &amp; Chart.js.<br />
             <a href="https://github.com/Gandalf-the-shiz/Nostradamus" target="_blank" rel="noopener noreferrer">View source on GitHub →</a>
           </p>

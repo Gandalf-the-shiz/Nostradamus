@@ -1302,6 +1302,235 @@ html.theme-transitioning * {
   font-size: var(--font-size-base);
 }
 
+/* ─── Accuracy Dashboard (Phase 5) ─────────────────────────── */
+.accuracy-panel {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.accuracy-panel__title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+}
+
+.accuracy-panel__demo-notice {
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral);
+  background: rgba(240, 180, 41, 0.08);
+  border: 1px solid rgba(240, 180, 41, 0.25);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+}
+
+/* Metrics grid */
+.accuracy-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+@media (min-width: 480px) {
+  .accuracy-metrics {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.accuracy-metric-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.accuracy-metric-card--good {
+  border-color: rgba(38, 217, 127, 0.35);
+  background: rgba(38, 217, 127, 0.04);
+}
+
+.accuracy-metric-card--bad {
+  border-color: rgba(240, 92, 110, 0.35);
+  background: rgba(240, 92, 110, 0.04);
+}
+
+.accuracy-metric-card__icon {
+  font-size: var(--font-size-xl);
+  line-height: 1;
+}
+
+.accuracy-metric-card__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: var(--space-1);
+}
+
+.accuracy-metric-card__value {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.accuracy-metric-card__sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
+}
+
+/* Training info */
+.accuracy-training-info {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.accuracy-training-info__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  flex-wrap: wrap;
+}
+
+.accuracy-training-info__label {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.accuracy-training-info__value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chart container */
+.accuracy-chart-container {
+  height: 240px;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+/* Section */
+.accuracy-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.accuracy-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.accuracy-section__title {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+}
+
+/* Table */
+.accuracy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.accuracy-table th,
+.accuracy-table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.accuracy-table th {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: var(--color-bg-elevated);
+}
+
+.accuracy-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.accuracy-table__row--champion {
+  background: rgba(124, 111, 239, 0.06);
+}
+
+/* Badges and inline elements */
+.accuracy-champion-badge {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-accent);
+  background: var(--color-accent-dim);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.accuracy-version-badge {
+  color: var(--color-text-faint);
+}
+
+.accuracy-count-badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 2px var(--space-2);
+}
+
+.accuracy-up   { color: var(--color-up);   font-weight: 600; }
+.accuracy-down { color: var(--color-down); font-weight: 600; }
+
+.accuracy-correct   { color: var(--color-up);   font-weight: 600; }
+.accuracy-incorrect { color: var(--color-down); font-weight: 600; }
+.accuracy-pending   { color: var(--color-text-muted); }
+
+.accuracy-demo-tag {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-neutral);
+  background: rgba(240, 180, 41, 0.12);
+  border-radius: var(--radius-pill);
+  padding: 1px 5px;
+  margin-left: var(--space-1);
+  vertical-align: middle;
+}
+
+.accuracy-empty-note {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
 /* ─── Search suggestion watchlist button (Phase 3) ──────────── */
 .search-suggestion-item__wl-btn {
   margin-left: auto;

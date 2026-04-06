@@ -20,8 +20,10 @@ import { initDashboard } from './ui/dashboard.js';
 import { initSearch } from './ui/search.js';
 import { initTheme, toggleTheme } from './ui/theme.js';
 import { initWatchlist } from './ui/watchlist.js';
+import { initAccuracyDashboard } from './ui/accuracy-dashboard.js';
 import { trainModel } from './ml/training.js';
 import { loadDemoData } from './api/manager.js';
+import { clearPredictions } from './ml/tracker.js';
 
 // ─── Constants ────────────────────────────────────────────────
 const STORAGE_KEYS = {
@@ -127,22 +129,25 @@ function initDemoBanner() {
 function initNavigation() {
   const navDashboard = document.getElementById('nav-dashboard');
   const navWatchlist = document.getElementById('nav-watchlist');
+  const navAccuracy  = document.getElementById('nav-accuracy');
   const navSettings  = document.getElementById('nav-settings');
 
   navDashboard?.addEventListener('click', () => navigateTo('dashboard'));
   navWatchlist?.addEventListener('click', () => navigateTo('watchlist'));
+  navAccuracy?.addEventListener('click',  () => navigateTo('accuracy'));
   navSettings?.addEventListener('click',  () => navigateTo('settings'));
 }
 
 /**
  * Switch the visible view and update the active nav button.
- * @param {'dashboard'|'watchlist'|'settings'} viewName
+ * @param {'dashboard'|'watchlist'|'accuracy'|'settings'} viewName
  */
 function navigateTo(viewName) {
-  const views = ['dashboard', 'watchlist', 'settings'];
+  const views = ['dashboard', 'watchlist', 'accuracy', 'settings'];
   const navBtns = {
     dashboard: document.getElementById('nav-dashboard'),
     watchlist: document.getElementById('nav-watchlist'),
+    accuracy:  document.getElementById('nav-accuracy'),
     settings:  document.getElementById('nav-settings'),
   };
 
@@ -159,9 +164,11 @@ function navigateTo(viewName) {
 
   appState.activeView = viewName;
 
-  // Refresh watchlist view on navigation
+  // Refresh view-specific content on navigation
   if (viewName === 'watchlist') {
     initWatchlist(appState);
+  } else if (viewName === 'accuracy') {
+    initAccuracyDashboard(appState);
   }
 }
 
@@ -180,6 +187,7 @@ function initSettingsPanel() {
   const clearCacheBtn = document.getElementById('setting-clear-cache-btn');
   const trainBtn      = document.getElementById('setting-train-btn');
   const clearModelBtn = document.getElementById('setting-clear-model-btn');
+  const clearPredsBtn = document.getElementById('setting-clear-predictions-btn');
 
   // Populate existing keys (masked)
   populateSettingsInputs();
@@ -235,6 +243,15 @@ function initSettingsPanel() {
     }
     keysToRemove.forEach(k => localStorage.removeItem(k));
     showToast('Saved model deleted.', 'info');
+  });
+
+  clearPredsBtn?.addEventListener('click', () => {
+    clearPredictions();
+    showToast('Prediction history cleared.', 'info');
+  });
+
+  document.getElementById('settings-goto-accuracy')?.addEventListener('click', () => {
+    navigateTo('accuracy');
   });
 }
 
