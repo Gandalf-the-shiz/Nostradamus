@@ -144,6 +144,8 @@ const HELP_SECTIONS = [
 let _overlay = null;
 /** @type {HTMLElement|null} */
 let _triggerEl = null;
+/** @type {((e: KeyboardEvent) => void)|null} */
+let _keyHandler = null;
 
 // ─── Public API ───────────────────────────────────────────────
 
@@ -163,10 +165,10 @@ export function openHelp() {
     _overlay.querySelector('.help-overlay__close')?.focus();
   });
 
-  _overlay._keyHandler = e => {
+  _keyHandler = e => {
     if (e.key === 'Escape') closeHelp();
   };
-  document.addEventListener('keydown', _overlay._keyHandler);
+  document.addEventListener('keydown', _keyHandler);
 }
 
 /**
@@ -174,7 +176,10 @@ export function openHelp() {
  */
 export function closeHelp() {
   if (!_overlay) return;
-  document.removeEventListener('keydown', _overlay._keyHandler);
+  if (_keyHandler) {
+    document.removeEventListener('keydown', _keyHandler);
+    _keyHandler = null;
+  }
   _overlay.remove();
   _overlay = null;
   document.body.style.overflow = '';

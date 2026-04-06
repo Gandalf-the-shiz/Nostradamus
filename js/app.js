@@ -183,7 +183,10 @@ function navigateTo(viewName) {
     import('./ui/sectors.js').then(({ renderSectorsPanel }) => {
       const container = document.getElementById('view-sectors');
       if (container) renderSectorsPanel(container, appState);
-    }).catch(err => console.error('[App] Failed to load sectors module:', err));
+    }).catch(err => {
+      console.error('[App] Failed to load sectors module:', err);
+      showToast('Sectors view failed to load. Please refresh.', 'error');
+    });
   }
 }
 

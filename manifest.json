@@ -1,7 +1,7 @@
 {
   "name": "Nostradamus — The AI Stock Oracle",
   "short_name": "Nostradamus",
-  "description": "In-browser AI stock prediction powered by TensorFlow.js. Track, predict, and analyse stocks entirely in your browser.",
+  "description": "In-browser AI stock prediction powered by TensorFlow.js. Track, predict, and analyze stocks entirely in your browser.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0f1117",

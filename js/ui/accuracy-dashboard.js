@@ -16,9 +16,8 @@ import { getPredictions } from '../ml/tracker.js';
 import { getAccuracySummary, getWeeklyMetrics } from '../ml/accuracy.js';
 import { getVersions, getChampionVersion } from '../ml/versioning.js';
 import { getLastTrainingInfo } from '../ml/retraining.js';
-import { formatCurrency } from '../utils/helpers.js';
+import { formatCurrency, showToast } from '../utils/helpers.js';
 import { exportPredictionsCSV } from './export.js';
-import { showToast } from '../utils/helpers.js';
 
 // Chart instance registry so we can destroy/recreate on refresh
 let _accuracyChart = null;

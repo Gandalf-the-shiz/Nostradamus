@@ -13,8 +13,10 @@
 
 import { showToast } from '../utils/helpers.js';
 
-/** Canonical app URL used in share text. */
-const APP_URL = 'https://gandalf-the-shiz.github.io/Nostradamus/';
+/** Canonical app URL used in share text. Falls back to current page origin. */
+const APP_URL = (typeof window !== 'undefined' && window.location?.origin)
+  ? window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/')
+  : 'https://gandalf-the-shiz.github.io/Nostradamus/';
 
 // ─── Public API ───────────────────────────────────────────────
 
