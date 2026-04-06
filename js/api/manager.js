@@ -11,7 +11,7 @@
  */
 
 import * as finnhub   from './finnhub.js';
-import * as twelvdata from './twelvedata.js';
+import * as twelvedata from './twelvedata.js';
 import * as polygon   from './polygon.js';
 import { getWithTTL, setWithTTL } from '../storage/cache.js';
 import { withRetry }  from '../utils/helpers.js';
@@ -259,7 +259,7 @@ export async function getQuote(symbol) {
   // 2. Try Twelve Data
   if (consumeToken('twelvedata')) {
     try {
-      const raw = await withRetry(() => twelvdata.getQuote(symbol));
+      const raw = await withRetry(() => twelvedata.getQuote(symbol));
       if (raw && raw.close) {
         const result = normaliseTwelvedataQuote(raw);
         setWithTTL(cacheKey, result, CACHE_TTL.QUOTE);
@@ -329,7 +329,7 @@ export async function getCandles(symbol, days = 30) {
   // 2. Try Twelve Data
   if (consumeToken('twelvedata')) {
     try {
-      const raw = await withRetry(() => twelvdata.getTimeSeries(symbol, '1day', days));
+      const raw = await withRetry(() => twelvedata.getTimeSeries(symbol, '1day', days));
       const candles = normaliseTwelvedataCandles(raw);
       if (candles.length > 0) {
         setWithTTL(cacheKey, candles, CACHE_TTL.CANDLES);
@@ -446,7 +446,7 @@ export async function searchSymbols(query) {
   // 2. Try Twelve Data
   if (consumeToken('twelvedata')) {
     try {
-      const raw = await withRetry(() => twelvdata.searchSymbols(query));
+      const raw = await withRetry(() => twelvedata.searchSymbols(query));
       if (Array.isArray(raw) && raw.length > 0) {
         const results = raw.map(r => ({ symbol: r.symbol, name: r.instrument_name }));
         setWithTTL(cacheKey, results, CACHE_TTL.SEARCH);
