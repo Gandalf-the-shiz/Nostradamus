@@ -1,0 +1,8 @@
+{
+  "_comment": "Placeholder model topology. Will be replaced with a real pre-trained LSTM model in Phase 4.",
+  "modelTopology": null,
+  "weightsManifest": [],
+  "format": "layers-model",
+  "generatedBy": "Phase 4 (not yet implemented)",
+  "convertedBy": null
+}

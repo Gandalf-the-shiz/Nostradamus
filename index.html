@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="description" content="Nostradamus — The AI Stock Oracle. Predict which stocks will go up or down, powered by TensorFlow.js machine learning running entirely in your browser." />
+  <meta name="theme-color" content="#0f1117" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Nostradamus — The AI Stock Oracle" />
+  <meta property="og:description" content="In-browser AI stock prediction powered by TensorFlow.js" />
+  <meta property="og:type" content="website" />
+
+  <title>Nostradamus 🔮 — The AI Stock Oracle</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- TensorFlow.js (loaded early, non-blocking) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js" defer></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+</head>
+<body>
+
+  <!-- ============================================================
+       DEMO MODE BANNER
+       Shown by default until the user configures API keys.
+       Hidden by app.js once keys are detected in localStorage.
+  ============================================================ -->
+  <div id="demo-banner" class="demo-banner" role="alert">
+    <span class="demo-banner__icon">⚠️</span>
+    <span class="demo-banner__text">
+      <strong>Demo Mode</strong> — No API key configured. Showing sample data.
+      <button id="demo-banner-settings-btn" class="demo-banner__link" aria-label="Open settings to configure API key">Configure API Key</button>
+    </span>
+    <button id="demo-banner-close" class="demo-banner__close" aria-label="Dismiss banner">✕</button>
+  </div>
+
+  <!-- ============================================================
+       HEADER
+  ============================================================ -->
+  <header class="app-header" role="banner">
+    <div class="app-header__inner">
+      <div class="app-header__brand">
+        <span class="app-header__logo" aria-hidden="true">🔮</span>
+        <h1 class="app-header__title">Nostradamus</h1>
+        <span class="app-header__subtitle">The AI Stock Oracle</span>
+      </div>
+      <nav class="app-header__nav" aria-label="Main navigation">
+        <button id="nav-dashboard" class="nav-btn nav-btn--active" aria-current="page">Dashboard</button>
+        <button id="nav-watchlist" class="nav-btn">Watchlist</button>
+        <button id="nav-settings" class="nav-btn" aria-label="Settings">⚙️</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       SEARCH BAR
+  ============================================================ -->
+  <section class="search-section" aria-label="Stock search">
+    <div class="search-section__inner">
+      <div class="search-wrapper" role="search">
+        <span class="search-wrapper__icon" aria-hidden="true">🔍</span>
+        <input
+          type="search"
+          id="stock-search"
+          class="search-input"
+          placeholder="Search stocks (e.g. AAPL, TSLA)…"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="characters"
+          spellcheck="false"
+          aria-label="Search for a stock symbol or company name"
+        />
+        <div id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       MAIN CONTENT
+  ============================================================ -->
+  <main id="main-content" class="main-content" role="main">
+
+    <!-- Dashboard View -->
+    <section id="view-dashboard" class="view view--active" aria-label="Dashboard">
+
+      <!-- Market Overview Strip -->
+      <div id="market-overview" class="market-overview" aria-label="Market overview">
+        <div class="market-overview__loading skeleton-strip" aria-hidden="true"></div>
+      </div>
+
+      <!-- Stock Cards Grid -->
+      <div id="stock-grid" class="stock-grid" aria-label="Stock cards">
+        <!-- Populated by js/ui/dashboard.js -->
+        <!-- Loading skeletons shown initially -->
+        <div class="stock-card stock-card--skeleton" aria-hidden="true">
+          <div class="skeleton skeleton--title"></div>
+          <div class="skeleton skeleton--subtitle"></div>
+          <div class="skeleton skeleton--price"></div>
+          <div class="skeleton skeleton--chart"></div>
+        </div>
+        <div class="stock-card stock-card--skeleton" aria-hidden="true">
+          <div class="skeleton skeleton--title"></div>
+          <div class="skeleton skeleton--subtitle"></div>
+          <div class="skeleton skeleton--price"></div>
+          <div class="skeleton skeleton--chart"></div>
+        </div>
+        <div class="stock-card stock-card--skeleton" aria-hidden="true">
+          <div class="skeleton skeleton--title"></div>
+          <div class="skeleton skeleton--subtitle"></div>
+          <div class="skeleton skeleton--price"></div>
+          <div class="skeleton skeleton--chart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Watchlist View (hidden until nav click) -->
+    <section id="view-watchlist" class="view" aria-label="Watchlist" hidden>
+      <div class="empty-state">
+        <span class="empty-state__icon">📋</span>
+        <h2 class="empty-state__title">Your Watchlist</h2>
+        <p class="empty-state__text">Search for stocks and add them to your watchlist to track them here.</p>
+      </div>
+    </section>
+
+    <!-- Settings View (hidden until nav click) -->
+    <section id="view-settings" class="view" aria-label="Settings" hidden>
+      <div class="settings-panel">
+        <h2 class="settings-panel__title">⚙️ Settings</h2>
+
+        <div class="settings-group">
+          <h3 class="settings-group__title">API Keys</h3>
+          <p class="settings-group__desc">Enter your API keys below. Keys are stored only in your browser's localStorage and are never sent to any server other than the respective API provider.</p>
+
+          <label class="settings-field">
+            <span class="settings-field__label">Finnhub API Key <span class="badge badge--primary">Primary</span></span>
+            <input type="password" id="setting-finnhub-key" class="settings-input" placeholder="e.g. c1234567890abcdefghij" autocomplete="off" />
+            <a href="https://finnhub.io/register" target="_blank" rel="noopener noreferrer" class="settings-field__link">Get free key →</a>
+          </label>
+
+          <label class="settings-field">
+            <span class="settings-field__label">Twelve Data API Key <span class="badge badge--secondary">Fallback</span></span>
+            <input type="password" id="setting-twelvedata-key" class="settings-input" placeholder="e.g. a1b2c3d4e5f6789012345" autocomplete="off" />
+            <a href="https://twelvedata.com/register" target="_blank" rel="noopener noreferrer" class="settings-field__link">Get free key →</a>
+          </label>
+
+          <label class="settings-field">
+            <span class="settings-field__label">Polygon.io API Key <span class="badge badge--secondary">Fallback</span></span>
+            <input type="password" id="setting-polygon-key" class="settings-input" placeholder="e.g. ABCDEFGHIJKLMNOP1234" autocomplete="off" />
+            <a href="https://polygon.io/dashboard/signup" target="_blank" rel="noopener noreferrer" class="settings-field__link">Get free key →</a>
+          </label>
+
+          <button id="setting-save-btn" class="btn btn--primary">Save API Keys</button>
+          <button id="setting-clear-btn" class="btn btn--danger">Clear All Keys</button>
+        </div>
+
+        <div class="settings-group">
+          <h3 class="settings-group__title">Cache</h3>
+          <p class="settings-group__desc">Stock data is cached for 5 minutes to avoid hitting API rate limits.</p>
+          <button id="setting-clear-cache-btn" class="btn btn--secondary">Clear Cache</button>
+        </div>
+
+        <div class="settings-group">
+          <h3 class="settings-group__title">About</h3>
+          <p class="settings-group__desc">
+            Nostradamus v0.1.0 — Phase 1 (Scaffold)<br />
+            Built by GitHub Agents. Powered by TensorFlow.js &amp; Chart.js.<br />
+            <a href="https://github.com/Gandalf-the-shiz/Nostradamus" target="_blank" rel="noopener noreferrer">View source on GitHub →</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================
+       FOOTER
+  ============================================================ -->
+  <footer class="app-footer" role="contentinfo">
+    <p class="app-footer__text">
+      🔮 Nostradamus — Not financial advice. Powered by
+      <a href="https://www.tensorflow.org/js" target="_blank" rel="noopener noreferrer">TensorFlow.js</a>
+      &amp;
+      <a href="https://www.chartjs.org/" target="_blank" rel="noopener noreferrer">Chart.js</a>.
+    </p>
+  </footer>
+
+  <!-- ============================================================
+       APP BOOTSTRAP
+       app.js initializes everything after DOM + CDN libs are loaded
+  ============================================================ -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>
