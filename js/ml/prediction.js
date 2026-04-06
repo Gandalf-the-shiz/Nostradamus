@@ -103,11 +103,11 @@ export async function runPrediction(symbol, candles) {
   const delta     = parseFloat(Math.abs(predictedPrice - currentPrice).toFixed(2));
   const direction = predictedPrice >= currentPrice ? 'UP' : 'DOWN';
 
-  // 7. Confidence estimation
-  // Use the model's certainty: how far from 0.5 the normalized prediction is
-  // relative to the current normalized price. Clamp to [0.5, 0.95].
+  // Confidence estimation: scale the distance between the normalized prediction
+  // and the current normalized price. The multiplier of 5 maps a typical
+  // ~0.02–0.05 normalized delta to a visible confidence spread within [0.5, 0.95].
   const currentNormalized = (currentPrice - scalePriceMin) / (scalePriceMax - scalePriceMin || 1);
-  const rawConfidence = Math.abs(normalizedPrediction - currentNormalized) * 5; // scale up
+  const rawConfidence = Math.abs(normalizedPrediction - currentNormalized) * 5;
   const confidence = parseFloat(Math.min(0.95, Math.max(0.5, 0.5 + rawConfidence)).toFixed(2));
 
   return {

@@ -202,6 +202,9 @@ function initSettingsPanel() {
           allCandles.push(...stock.candles);
         }
       }
+      // Note: candles from different stocks are combined into one dataset.
+      // All close prices and volumes are min-max normalized within buildFeatureMatrix,
+      // so relative scale differences between stocks are removed during preprocessing.
 
       await trainModel(allCandles, (progress) => {
         const epochEl = document.getElementById('training-epoch');

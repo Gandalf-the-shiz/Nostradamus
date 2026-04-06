@@ -23,6 +23,7 @@ export const MODEL_CONFIG = {
   learningRate:    0.001,
   batchSize:       32,
   epochs:          50,
+  earlyStoppingPatience: 5,  // stop if val_loss doesn't improve for this many epochs
 };
 
 /**

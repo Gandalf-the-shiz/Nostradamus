@@ -78,7 +78,7 @@ export async function trainModel(candles, onProgress) {
   const totalEpochs = MODEL_CONFIG.epochs;
   let bestValLoss = Infinity;
   let patienceCounter = 0;
-  const PATIENCE = 5; // early stopping patience
+  const PATIENCE = MODEL_CONFIG.earlyStoppingPatience;
 
   await model.fit(xTrainTensor, yTrainTensor, {
     epochs: totalEpochs,
