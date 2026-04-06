@@ -566,6 +566,21 @@ button {
   letter-spacing: 0.04em;
 }
 
+.stock-card__prediction-badge--high {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.stock-card__prediction-badge--medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.stock-card__prediction-badge--low {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
 /* ─── Skeleton Loading ──────────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }

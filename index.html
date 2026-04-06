@@ -162,9 +162,28 @@
         </div>
 
         <div class="settings-group">
+          <h3 class="settings-group__title">🧠 AI Model</h3>
+          <p class="settings-group__desc">
+            Train the prediction model using historical stock data. Training runs entirely in your browser.
+          </p>
+          <div id="training-status" style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin-bottom: var(--space-2);"></div>
+          <div id="training-progress" hidden>
+            <div style="display: flex; justify-content: space-between; font-size: var(--font-size-xs); color: var(--color-text-muted); margin-bottom: var(--space-1);">
+              <span id="training-epoch">Epoch 0/50</span>
+              <span id="training-loss">Loss: —</span>
+            </div>
+            <div style="height: 4px; background: var(--color-bg-elevated); border-radius: 2px; overflow: hidden;">
+              <div id="training-progress-bar" style="height: 100%; background: var(--color-accent); width: 0%; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+          <button id="setting-train-btn" class="btn btn--primary">🧠 Train Model</button>
+          <button id="setting-clear-model-btn" class="btn btn--danger">Delete Saved Model</button>
+        </div>
+
+        <div class="settings-group">
           <h3 class="settings-group__title">About</h3>
           <p class="settings-group__desc">
-            Nostradamus v0.3.0 — Phase 3 (Dashboard UI)<br />
+            Nostradamus v0.4.0 — Phase 4 (ML Engine)<br />
             Built by GitHub Agents. Powered by TensorFlow.js &amp; Chart.js.<br />
             <a href="https://github.com/Gandalf-the-shiz/Nostradamus" target="_blank" rel="noopener noreferrer">View source on GitHub →</a>
           </p>

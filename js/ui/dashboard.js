@@ -17,7 +17,7 @@
 
 import { loadDemoData, getQuote, getCandles } from '../api/manager.js';
 import { getItem } from '../storage/cache.js';
-import { demoPrediction } from '../ml/prediction.js';
+import { runPrediction, demoPrediction } from '../ml/prediction.js';
 import { renderStockCard } from './stockcard.js';
 import { openStockDetail } from './detail.js';
 
@@ -56,13 +56,24 @@ export async function initDashboard(appState) {
   renderMarketOverview(stocks);
 
   // Render each stock card with staggered animation
-  stocks.forEach((stock, i) => {
-    const prediction = demoPrediction(stock.symbol, stock.quote.current);
+  for (let i = 0; i < stocks.length; i++) {
+    const stock = stocks[i];
+    let prediction;
+    if (appState.tfReady && stock.candles && stock.candles.length >= 30) {
+      try {
+        prediction = await runPrediction(stock.symbol, stock.candles);
+      } catch (err) {
+        console.warn(`[Dashboard] ML prediction failed for ${stock.symbol}, using demo:`, err.message);
+        prediction = demoPrediction(stock.symbol, stock.quote.current);
+      }
+    } else {
+      prediction = demoPrediction(stock.symbol, stock.quote.current);
+    }
     const card = renderStockCard(stock, prediction, appState.chartReady);
     card.style.animationDelay = `${i * 50}ms`;
     card.classList.add('stock-card--animate-in');
     stockGrid.appendChild(card);
-  });
+  }
 
   // Wire card clicks to detail overlay
   stockGrid.addEventListener('stock-card-click', e => {

@@ -32,11 +32,41 @@ export const MODEL_CONFIG = {
  * @returns {tf.Sequential}
  */
 export function buildModel() {
-  // TODO (Phase 4): implement
   if (typeof tf === 'undefined') {
     throw new Error('TensorFlow.js is not loaded. Cannot build model.');
   }
-  throw new Error('buildModel not yet implemented (Phase 4)');
+
+  const model = tf.sequential();
+
+  // First LSTM layer — returns sequences for stacking
+  model.add(tf.layers.lstm({
+    units: MODEL_CONFIG.lstmUnits[0],
+    inputShape: [MODEL_CONFIG.inputWindowSize, MODEL_CONFIG.featuresPerStep],
+    returnSequences: true,
+  }));
+  model.add(tf.layers.dropout({ rate: MODEL_CONFIG.dropoutRate }));
+
+  // Second LSTM layer — returns only final output
+  model.add(tf.layers.lstm({
+    units: MODEL_CONFIG.lstmUnits[1],
+    returnSequences: false,
+  }));
+  model.add(tf.layers.dropout({ rate: MODEL_CONFIG.dropoutRate }));
+
+  // Dense hidden layer
+  model.add(tf.layers.dense({ units: 16, activation: 'relu' }));
+
+  // Output layer — single neuron for predicted normalized close price
+  model.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }));
+  // sigmoid because our target is min-max normalized to [0,1]
+
+  model.compile({
+    optimizer: tf.train.adam(MODEL_CONFIG.learningRate),
+    loss: 'meanSquaredError',
+    metrics: ['mae'],
+  });
+
+  return model;
 }
 
 /**
@@ -46,8 +76,10 @@ export function buildModel() {
  * @returns {Promise<void>}
  */
 export async function saveModel(model, slot = 'default') {
-  // TODO (Phase 4): implement using tf.io.browserLocalStorage
-  throw new Error('saveModel not yet implemented (Phase 4)');
+  if (typeof tf === 'undefined') throw new Error('TensorFlow.js not loaded');
+  const storageKey = `localstorage://nostradamus-model-${slot}`;
+  await model.save(storageKey);
+  console.log(`[Model] Saved to ${storageKey}`);
 }
 
 /**
@@ -58,8 +90,16 @@ export async function saveModel(model, slot = 'default') {
  * @returns {Promise<tf.LayersModel|null>}  null if no model found
  */
 export async function loadModel(slot = 'default') {
-  // TODO (Phase 4): implement using tf.loadLayersModel
-  throw new Error('loadModel not yet implemented (Phase 4)');
+  if (typeof tf === 'undefined') return null;
+  const storageKey = `localstorage://nostradamus-model-${slot}`;
+  try {
+    const model = await tf.loadLayersModel(storageKey);
+    console.log(`[Model] Loaded from ${storageKey}`);
+    return model;
+  } catch (err) {
+    console.warn(`[Model] No saved model found in slot "${slot}":`, err.message);
+    return null;
+  }
 }
 
 /**
@@ -67,7 +107,13 @@ export async function loadModel(slot = 'default') {
  * @returns {Promise<tf.LayersModel>}
  */
 export async function loadStarterModel() {
-  // TODO (Phase 4): implement
-  // await tf.loadLayersModel('./models/starter/model.json')
-  throw new Error('loadStarterModel not yet implemented (Phase 4)');
+  if (typeof tf === 'undefined') return null;
+  try {
+    const model = await tf.loadLayersModel('./models/starter/model.json');
+    console.log('[Model] Loaded starter model from repo');
+    return model;
+  } catch (err) {
+    console.warn('[Model] Failed to load starter model:', err.message);
+    return null;
+  }
 }

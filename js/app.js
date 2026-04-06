@@ -20,6 +20,8 @@ import { initDashboard } from './ui/dashboard.js';
 import { initSearch } from './ui/search.js';
 import { initTheme, toggleTheme } from './ui/theme.js';
 import { initWatchlist } from './ui/watchlist.js';
+import { trainModel } from './ml/training.js';
+import { loadDemoData } from './api/manager.js';
 
 // ─── Constants ────────────────────────────────────────────────
 const STORAGE_KEYS = {
@@ -176,6 +178,8 @@ function initSettingsPanel() {
   const saveBtn       = document.getElementById('setting-save-btn');
   const clearBtn      = document.getElementById('setting-clear-btn');
   const clearCacheBtn = document.getElementById('setting-clear-cache-btn');
+  const trainBtn      = document.getElementById('setting-train-btn');
+  const clearModelBtn = document.getElementById('setting-clear-model-btn');
 
   // Populate existing keys (masked)
   populateSettingsInputs();
@@ -183,6 +187,52 @@ function initSettingsPanel() {
   saveBtn?.addEventListener('click', saveApiKeys);
   clearBtn?.addEventListener('click', clearApiKeys);
   clearCacheBtn?.addEventListener('click', clearCache);
+
+  trainBtn?.addEventListener('click', async () => {
+    trainBtn.disabled = true;
+    trainBtn.textContent = 'Training…';
+    const progressEl = document.getElementById('training-progress');
+    if (progressEl) progressEl.hidden = false;
+
+    try {
+      const demoData = await loadDemoData();
+      const allCandles = [];
+      for (const stock of (demoData.stocks || [])) {
+        if (stock.candles && stock.candles.length > 0) {
+          allCandles.push(...stock.candles);
+        }
+      }
+
+      await trainModel(allCandles, (progress) => {
+        const epochEl = document.getElementById('training-epoch');
+        const lossEl  = document.getElementById('training-loss');
+        const barEl   = document.getElementById('training-progress-bar');
+        if (epochEl) epochEl.textContent = `Epoch ${progress.epoch}/${progress.totalEpochs}`;
+        if (lossEl)  lossEl.textContent  = `Loss: ${progress.loss.toFixed(6)}`;
+        if (barEl)   barEl.style.width   = `${(progress.epoch / progress.totalEpochs) * 100}%`;
+      });
+
+      showToast('Model training complete! 🧠', 'success');
+    } catch (err) {
+      console.error('[App] Training failed:', err);
+      showToast(`Training failed: ${err.message}`, 'error');
+    } finally {
+      trainBtn.disabled = false;
+      trainBtn.textContent = '🧠 Train Model';
+    }
+  });
+
+  clearModelBtn?.addEventListener('click', () => {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('nostradamus-model') || key === 'nostradamus_scaling_params')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    showToast('Saved model deleted.', 'info');
+  });
 }
 
 function populateSettingsInputs() {
