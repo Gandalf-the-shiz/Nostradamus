@@ -19,6 +19,8 @@ import { getItem, setItem } from '../storage/cache.js';
 
 const VERSIONS_KEY = 'model_versions';
 const MAX_VERSIONS = 20; // keep rolling window of recent versions
+/** Minimum number of resolved predictions required to make a meaningful A/B comparison. */
+const MIN_RESOLVED_FOR_PROMOTION = 5;
 
 /**
  * @typedef {Object} ModelVersion
@@ -149,7 +151,7 @@ export function compareAndPromote(candidateId) {
 
   // Need at least some resolved data to make a meaningful comparison,
   // unless there's no champion at all (first version always wins).
-  const hasEnoughData = candidate.accuracy.resolvedCount >= 5 || !currentChampion;
+  const hasEnoughData = candidate.accuracy.resolvedCount >= MIN_RESOLVED_FOR_PROMOTION || !currentChampion;
 
   if (shouldPromote && hasEnoughData) {
     const updated = versions.map(v => ({

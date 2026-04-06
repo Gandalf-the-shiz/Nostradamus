@@ -65,7 +65,7 @@ export async function initDashboard(appState) {
       priceMap[stock.symbol] = stock.quote.current;
     }
   }
-  try { resolveAll(priceMap); } catch (e) { /* graceful */ }
+  try { resolveAll(priceMap); } catch (e) { console.warn('[Dashboard] resolveAll failed:', e); }
 
   // Collect candles for auto-retraining
   const allCandles = [];
@@ -91,7 +91,7 @@ export async function initDashboard(appState) {
     }
 
     // Track the prediction (graceful — never break the render loop)
-    try { storePrediction(prediction); } catch (e) { /* graceful */ }
+    try { storePrediction(prediction); } catch (e) { console.warn('[Dashboard] storePrediction failed:', e); }
 
     const card = renderStockCard(stock, prediction, appState.chartReady);
     card.style.animationDelay = `${i * 50}ms`;
@@ -101,7 +101,7 @@ export async function initDashboard(appState) {
 
   // Trigger background retraining if needed (after rendering, non-blocking)
   if (appState.tfReady && allCandles.length >= 40) {
-    try { autoRetrain(allCandles); } catch (e) { /* graceful */ }
+    try { autoRetrain(allCandles); } catch (e) { console.warn('[Dashboard] autoRetrain failed:', e); }
   }
 
   // Wire card clicks to detail overlay

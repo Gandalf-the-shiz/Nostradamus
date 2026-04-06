@@ -70,8 +70,12 @@ export function initAccuracyDashboard(appState) {
     chartContainer.className = 'accuracy-chart-container';
     chartSection.appendChild(chartContainer);
     panel.appendChild(chartSection);
-    // Render chart after DOM is attached
-    requestAnimationFrame(() => _renderAccuracyChart(chartContainer));
+    // Render chart after the container is added to the live DOM
+    requestAnimationFrame(() => {
+      if (document.contains(chartContainer)) {
+        _renderAccuracyChart(chartContainer);
+      }
+    });
   }
 
   // Model versions

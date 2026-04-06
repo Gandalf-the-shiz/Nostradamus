@@ -18,6 +18,8 @@
 
 import { getPredictions } from './tracker.js';
 
+const MS_PER_DAY = 86400000; // milliseconds in one day
+
 /**
  * @typedef {Object} AccuracyMetrics
  * @property {number} totalPredictions
@@ -122,7 +124,7 @@ function _weekKey(ts) {
   const d = new Date(ts);
   // ISO week number
   const jan4 = new Date(d.getFullYear(), 0, 4);
-  const weekNum = Math.ceil(((d - jan4) / 86400000 + jan4.getDay() + 1) / 7);
+  const weekNum = Math.ceil(((d - jan4) / MS_PER_DAY + jan4.getDay() + 1) / 7);
   return `Wk ${weekNum}`;
 }
 

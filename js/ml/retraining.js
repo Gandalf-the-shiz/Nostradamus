@@ -111,16 +111,18 @@ export function autoRetrain(candles, onProgress) {
 
   scheduledTrain(candles, wrappedProgress);
 
-  // scheduledTrain is fire-and-forget; we record the version after it
-  // completes via a deferred check.  Since scheduledTrain uses
-  // requestIdleCallback / setTimeout, we poll completion by checking
-  // the model's save timestamp.  In practice, record the version
-  // optimistically after a reasonable delay (training takes ~1–3 min
-  // on mobile).
+  // scheduledTrain is fire-and-forget (it uses requestIdleCallback/setTimeout
+  // internally and provides no completion promise).  We defer the version-
+  // recording step to allow training to finish.  The delay is a generous
+  // upper bound; on fast hardware training finishes sooner, but the accuracy
+  // snapshot is taken from *resolved prediction outcomes* (not training loss),
+  // so a few minutes' offset has no meaningful impact on the A/B comparison.
+  //
+  // Note: The accuracy snapshot captured here reflects predictions resolved
+  // BEFORE this training run.  Metrics will naturally improve as more
+  // predictions are resolved in subsequent dashboard refreshes.
   const candleCount = candles.length;
 
-  // Record info immediately (training is assumed to complete); the
-  // accuracy snapshot is taken from current resolved predictions.
   const recordVersionAfterTraining = () => {
     const accuracySnapshot = getAccuracySummary();
     const version = createModelVersion({
@@ -143,9 +145,10 @@ export function autoRetrain(candles, onProgress) {
     console.log(`[Retraining] Recorded model version ${version.versionNumber}`);
   };
 
-  // Allow training to start; record version after a short delay.
-  // This is intentionally loose — the important data (accuracy metrics)
-  // will be refreshed from actual prediction outcomes over time.
-  const RECORD_DELAY_MS = 5 * 60 * 1000; // 5 minutes (covers typical training time)
+  // 5-minute upper bound — covers typical in-browser LSTM training time.
+  // This is intentionally conservative; if training finishes earlier the
+  // version record will be slightly stale on loss values but accuracy
+  // metrics come from localStorage and are always up-to-date.
+  const RECORD_DELAY_MS = 5 * 60 * 1000;
   setTimeout(recordVersionAfterTraining, RECORD_DELAY_MS);
 }
