@@ -278,11 +278,6 @@ async function addSymbolToDashboard(symbol, appState) {
       const card = renderStockCard(stock, prediction, appState.chartReady);
       card.classList.add('stock-card--animate-in');
       stockGrid.appendChild(card);
-      // Forward card click events to the detail overlay
-      stockGrid.dispatchEvent(new CustomEvent('stock-card-click', {
-        bubbles: false,
-        detail: { stock, prediction },
-      }));
     }
 
     // Open detail view

@@ -417,7 +417,7 @@ export function renderFullChart(container, candles, prediction = null) {
           grid: { display: false },
           border: { color: C_GRID },
           ticks: { color: C_TICK, font: { size: 10 }, callback: v => _fmt(v) },
-          max: Math.max(...volumes) * 4,  // keep volume bars in lower 25% of chart
+          max: Math.max(...volumes, 1) * 4,  // keep volume bars in lower 25% of chart
         },
       },
     },
