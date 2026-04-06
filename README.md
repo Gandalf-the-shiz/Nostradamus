@@ -1,2 +1,190 @@
-# Nostradamus
-A totally vibe coded stock app
+# 🔮 Nostradamus — The AI Stock Oracle
+
+> **The single source of truth for all agents and context windows.** Every PR must read this file first, update the checkboxes, and keep this document accurate before merging.
+
+---
+
+## Project Overview
+
+**Nostradamus** is a 100% client-side stock market monitoring and prediction app hosted on GitHub Pages. It uses TensorFlow.js for in-browser machine learning to predict which stocks will go up or down — and by how many dollars. The app is self-learning: it continuously improves its model as more data is fed in.
+
+- **Live URL**: https://gandalf-the-shiz.github.io/Nostradamus/
+- **Repo**: https://github.com/Gandalf-the-shiz/Nostradamus
+- **Built entirely by GitHub Agents** — all coding happens via PRs opened from Issues
+- **No server required** — 100% static, runs entirely in the browser
+
+---
+
+## Architecture Overview
+
+| Layer | Technology | Notes |
+|---|---|---|
+| **Hosting** | GitHub Pages | Static site, zero server cost |
+| **Frontend** | Vanilla HTML/CSS/JavaScript | No build step, ES modules, mobile-first |
+| **Charting** | Chart.js (CDN) | Price history + prediction overlay |
+| **ML Engine** | TensorFlow.js (CDN) | LSTM neural network, runs 100% in-browser |
+| **Primary API** | Finnhub | 60 calls/min free, WebSocket real-time, CORS ✅ |
+| **Secondary API** | Twelve Data | 800 calls/day free, CORS ✅ |
+| **Tertiary API** | Polygon.io | Free tier US equities, CORS ✅ |
+| **Data Persistence** | localStorage | Model weights + user preferences + API cache |
+| **Historical Data** | GitHub Actions → JSON files committed to repo | Scheduled workflow fetches and commits daily prices |
+| **CI/CD** | GitHub Actions | Auto-deploy to Pages on push to `main` |
+
+### Why These APIs?
+GitHub Pages serves files with no backend proxy. All API calls happen directly from the user's browser, so **CORS support is mandatory**. Finnhub, Twelve Data, and Polygon.io all support CORS from browser clients. Alpha Vantage does NOT support CORS and cannot be used.
+
+### API Key Strategy
+- API keys are **entered by the user** in the app's Settings panel and stored in `localStorage`
+- Keys are never hardcoded in the source
+- If no API key is configured, the app runs in **Demo Mode** with `data/sample.json`
+
+---
+
+## Rate Limit Strategy
+
+| Technique | Description |
+|---|---|
+| **Request Batching** | Batch multiple symbol lookups into one API call where possible |
+| **localStorage Cache + TTL** | Don't re-fetch data within 5-minute windows; store with expiry timestamp |
+| **Staggered / Lazy Loading** | Only fetch data for stocks currently visible in the viewport |
+| **Exponential Backoff** | On API errors (429, 5xx), retry with increasing delay |
+| **Fallback Chain** | Finnhub → Twelve Data → Polygon.io → cached data → demo data |
+
+---
+
+## The 6-Phase Execution Plan
+
+> **Agents: update these checkboxes in every PR before merging.**
+
+### ✅ Phase 1: Project Scaffold & Infrastructure
+- [x] Repository structure created
+- [x] README.md master plan written
+- [x] `index.html` base page created
+- [x] CSS foundation with mobile-first responsive design (`css/styles.css`)
+- [x] JavaScript module structure established (all stubs in `js/`)
+- [x] GitHub Pages deployment configured
+- [x] GitHub Actions CI/CD workflow for Pages deployment (`.github/workflows/deploy.yml`)
+- [x] GitHub Actions scheduled workflow stub for data fetching (`.github/workflows/fetch-data.yml`)
+- [x] Demo data file created (`data/sample.json`)
+- [x] MIT License added
+
+### 🔲 Phase 2: Data Layer & API Integration
+- [ ] Finnhub API integration module (quotes, company profile, historical data)
+- [ ] Twelve Data API fallback module
+- [ ] Polygon.io API fallback module
+- [ ] Smart request batching and rate-limit manager
+- [ ] localStorage caching layer with TTL
+- [ ] API fallback chain logic (primary → secondary → tertiary → cache)
+- [ ] GitHub Actions workflow to pre-fetch and commit historical price data as JSON
+- [ ] Error handling and user-friendly API error messages
+
+### 🔲 Phase 3: Frontend Dashboard UI
+- [ ] Stock search bar with autocomplete
+- [ ] Stock cards showing current price, change, prediction
+- [ ] Watchlist functionality (add/remove stocks, persisted in localStorage)
+- [ ] Chart.js integration for price history visualization
+- [ ] Prediction display overlay on charts (predicted vs actual)
+- [ ] Mobile-optimized layout and touch interactions
+- [ ] Dark/light theme toggle
+- [ ] Loading states, skeletons, and error states
+
+### 🔲 Phase 4: ML Prediction Engine
+- [ ] TensorFlow.js integration and model architecture (LSTM)
+- [ ] Data preprocessing pipeline (normalization, windowing, feature engineering)
+- [ ] Feature set: price history, volume, moving averages, RSI, MACD
+- [ ] Training pipeline that runs in-browser on historical data
+- [ ] Prediction output: UP/DOWN direction + dollar amount change
+- [ ] Model weight serialization to localStorage
+- [ ] Pre-trained starter model weights committed to repo
+- [ ] Prediction confidence score display
+
+### 🔲 Phase 5: Self-Learning & Continuous Improvement
+- [ ] Prediction tracking system (store predictions with timestamps)
+- [ ] Accuracy comparison engine (predicted vs actual next-day price)
+- [ ] Automatic model retraining trigger when new data is available
+- [ ] Model versioning (track accuracy over time)
+- [ ] Rolling accuracy dashboard (show model improvement over weeks/months)
+- [ ] A/B model comparison (keep best performing model)
+- [ ] GitHub Actions workflow to log daily accuracy metrics
+
+### 🔲 Phase 6: Polish, Docs & Advanced Features
+- [ ] Performance optimization (lazy loading, code splitting)
+- [ ] PWA support (offline mode, installable on phone)
+- [ ] Sector/industry analysis view
+- [ ] News sentiment integration (Finnhub news API)
+- [ ] Export predictions to CSV
+- [ ] Comprehensive inline code documentation
+- [ ] User guide / help section in app
+- [ ] Social sharing of predictions
+
+---
+
+## File Structure
+
+```
+Nostradamus/
+├── index.html                  # Main app entry point
+├── README.md                   # Master plan (this file)
+├── LICENSE                     # MIT License
+├── .github/
+│   └── workflows/
+│       ├── deploy.yml          # GitHub Pages deployment (push to main → auto-deploy)
+│       └── fetch-data.yml      # Scheduled data fetching (stub — Phase 2)
+├── css/
+│   └── styles.css              # All styles, mobile-first, dark theme default
+├── js/
+│   ├── app.js                  # Main app initialization & shell
+│   ├── api/
+│   │   ├── finnhub.js          # Finnhub API module (primary data source)
+│   │   ├── twelvedata.js       # Twelve Data API module (secondary fallback)
+│   │   ├── polygon.js          # Polygon.io API module (tertiary fallback)
+│   │   └── manager.js          # API manager: fallback chain, rate limiting, batching
+│   ├── ml/
+│   │   ├── model.js            # TensorFlow.js LSTM model definition
+│   │   ├── training.js         # In-browser training pipeline
+│   │   ├── prediction.js       # Prediction engine (UP/DOWN + dollar amount)
+│   │   └── preprocessing.js    # Data normalization, windowing, feature engineering
+│   ├── ui/
+│   │   ├── dashboard.js        # Main dashboard rendering & layout
+│   │   ├── charts.js           # Chart.js price history + prediction overlay
+│   │   ├── stockcard.js        # Stock card component
+│   │   └── search.js           # Search bar with autocomplete
+│   ├── storage/
+│   │   └── cache.js            # localStorage manager with TTL
+│   └── utils/
+│       └── helpers.js          # Shared utility functions (formatting, math, etc.)
+├── data/
+│   └── sample.json             # Demo stock data (AAPL, GOOGL, MSFT, AMZN, TSLA)
+└── models/
+    └── starter/                # Pre-trained starter model weights (Phase 4)
+        ├── model.json          # Model topology
+        └── weights.bin         # Binary weights (placeholder until Phase 4)
+```
+
+---
+
+## Technical Notes for Future Agents
+
+1. **No build step** — All code is vanilla JS served directly by GitHub Pages. No webpack, no transpilation. Use ES module `import/export` syntax via `<script type="module">` or classic script tags.
+2. **Mobile-first** — Assume the user is on a phone browser. All UI must work on 375px width screens. Touch interactions must be considered.
+3. **API keys via Settings UI** — Never hardcode API keys. The user enters them in a Settings panel; they are stored in `localStorage`. See `js/storage/cache.js` for the storage API.
+4. **Demo mode** — If `localStorage` has no API keys configured, the app loads `data/sample.json` and renders with demo data. A visible banner alerts the user they are in Demo Mode.
+5. **Graceful degradation** — Every feature should fail gracefully. If TensorFlow.js fails to load, show a message but still show price data. If API fails, fall back to cache or demo data.
+6. **README is the contract** — Every PR must update the phase checkboxes and keep this document accurate. Future agents must be able to read this file and know exactly what has been built and what to build next.
+7. **CDN versions** (do not change without testing):
+   - TensorFlow.js: `https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js`
+   - Chart.js: `https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js`
+
+---
+
+## Current Status
+
+**Phase 1 complete.** The app scaffold is live at https://gandalf-the-shiz.github.io/Nostradamus/
+
+**Next step for agents: Implement Phase 2 (Data Layer & API Integration)**
+- Read Phase 2 checklist above
+- Implement `js/api/finnhub.js`, `js/api/twelvedata.js`, `js/api/polygon.js`, `js/api/manager.js`
+- Implement `js/storage/cache.js` with full TTL logic
+- Add Settings UI panel for API key entry
+- Hook up demo data fallback in `js/app.js`
+- Update `data/sample.json` with richer historical data if needed

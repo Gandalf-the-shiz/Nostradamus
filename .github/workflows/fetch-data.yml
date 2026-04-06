@@ -1,0 +1,49 @@
+name: Fetch Stock Data
+
+# Scheduled job: runs at market close (9 PM UTC ≈ 4 PM ET + 1h buffer)
+# Fetches daily closing prices and commits them as JSON to the repo.
+#
+# TODO (Phase 2): Implement actual data fetching using stored API keys
+#   (keys will be stored as GitHub repository secrets, not localStorage).
+#   This workflow will:
+#     1. Call Finnhub API for closing prices of tracked symbols
+#     2. Append new data to data/historical/ directory
+#     3. Commit and push the updated JSON files
+#     4. Trigger a re-deploy of the Pages site with fresh data
+
+on:
+  schedule:
+    # Every weekday (Mon-Fri) at 21:00 UTC (≈ 4 PM ET, after NYSE close)
+    - cron: '0 21 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'Manual data refresh'
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log status
+        run: |
+          echo "============================================"
+          echo "  Nostradamus Data Fetch Workflow"
+          echo "  Status: NOT YET IMPLEMENTED (Phase 2)"
+          echo "============================================"
+          echo ""
+          echo "This workflow will be fully implemented in Phase 2."
+          echo "When complete, it will:"
+          echo "  1. Fetch daily closing prices from Finnhub API"
+          echo "  2. Update data/historical/<SYMBOL>.json files"
+          echo "  3. Commit and push changes to trigger a Pages re-deploy"
+          echo ""
+          echo "Triggered at: $(date -u)"
+          echo "Reason: ${{ github.event.inputs.reason || 'Scheduled run' }}"
