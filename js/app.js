@@ -18,6 +18,8 @@ import { getItem, setItem, removeItem, clearAll } from './storage/cache.js';
 import { showToast } from './utils/helpers.js';
 import { initDashboard } from './ui/dashboard.js';
 import { initSearch } from './ui/search.js';
+import { initTheme, toggleTheme } from './ui/theme.js';
+import { initWatchlist } from './ui/watchlist.js';
 
 // ─── Constants ────────────────────────────────────────────────
 const STORAGE_KEYS = {
@@ -47,11 +49,13 @@ const appState = {
 async function init() {
   console.log('[Nostradamus] Initializing app…');
 
+  initTheme();
   checkLibraries();
   detectMode();
   initNavigation();
   initDemoBanner();
   initSettingsPanel();
+  initThemeToggle();
 
   // Initialize UI modules
   await initDashboard(appState);
@@ -152,6 +156,18 @@ function navigateTo(viewName) {
   });
 
   appState.activeView = viewName;
+
+  // Refresh watchlist view on navigation
+  if (viewName === 'watchlist') {
+    initWatchlist(appState);
+  }
+}
+
+// ─── Theme Toggle ─────────────────────────────────────────────
+
+function initThemeToggle() {
+  const btn = document.getElementById('theme-toggle');
+  btn?.addEventListener('click', toggleTheme);
 }
 
 // ─── Settings Panel ───────────────────────────────────────────

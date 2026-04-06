@@ -5,11 +5,13 @@
  * Responsibilities:
  *  - Load stock data (demo or live)
  *  - Render the market overview strip
- *  - Render stock cards grid
+ *  - Render stock cards grid with staggered animation
  *  - Coordinate with charts.js and prediction.js
+ *  - Wire card clicks to the stock detail overlay
  *
  * Phase 1: Renders demo data from data/sample.json.
  * Phase 2: Pulls live data via api/manager.js.
+ * Phase 3: Stagger animation, detail view wiring.
  * Phase 4+: Adds prediction overlays on each card.
  */
 
@@ -17,6 +19,7 @@ import { loadDemoData, getQuote, getCandles } from '../api/manager.js';
 import { getItem } from '../storage/cache.js';
 import { demoPrediction } from '../ml/prediction.js';
 import { renderStockCard } from './stockcard.js';
+import { openStockDetail } from './detail.js';
 
 const DEFAULT_WATCHLIST = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA'];
 
@@ -52,11 +55,20 @@ export async function initDashboard(appState) {
 
   renderMarketOverview(stocks);
 
-  // Render each stock card
-  stocks.forEach(stock => {
+  // Render each stock card with staggered animation
+  stocks.forEach((stock, i) => {
     const prediction = demoPrediction(stock.symbol, stock.quote.current);
     const card = renderStockCard(stock, prediction, appState.chartReady);
+    card.style.animationDelay = `${i * 50}ms`;
+    card.classList.add('stock-card--animate-in');
     stockGrid.appendChild(card);
+  });
+
+  // Wire card clicks to detail overlay
+  stockGrid.addEventListener('stock-card-click', e => {
+    const { stock, prediction } = e.detail;
+    const candles = stock.candles || [];
+    openStockDetail(stock.symbol, stock, candles, prediction);
   });
 
   console.log(`[Dashboard] Rendered ${stocks.length} stock cards.`);
@@ -178,12 +190,15 @@ function renderMarketOverview(stocks) {
   const gainers = stocks.filter(s => s.quote.change >= 0).length;
   const losers  = stocks.length - gainers;
   const avgChange = stocks.reduce((sum, s) => sum + s.quote.changePercent, 0) / stocks.length;
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
   const items = [
     { label: 'Gainers',    value: String(gainers), positive: true },
     { label: 'Losers',     value: String(losers),  positive: false },
     { label: 'Avg Change', value: `${avgChange >= 0 ? '+' : ''}${avgChange.toFixed(2)}%`, positive: avgChange >= 0 },
     { label: 'Tracked',    value: String(stocks.length), positive: null },
+    { label: 'Updated',    value: timeStr, positive: null },
   ];
 
   items.forEach(item => {
