@@ -1,9 +1,9 @@
 # Phase 2: Ticker registry
 requests>=2.31.0
 
-# Phase 3 (future): Historical data
-# yfinance>=0.2.36
-# pandas>=2.2.0
+# Phase 3: Historical data
+yfinance>=0.2.36
+pandas>=2.2.0
 
 # Phase 4 (future): Feature engineering
 # ta>=0.11.0

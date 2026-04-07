@@ -134,16 +134,16 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [x] Target: ~7,000+ actively traded US tickers
 
 ### Phase 3: Full-Market Historical Data Pipeline
-- [ ] Create `scripts/fetch-history.py` — uses `yfinance` to bulk download 1 year OHLCV for all tickers
-- [ ] Implement batched downloading: 50 tickers per batch, 2-second inter-batch delay
-- [ ] Implement retry logic with exponential backoff for failed tickers
-- [ ] Store data as sector-chunked compressed JSON files in `data/historical/` (e.g., `technology.json`, `healthcare.json`, `financials.json`)
-- [ ] Add incremental update mode: only fetch new data since last run (don't re-download everything)
-- [ ] Create `.github/workflows/fetch-history.yml` — runs nightly Mon-Fri at 9:30 PM UTC
-- [ ] Add data validation: reject tickers with < 100 trading days of data
-- [ ] Add `data/historical/manifest.json` — metadata file listing all available tickers, date ranges, last update timestamps
+- [x] Create `scripts/fetch-history.py` — uses `yfinance` to bulk download 1 year OHLCV for all tickers
+- [x] Implement batched downloading: 50 tickers per batch, 2-second inter-batch delay
+- [x] Implement retry logic with exponential backoff for failed tickers
+- [x] Store data as sector-chunked compressed JSON files in `data/historical/` (e.g., `technology.json`, `healthcare.json`, `financials.json`)
+- [x] Add incremental update mode: only fetch new data since last run (don't re-download everything)
+- [x] Create `.github/workflows/fetch-history.yml` — runs nightly Mon-Fri at 9:30 PM UTC
+- [x] Add data validation: reject tickers with < 100 trading days of data
+- [x] Add `data/historical/manifest.json` — metadata file listing all available tickers, date ranges, last update timestamps
 - [ ] Configure Git LFS for `data/historical/*.json` if total size exceeds 100MB
-- [ ] Target: 1 year of daily OHLCV data for ~7,000 tickers
+- [x] Target: 1 year of daily OHLCV data for ~7,000 tickers
 
 ### Phase 4: Feature Engineering Pipeline (Server-Side)
 - [ ] Create `scripts/build-features.py` — reads raw OHLCV, computes full feature matrix
@@ -425,7 +425,7 @@ Nostradamus/
 | V1 Phase 5 | Self-learning, accuracy tracking | ✅ Complete (with caveats — see autopsy) |
 | V1 Phase 6 | Polish, PWA, sector analysis, news | ✅ Complete (with caveats — see autopsy) |
 | **V2 Phase 2** | **Universal Ticker Registry** | 🟢 Complete |
-| **V2 Phase 3** | **Full-Market Historical Data** | ⬜ Not started |
+| **V2 Phase 3** | **Full-Market Historical Data** | ✅ Complete |
 | **V2 Phase 4** | **Server-Side Feature Engineering** | ⬜ Not started |
 | **V2 Phase 5** | **Server-Side Model Training** | ⬜ Not started |
 | **V2 Phase 6** | **Upgraded Browser ML Engine** | ⬜ Not started |
