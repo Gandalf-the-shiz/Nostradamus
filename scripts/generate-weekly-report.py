@@ -34,7 +34,7 @@ REPORTS_DIR      = Path("data/reports/weekly")
 
 # ─── Sector lookup ─────────────────────────────────────────────
 
-# SIC-code → GICS sector mapping (abbreviated — add more as needed)
+# Stock symbol → GICS sector mapping (abbreviated — add more as needed)
 SECTOR_LOOKUP = {
     "AAPL":  "Technology",    "GOOGL": "Technology",   "MSFT":  "Technology",
     "AMZN":  "Consumer Discretionary", "TSLA": "Consumer Discretionary",
@@ -227,6 +227,7 @@ def generate_report() -> dict:
             "version":      meta.get("version", "unknown"),
             "trainedAt":    meta.get("trainedAt", ""),
             "testAccuracy": meta.get("testAccuracy", None),
+            # 32 features matches the V2 BiLSTM architecture (build-features.py)
             "features":     meta.get("features", 32),
         },
     }

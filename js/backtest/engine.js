@@ -277,8 +277,9 @@ function _indexPredictions(predictions, bySymbol) {
     for (const [sym, candles] of bySymbol) {
       const inner = new Map();
       for (let i = 5; i < candles.length; i++) {
-        const sma5 = (candles[i-1].close + candles[i-2].close + candles[i-3].close +
-                      candles[i-4].close + candles[i-5].close) / 5;
+        let sma5 = 0;
+        for (let k = 1; k <= 5; k++) sma5 += candles[i - k].close;
+        sma5 /= 5;
         const direction  = candles[i].close > sma5 ? 'UP' : 'DOWN';
         const confidence = Math.min(0.9, 0.5 + Math.abs(candles[i].close - sma5) / sma5 * 5);
         inner.set(candles[i].date, { direction, confidence });

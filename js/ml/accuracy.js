@@ -210,6 +210,10 @@ export function getSentimentCorrelation(symbol) {
   for (const p of resolved) {
     // Score sentiment from any attached headline text (or symbol name as fallback)
     const headlines = Array.isArray(p.headlines) ? p.headlines : [];
+    // Note: in demo mode, headlines will be empty, so we construct a proxy text from
+    // the prediction direction. This creates some artificial correlation and is
+    // documented as a known limitation — real news headlines would yield more
+    // meaningful correlation scores.
     const text = headlines.length > 0
       ? headlines.join(' ')
       : `${p.symbol} stock ${p.direction === 'UP' ? 'growth gain buy' : 'drop loss sell'}`;

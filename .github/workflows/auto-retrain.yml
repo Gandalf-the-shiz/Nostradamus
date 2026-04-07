@@ -86,7 +86,8 @@ jobs:
           import json, sys
           from datetime import datetime, timedelta, timezone
 
-          log_path = "data/accuracy/accuracy-log.json"
+          log_path  = "data/accuracy/accuracy-log.json"
+          # Minimum acceptable accuracy: slightly above the ~52% naive "always UP" baseline
           threshold = 0.53
 
           try:
