@@ -1,16 +1,16 @@
-name: Log Daily Accuracy Metrics
+name: Generate Daily Predictions
 
 on:
   schedule:
-    # Run every day at 23:55 UTC (after US market close + fetch-history)
-    - cron: '55 23 * * *'
+    # Run at 22:30 UTC every weekday (after US market close at ~21:00 UTC)
+    - cron: '30 22 * * 1-5'
   workflow_dispatch:   # allow manual trigger
 
 permissions:
   contents: write
 
 jobs:
-  score-accuracy:
+  generate-predictions:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,20 +26,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements.txt
 
-      - name: Run accuracy scoring
-        run: python scripts/score-accuracy.py
-        continue-on-error: true   # don't fail the workflow if no predictions exist yet
+      - name: Generate predictions
+        run: python scripts/generate-predictions.py
 
-      - name: Commit accuracy reports
+      - name: Commit prediction file
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add data/accuracy/ || true
+          git add data/predictions/ || true
 
           if git diff --cached --quiet; then
-            echo "No changes to accuracy data."
+            echo "No new predictions to commit."
           else
-            git commit -m "chore: update accuracy metrics $(date -u +%Y-%m-%d)"
+            git commit -m "chore: generate daily predictions $(date -u +%Y-%m-%d)"
             git push
           fi

