@@ -441,7 +441,11 @@ export function buildFeatureMatrix(candles, scalingParams = null) {
       isNaN(volumeRatio[i])
     ) continue;
 
-    // Parse day-of-week and month from date string
+    // Parse day-of-week and month from date string.
+    // JavaScript Date.getDay(): 0=Sunday, 1=Monday, …, 5=Friday, 6=Saturday.
+    // build-features.py uses dt.dayofweek: 0=Monday, …, 4=Friday.
+    // Both produce equivalent one-hot encodings: Mon-Fri each get their own bit;
+    // weekends (Sat/Sun) have all five bits = 0 (no market data on weekends anyway).
     const dateObj = new Date(candles[i].date);
     const dow = dateObj.getDay(); // 0=Sun, 1=Mon, …, 6=Sat
     const month = dateObj.getMonth() + 1; // 1–12

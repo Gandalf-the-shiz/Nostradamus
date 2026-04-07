@@ -166,6 +166,9 @@ export function resolvePrediction(id, actualPrice) {
  * Predictions are only resolved when actual close price for the SPECIFIC predicted
  * date is available — not for any arbitrary price update.
  *
+ * Backward compatibility: predictions created before this version (without a
+ * predictionDate field) are resolved using the old behaviour (any matching price).
+ *
  * @param {Object.<string, number>} symbolPriceMap  - e.g. { AAPL: 182.50, TSLA: 245.10 }
  * @param {string} [priceDate]  - YYYY-MM-DD date that the prices in symbolPriceMap correspond to.
  *                                Defaults to today's date in local time.
@@ -178,6 +181,9 @@ export function resolveAll(symbolPriceMap, priceDate) {
 
   const updated = predictions.map(p => {
     if (p.resolvedAt !== null) return p;              // already resolved
+    // T+1 date check: skip if this prediction has a predictionDate that doesn't match today.
+    // Legacy predictions (created before this version) have no predictionDate and are
+    // resolved with the old behaviour (any matching price).
     if (p.predictionDate && p.predictionDate !== today) return p; // wrong date
     const actualPrice = symbolPriceMap[p.symbol];
     if (actualPrice == null) return p;                // no price for this symbol

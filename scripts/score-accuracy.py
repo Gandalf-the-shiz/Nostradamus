@@ -131,7 +131,7 @@ def compute_metrics(scored: list[dict]) -> dict:
     # Confidence-weighted accuracy (predictions with higher confidence should be right more)
     conf_total = sum(s.get("confidence", 0.5) for s in scored)
     conf_weighted = (
-        sum(s.get("confidence", 0.5) * s["correct"] for s in scored) / conf_total
+        sum(s.get("confidence", 0.5) * int(s["correct"]) for s in scored) / conf_total
         if conf_total > 0 else None
     )
 
@@ -290,11 +290,11 @@ def main():
             continue
 
         actual_dir = "UP" if actual > pred_date_close else "DOWN"
-        correct    = int(predicted_dir == actual_dir)
+        correct    = predicted_dir == actual_dir
 
         scored.append({
             "ticker":      ticker,
-            "correct":     correct,
+            "correct":     int(correct),
             "predicted":   predicted_dir,
             "actual":      actual_dir,
             "probability": probability,

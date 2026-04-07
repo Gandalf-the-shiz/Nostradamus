@@ -42,7 +42,11 @@ const MC_PASSES = 20;
 
 /**
  * Run N Monte Carlo Dropout forward passes and return mean + stddev.
- * Dropout layers must stay active during inference — set training=true.
+ * Dropout layers must stay active during inference.
+ *
+ * In TF.js, `model.predict()` always runs in inference mode (dropout disabled).
+ * To keep dropout active, use `model.call(inputs, { training: true })` which
+ * passes the training flag through to each layer.
  *
  * @param {tf.LayersModel} model
  * @param {tf.Tensor} inputTensor  - Shape [1, windowSize, features]
@@ -51,8 +55,10 @@ const MC_PASSES = 20;
 async function mcDropoutPredict(model, inputTensor) {
   const results = [];
   for (let i = 0; i < MC_PASSES; i++) {
-    // training=true keeps dropout active
-    const out = model.predict(inputTensor, { training: true });
+    // model.call() with training=true keeps dropout active during inference
+    const rawOut = model.call(inputTensor, { training: true });
+    // call() may return a Tensor directly or an array of Tensors
+    const out = Array.isArray(rawOut) ? rawOut[0] : rawOut;
     const val = (await out.data())[0];
     out.dispose();
     results.push(val);
