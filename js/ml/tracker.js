@@ -3,12 +3,12 @@
  * Prediction tracking system — Phase 5.
  *
  * Stores every prediction the model makes with timestamps, symbol,
- * direction (UP/DOWN), dollar delta, predicted price, and actual price
+ * direction (UP/DOWN), probability, predicted price, and actual price
  * at prediction time. Predictions are persisted in localStorage.
  *
- * When actual next-day prices become available, predictions can be
- * "resolved" by supplying the real close price, which computes whether
- * the direction call was correct and the absolute price error.
+ * Predictions are resolved at T+1: only when actual close price for the
+ * PREDICTED DATE (next trading day) is available. This prevents premature
+ * resolution from intraday price updates.
  *
  * localStorage key (via cache.js): 'predictions' → 'nostradamus_predictions'
  */
@@ -23,11 +23,13 @@ const MAX_STORED = 500; // keep last N predictions to avoid unbounded growth
  * @property {string}  id             - Unique identifier
  * @property {string}  symbol
  * @property {'UP'|'DOWN'} direction
- * @property {number}  delta          - Predicted dollar change magnitude
+ * @property {number}  probability    - Raw P(UP) from model
+ * @property {number}  delta          - Estimated dollar change magnitude
  * @property {number}  predictedPrice
  * @property {number}  currentPrice   - Price at the time of prediction
  * @property {number}  confidence     - 0..1
  * @property {number}  generatedAt    - Unix ms timestamp
+ * @property {string}  predictionDate - YYYY-MM-DD: the trading day this prediction is FOR
  * @property {boolean} isDemo         - Was this a demo (no real model)?
  * @property {number|null}  actualPrice    - Filled when resolved
  * @property {'UP'|'DOWN'|null} actualDirection - UP/DOWN relative to currentPrice
@@ -35,6 +37,21 @@ const MAX_STORED = 500; // keep last N predictions to avoid unbounded growth
  * @property {number|null}  priceError - |predictedPrice - actualPrice|
  * @property {number|null}  resolvedAt - Unix ms timestamp when resolved
  */
+
+/**
+ * Return the next trading day (skipping Saturday and Sunday) after a given date.
+ * @param {Date} [date=new Date()]
+ * @returns {string}  YYYY-MM-DD
+ */
+export function getNextTradingDay(date = new Date()) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  // Skip weekends: 6 = Saturday, 0 = Sunday
+  while (next.getDay() === 6 || next.getDay() === 0) {
+    next.setDate(next.getDate() + 1);
+  }
+  return next.toISOString().slice(0, 10);
+}
 
 /**
  * Load all tracked predictions from localStorage.
@@ -57,6 +74,7 @@ function _save(predictions) {
 
 /**
  * Store a new prediction.
+ * Automatically sets predictionDate = next trading day from today.
  * Returns the assigned unique ID.
  *
  * @param {import('./prediction.js').Prediction} prediction
@@ -66,18 +84,21 @@ export function storePrediction(prediction) {
   const predictions = _load();
 
   const id = `pred_${prediction.generatedAt}_${Math.random().toString(36).slice(2, 7)}`;
+  const predictionDate = getNextTradingDay(new Date(prediction.generatedAt));
 
   const entry = {
     id,
     symbol:         prediction.symbol,
     direction:      prediction.direction,
+    probability:    prediction.probability ?? null,
     delta:          prediction.delta,
     predictedPrice: prediction.predictedPrice,
     currentPrice:   prediction.currentPrice,
     confidence:     prediction.confidence ?? null,
     generatedAt:    prediction.generatedAt,
+    predictionDate,
     isDemo:         prediction.isDemo ?? false,
-    // resolved fields — null until actual prices arrive
+    // resolved fields — null until actual prices arrive for predictionDate
     actualPrice:    null,
     actualDirection: null,
     isCorrect:      null,
@@ -116,7 +137,7 @@ export function getPendingPredictions(symbol) {
  * Fills in actualPrice, actualDirection, isCorrect, priceError, resolvedAt.
  *
  * @param {string} id
- * @param {number} actualPrice  - Actual next-day close price
+ * @param {number} actualPrice  - Actual close price for the predictionDate
  * @returns {boolean}  true if found and updated, false otherwise
  */
 export function resolvePrediction(id, actualPrice) {
@@ -141,20 +162,25 @@ export function resolvePrediction(id, actualPrice) {
 }
 
 /**
- * Resolve all pending predictions for symbols present in the given price map.
- * Call this whenever fresh price data arrives.
+ * Resolve pending predictions whose predictionDate matches a date in the price map.
+ * Predictions are only resolved when actual close price for the SPECIFIC predicted
+ * date is available — not for any arbitrary price update.
  *
  * @param {Object.<string, number>} symbolPriceMap  - e.g. { AAPL: 182.50, TSLA: 245.10 }
+ * @param {string} [priceDate]  - YYYY-MM-DD date that the prices in symbolPriceMap correspond to.
+ *                                Defaults to today's date in local time.
  * @returns {number}  Count of predictions resolved
  */
-export function resolveAll(symbolPriceMap) {
+export function resolveAll(symbolPriceMap, priceDate) {
+  const today = priceDate ?? new Date().toISOString().slice(0, 10);
   const predictions = _load();
   let resolvedCount = 0;
 
   const updated = predictions.map(p => {
-    if (p.resolvedAt !== null) return p;          // already resolved
+    if (p.resolvedAt !== null) return p;              // already resolved
+    if (p.predictionDate && p.predictionDate !== today) return p; // wrong date
     const actualPrice = symbolPriceMap[p.symbol];
-    if (actualPrice == null) return p;            // no price for this symbol
+    if (actualPrice == null) return p;                // no price for this symbol
 
     const actualDirection = actualPrice >= p.currentPrice ? 'UP' : 'DOWN';
     resolvedCount++;

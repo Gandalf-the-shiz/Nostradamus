@@ -139,18 +139,26 @@ export async function trainModel(candles, onProgress) {
  * Trigger a training run in the background using requestIdleCallback (if available).
  * Falls back to setTimeout on unsupported browsers.
  *
+ * Returns a Promise that resolves to the trained model when training completes,
+ * allowing callers to await completion and then record versioning info.
+ *
  * @param {import('./preprocessing.js').OHLCV[]} candles
  * @param {(progress: TrainingProgress) => void} [onProgress]
- * @returns {void}
+ * @returns {Promise<tf.LayersModel>}
  */
 export function scheduledTrain(candles, onProgress) {
-  const run = () => trainModel(candles, onProgress).catch(err => {
-    console.error('[Training] Background training failed:', err);
-  });
+  return new Promise((resolve, reject) => {
+    const run = () => {
+      trainModel(candles, onProgress).then(resolve).catch(err => {
+        console.error('[Training] Background training failed:', err);
+        reject(err);
+      });
+    };
 
-  if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(run, { timeout: 30000 });
-  } else {
-    setTimeout(run, 1000);
-  }
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(run, { timeout: 30000 });
+    } else {
+      setTimeout(run, 1000);
+    }
+  });
 }

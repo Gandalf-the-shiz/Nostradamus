@@ -1,24 +1,20 @@
 /**
  * js/ml/model.js
- * TensorFlow.js LSTM model definition for stock price prediction.
+ * TensorFlow.js model definition for stock price direction prediction.
  *
  * Model overview:
- *  - Input: Sliding window of N days of features (price, volume, indicators)
- *  - Architecture: LSTM → Dense → Output
- *  - Output: Predicted next-day close price (regression)
- *  - Post-processing: Compare to current price → UP/DOWN + dollar delta
- *
- * TODO (Phase 4):
- *  - Define the full LSTM model architecture
- *  - Implement model serialisation/deserialisation to localStorage
- *  - Load starter model weights from models/starter/model.json
+ *  - Input: Sliding window of 30 days × 32 features
+ *  - Architecture: Bidirectional LSTM (128) → Dropout(0.3) → LSTM(64) →
+ *                  Dropout(0.2) → Dense(32, relu) → Dropout(0.2) → Dense(1, sigmoid)
+ *  - Output: P(price UP tomorrow) ∈ [0, 1]  (binary classification)
+ *  - Matches server-side train-model.py architecture exactly
  */
 
 // ─── Hyperparameters ──────────────────────────────────────────
 export const MODEL_CONFIG = {
   inputWindowSize: 30,      // Number of days of history fed as input
-  featuresPerStep:  7,      // Features per time step (see preprocessing.js)
-  lstmUnits:       [64, 32], // LSTM layer unit sizes
+  featuresPerStep:  32,     // Features per time step — must match build-features.py FEATURE_COUNT
+  lstmUnits:       [128, 64], // BiLSTM then LSTM layer sizes
   dropoutRate:     0.2,
   learningRate:    0.001,
   batchSize:       32,
@@ -27,7 +23,8 @@ export const MODEL_CONFIG = {
 };
 
 /**
- * Build and return an untrained LSTM model.
+ * Build and return an untrained Bidirectional LSTM model matching the
+ * server-side architecture in train-model.py.
  * Requires TensorFlow.js to be loaded (window.tf).
  *
  * @returns {tf.Sequential}
@@ -39,13 +36,15 @@ export function buildModel() {
 
   const model = tf.sequential();
 
-  // First LSTM layer — returns sequences for stacking
-  model.add(tf.layers.lstm({
-    units: MODEL_CONFIG.lstmUnits[0],
+  // Bidirectional LSTM layer — returns sequences for stacking
+  model.add(tf.layers.bidirectional({
+    layer: tf.layers.lstm({
+      units: MODEL_CONFIG.lstmUnits[0],
+      returnSequences: true,
+    }),
     inputShape: [MODEL_CONFIG.inputWindowSize, MODEL_CONFIG.featuresPerStep],
-    returnSequences: true,
   }));
-  model.add(tf.layers.dropout({ rate: MODEL_CONFIG.dropoutRate }));
+  model.add(tf.layers.dropout({ rate: 0.3 }));
 
   // Second LSTM layer — returns only final output
   model.add(tf.layers.lstm({
@@ -55,20 +54,21 @@ export function buildModel() {
   model.add(tf.layers.dropout({ rate: MODEL_CONFIG.dropoutRate }));
 
   // Dense hidden layer
-  model.add(tf.layers.dense({ units: 16, activation: 'relu' }));
+  model.add(tf.layers.dense({ units: 32, activation: 'relu' }));
+  model.add(tf.layers.dropout({ rate: MODEL_CONFIG.dropoutRate }));
 
-  // Output layer — single neuron for predicted normalized close price
+  // Output layer — sigmoid for binary classification P(UP)
   model.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }));
-  // sigmoid because our target is min-max normalized to [0,1]
 
   model.compile({
     optimizer: tf.train.adam(MODEL_CONFIG.learningRate),
-    loss: 'meanSquaredError',
-    metrics: ['mae'],
+    loss: 'binaryCrossentropy',
+    metrics: ['accuracy'],
   });
 
   return model;
 }
+
 
 /**
  * Save model weights to localStorage.
@@ -84,28 +84,24 @@ export async function saveModel(model, slot = 'default') {
 }
 
 /**
- * Load model weights from localStorage.
- * Falls back to starter weights at models/starter/model.json if no saved model.
- *
- * @param {string} [slot='default']
- * @returns {Promise<tf.LayersModel|null>}  null if no model found
+ * Load the pre-trained V2 model from the repo (primary model).
+ * @returns {Promise<tf.LayersModel|null>}
  */
-export async function loadModel(slot = 'default') {
+export async function loadV2Model() {
   if (typeof tf === 'undefined') return null;
-  const storageKey = `localstorage://nostradamus-model-${slot}`;
   try {
-    const model = await tf.loadLayersModel(storageKey);
-    console.log(`[Model] Loaded from ${storageKey}`);
+    const model = await tf.loadLayersModel('./models/v2/model.json');
+    console.log('[Model] Loaded V2 model from repo');
     return model;
   } catch (err) {
-    console.warn(`[Model] No saved model found in slot "${slot}":`, err.message);
+    console.warn('[Model] Failed to load V2 model:', err.message);
     return null;
   }
 }
 
 /**
- * Load the pre-trained starter model from the repo.
- * @returns {Promise<tf.LayersModel>}
+ * Load the pre-trained starter model from the repo (last-resort fallback).
+ * @returns {Promise<tf.LayersModel|null>}
  */
 export async function loadStarterModel() {
   if (typeof tf === 'undefined') return null;
@@ -117,4 +113,35 @@ export async function loadStarterModel() {
     console.warn('[Model] Failed to load starter model:', err.message);
     return null;
   }
+}
+
+/**
+ * Load model weights.
+ * Fallback chain: localStorage → V2 pre-trained → starter → null
+ *
+ * @param {string} [slot='default']
+ * @returns {Promise<tf.LayersModel|null>}  null if no model found anywhere
+ */
+export async function loadModel(slot = 'default') {
+  if (typeof tf === 'undefined') return null;
+
+  // 1. Try localStorage (user-trained model)
+  const storageKey = `localstorage://nostradamus-model-${slot}`;
+  try {
+    const model = await tf.loadLayersModel(storageKey);
+    console.log(`[Model] Loaded from ${storageKey}`);
+    return model;
+  } catch (err) {
+    console.warn(`[Model] No saved model found in slot "${slot}":`, err.message);
+  }
+
+  // 2. Try V2 pre-trained model
+  const v2 = await loadV2Model();
+  if (v2) return v2;
+
+  // 3. Try starter model
+  const starter = await loadStarterModel();
+  if (starter) return starter;
+
+  return null;
 }

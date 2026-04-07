@@ -89,9 +89,9 @@ export function shouldRetrain(candles) {
  *
  * @param {import('./preprocessing.js').OHLCV[]} candles  - Full candle history
  * @param {(progress: import('./training.js').TrainingProgress) => void} [onProgress]
- * @returns {void}  (non-blocking, runs in background)
+ * @returns {Promise<void>}  Resolves when training and version recording complete
  */
-export function autoRetrain(candles, onProgress) {
+export async function autoRetrain(candles, onProgress) {
   if (!shouldRetrain(candles)) {
     console.log('[Retraining] No retraining needed at this time.');
     return;
@@ -102,53 +102,35 @@ export function autoRetrain(candles, onProgress) {
   let finalLoss    = 0;
   let finalValLoss = 0;
 
-  // Wrap onProgress to capture the final epoch metrics
   const wrappedProgress = (progress) => {
     finalLoss    = progress.loss;
     finalValLoss = progress.valLoss;
     if (onProgress) onProgress(progress);
   };
 
-  scheduledTrain(candles, wrappedProgress);
-
-  // scheduledTrain is fire-and-forget (it uses requestIdleCallback/setTimeout
-  // internally and provides no completion promise).  We defer the version-
-  // recording step to allow training to finish.  The delay is a generous
-  // upper bound; on fast hardware training finishes sooner, but the accuracy
-  // snapshot is taken from *resolved prediction outcomes* (not training loss),
-  // so a few minutes' offset has no meaningful impact on the A/B comparison.
-  //
-  // Note: The accuracy snapshot captured here reflects predictions resolved
-  // BEFORE this training run.  Metrics will naturally improve as more
-  // predictions are resolved in subsequent dashboard refreshes.
   const candleCount = candles.length;
 
-  const recordVersionAfterTraining = () => {
-    const accuracySnapshot = getAccuracySummary();
-    const version = createModelVersion({
-      trainLoss:  finalLoss,
-      valLoss:    finalValLoss,
-      accuracy: {
-        hitRate:       accuracySnapshot.hitRate,
-        mae:           accuracySnapshot.mae,
-        resolvedCount: accuracySnapshot.resolvedCount,
-      },
-    });
+  // Await training completion before recording the version
+  const model = await scheduledTrain(candles, wrappedProgress);
 
-    _setLastTrainingInfo({
-      lastTrainedAt: Date.now(),
-      candleCount,
-      versionId: version.id,
-    });
+  const accuracySnapshot = getAccuracySummary();
+  const version = createModelVersion({
+    trainLoss:  finalLoss,
+    valLoss:    finalValLoss,
+    accuracy: {
+      hitRate:       accuracySnapshot.hitRate,
+      mae:           accuracySnapshot.mae,
+      resolvedCount: accuracySnapshot.resolvedCount,
+    },
+  });
 
-    compareAndPromote(version.id);
-    console.log(`[Retraining] Recorded model version ${version.versionNumber}`);
-  };
+  _setLastTrainingInfo({
+    lastTrainedAt: Date.now(),
+    candleCount,
+    versionId: version.id,
+  });
 
-  // 5-minute upper bound — covers typical in-browser LSTM training time.
-  // This is intentionally conservative; if training finishes earlier the
-  // version record will be slightly stale on loss values but accuracy
-  // metrics come from localStorage and are always up-to-date.
-  const RECORD_DELAY_MS = 5 * 60 * 1000;
-  setTimeout(recordVersionAfterTraining, RECORD_DELAY_MS);
+  compareAndPromote(version.id);
+  console.log(`[Retraining] Recorded model version ${version.versionNumber}`);
+  return model;
 }
