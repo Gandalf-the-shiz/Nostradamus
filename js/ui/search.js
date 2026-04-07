@@ -17,12 +17,48 @@ import { isInWatchlist, addToWatchlist, removeFromWatchlist } from './watchlist.
 const MIN_QUERY_LENGTH = 2;
 /** Debounce delay in ms to avoid firing on every keystroke. */
 const DEBOUNCE_MS = 300;
+/** Max suggestions to display. */
+const MAX_SUGGESTIONS = 8;
+
+/** In-memory cache of the ticker registry (loaded once). */
+let _tickerRegistry = null;
+/** Promise guard to avoid duplicate fetches. */
+let _tickerRegistryPromise = null;
+
+/**
+ * Load the committed ticker registry from data/tickers/us_tickers.json.
+ * Caches the result in memory so subsequent calls are free.
+ * @returns {Promise<Array<{symbol: string, name: string, exchange: string, sector: string}>>}
+ */
+async function loadTickerRegistry() {
+  if (_tickerRegistry !== null) return _tickerRegistry;
+  if (_tickerRegistryPromise) return _tickerRegistryPromise;
+
+  _tickerRegistryPromise = (async () => {
+    try {
+      const resp = await fetch('./data/tickers/us_tickers.json');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+      const data = await resp.json();
+      _tickerRegistry = Array.isArray(data.tickers) ? data.tickers : [];
+      console.log(`[Search] Ticker registry loaded: ${_tickerRegistry.length.toLocaleString()} tickers`);
+    } catch (err) {
+      // Registry may not exist yet (first deploy before workflow runs) — this is expected
+      console.warn('[Search] Could not load ticker registry, falling back to hardcoded list:', err.message);
+      _tickerRegistry = [];
+    }
+    return _tickerRegistry;
+  })();
+
+  return _tickerRegistryPromise;
+}
 
 /**
  * Initialize the search bar.
  * @param {{ mode: 'demo'|'live' }} appState
  */
 export function initSearch(appState) {
+  // Kick off registry load in the background so it's ready before the user types
+  loadTickerRegistry();
   const input       = document.getElementById('stock-search');
   const suggestions = document.getElementById('search-suggestions');
 
@@ -109,26 +145,43 @@ async function handleSearch(query, suggestions, appState) {
 }
 
 /**
- * Simple in-memory search over well-known demo symbols.
- * Used in Phase 1; replaced by API in Phase 2.
+ * Search over the committed ticker registry (7,000+ tickers).
+ * Matches on symbol prefix OR company name substring (case-insensitive).
+ * Falls back to a small hardcoded list if the registry hasn't loaded yet.
  * @param {string} query
- * @returns {Promise<Array<{symbol: string, name: string}>>}
+ * @returns {Promise<Array<{symbol: string, name: string, exchange: string, sector: string}>>}
  */
 async function getDemoSearchResults(query) {
-  const KNOWN = [
-    { symbol: 'AAPL',  name: 'Apple Inc.' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.' },
-    { symbol: 'MSFT',  name: 'Microsoft Corporation' },
-    { symbol: 'AMZN',  name: 'Amazon.com Inc.' },
-    { symbol: 'TSLA',  name: 'Tesla, Inc.' },
-    { symbol: 'META',  name: 'Meta Platforms Inc.' },
-    { symbol: 'NVDA',  name: 'NVIDIA Corporation' },
-    { symbol: 'NFLX',  name: 'Netflix, Inc.' },
-    { symbol: 'BRKB',  name: 'Berkshire Hathaway Inc.' },
-    { symbol: 'JPM',   name: 'JPMorgan Chase & Co.' },
+  const FALLBACK = [
+    { symbol: 'AAPL',  name: 'Apple Inc.',              exchange: 'NASDAQ', sector: 'Technology' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.',            exchange: 'NASDAQ', sector: 'Technology' },
+    { symbol: 'MSFT',  name: 'Microsoft Corporation',    exchange: 'NASDAQ', sector: 'Technology' },
+    { symbol: 'AMZN',  name: 'Amazon.com Inc.',          exchange: 'NASDAQ', sector: 'Consumer Discretionary' },
+    { symbol: 'TSLA',  name: 'Tesla, Inc.',              exchange: 'NASDAQ', sector: 'Consumer Discretionary' },
+    { symbol: 'META',  name: 'Meta Platforms Inc.',      exchange: 'NASDAQ', sector: 'Communication Services' },
+    { symbol: 'NVDA',  name: 'NVIDIA Corporation',       exchange: 'NASDAQ', sector: 'Technology' },
+    { symbol: 'NFLX',  name: 'Netflix, Inc.',            exchange: 'NASDAQ', sector: 'Communication Services' },
+    { symbol: 'BRKB',  name: 'Berkshire Hathaway Inc.',  exchange: 'NYSE',   sector: 'Financials' },
+    { symbol: 'JPM',   name: 'JPMorgan Chase & Co.',     exchange: 'NYSE',   sector: 'Financials' },
   ];
+
+  const registry = await loadTickerRegistry();
+  const pool = registry.length > 0 ? registry : FALLBACK;
+
   const q = query.toUpperCase();
-  return KNOWN.filter(s => s.symbol.startsWith(q) || s.name.toUpperCase().includes(q));
+  const qLower = query.toLowerCase();
+
+  const results = [];
+  for (const entry of pool) {
+    if (
+      entry.symbol.startsWith(q) ||
+      entry.name.toLowerCase().includes(qLower)
+    ) {
+      results.push(entry);
+      if (results.length >= MAX_SUGGESTIONS) break;
+    }
+  }
+  return results;
 }
 
 /**
@@ -140,7 +193,7 @@ async function getDemoSearchResults(query) {
  */
 function renderSuggestions(container, results, appState) {
   container.innerHTML = '';
-  results.slice(0, 6).forEach((item, index) => {
+  results.slice(0, MAX_SUGGESTIONS).forEach((item, index) => {
     const inWL = isInWatchlist(item.symbol);
     const el = document.createElement('div');
     el.className = 'search-suggestion-item';
