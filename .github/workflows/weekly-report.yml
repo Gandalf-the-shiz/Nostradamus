@@ -1,0 +1,45 @@
+name: Weekly Intelligence Report
+
+on:
+  schedule:
+    # Run every Sunday at 5:00 AM UTC (after auto-retrain at 4 AM)
+    - cron: '0 5 * * 0'
+  workflow_dispatch:   # allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  weekly-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Generate weekly report
+        run: python scripts/generate-weekly-report.py
+
+      - name: Commit report
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/reports/weekly/ || true
+
+          if git diff --cached --quiet; then
+            echo "No new report to commit."
+          else
+            WEEK=$(python -c "from datetime import datetime; d=datetime.utcnow(); y,w,_=d.isocalendar(); print(f'{y}-W{w:02d}')")
+            git commit -m "chore: generate weekly intelligence report ${WEEK}"
+            git push
+          fi

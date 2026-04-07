@@ -57,11 +57,14 @@
       <nav class="app-header__nav" aria-label="Main navigation">
         <button id="nav-dashboard" class="nav-btn nav-btn--active" aria-current="page">Dashboard</button>
         <button id="nav-watchlist" class="nav-btn">Watchlist</button>
-        <button id="nav-accuracy" class="nav-btn" aria-label="Prediction accuracy">📊</button>
-        <button id="nav-sectors" class="nav-btn" aria-label="Sector analysis">🏭</button>
-        <button id="nav-help" class="nav-btn" aria-label="Help and user guide">❓</button>
-        <button id="theme-toggle" class="nav-btn" aria-label="Toggle dark/light theme" title="Toggle theme">🌙</button>
-        <button id="nav-settings" class="nav-btn" aria-label="Settings">⚙️</button>
+        <button id="nav-heatmap"   class="nav-btn" aria-label="Market heatmap">🌡️</button>
+        <button id="nav-screener"  class="nav-btn" aria-label="Stock screener">🔍</button>
+        <button id="nav-backtest"  class="nav-btn" aria-label="Backtesting">📈</button>
+        <button id="nav-accuracy"  class="nav-btn" aria-label="Prediction accuracy">📊</button>
+        <button id="nav-sectors"   class="nav-btn" aria-label="Sector analysis">🏭</button>
+        <button id="nav-help"      class="nav-btn" aria-label="Help and user guide">❓</button>
+        <button id="theme-toggle"  class="nav-btn" aria-label="Toggle dark/light theme" title="Toggle theme">🌙</button>
+        <button id="nav-settings"  class="nav-btn" aria-label="Settings">⚙️</button>
       </nav>
     </div>
   </header>
@@ -96,6 +99,9 @@
 
     <!-- Dashboard View -->
     <section id="view-dashboard" class="view view--active" aria-label="Dashboard">
+
+      <!-- Market Mood Indicator -->
+      <div id="market-mood" class="market-mood" aria-label="Market mood indicator" hidden></div>
 
       <!-- Market Overview Strip -->
       <div id="market-overview" class="market-overview" aria-label="Market overview">
@@ -142,6 +148,21 @@
     <!-- Sectors View (hidden until nav click) -->
     <section id="view-sectors" class="view" aria-label="Sector analysis" hidden>
       <!-- Populated by js/ui/sectors.js -->
+    </section>
+
+    <!-- Heatmap View (hidden until nav click) -->
+    <section id="view-heatmap" class="view" aria-label="Market heatmap" hidden>
+      <!-- Populated by js/ui/heatmap.js -->
+    </section>
+
+    <!-- Screener View (hidden until nav click) -->
+    <section id="view-screener" class="view" aria-label="Stock screener" hidden>
+      <!-- Populated by js/ui/screener.js -->
+    </section>
+
+    <!-- Backtest View (hidden until nav click) -->
+    <section id="view-backtest" class="view" aria-label="Backtesting engine" hidden>
+      <!-- Populated by js/ui/backtest-ui.js -->
     </section>
 
     <!-- Settings View (hidden until nav click) -->

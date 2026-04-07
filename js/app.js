@@ -133,6 +133,9 @@ function initDemoBanner() {
 function initNavigation() {
   const navDashboard = document.getElementById('nav-dashboard');
   const navWatchlist = document.getElementById('nav-watchlist');
+  const navHeatmap   = document.getElementById('nav-heatmap');
+  const navScreener  = document.getElementById('nav-screener');
+  const navBacktest  = document.getElementById('nav-backtest');
   const navAccuracy  = document.getElementById('nav-accuracy');
   const navSectors   = document.getElementById('nav-sectors');
   const navHelp      = document.getElementById('nav-help');
@@ -140,6 +143,9 @@ function initNavigation() {
 
   navDashboard?.addEventListener('click', () => navigateTo('dashboard'));
   navWatchlist?.addEventListener('click', () => navigateTo('watchlist'));
+  navHeatmap?.addEventListener('click',   () => navigateTo('heatmap'));
+  navScreener?.addEventListener('click',  () => navigateTo('screener'));
+  navBacktest?.addEventListener('click',  () => navigateTo('backtest'));
   navAccuracy?.addEventListener('click',  () => navigateTo('accuracy'));
   navSectors?.addEventListener('click',   () => navigateTo('sectors'));
   navHelp?.addEventListener('click',      () => openHelp());
@@ -148,15 +154,18 @@ function initNavigation() {
 
 /**
  * Switch the visible view and update the active nav button.
- * @param {'dashboard'|'watchlist'|'accuracy'|'sectors'|'settings'} viewName
+ * @param {'dashboard'|'watchlist'|'accuracy'|'sectors'|'heatmap'|'screener'|'backtest'|'settings'} viewName
  */
 function navigateTo(viewName) {
-  const views = ['dashboard', 'watchlist', 'accuracy', 'sectors', 'settings'];
+  const views = ['dashboard', 'watchlist', 'accuracy', 'sectors', 'heatmap', 'screener', 'backtest', 'settings'];
   const navBtns = {
     dashboard: document.getElementById('nav-dashboard'),
     watchlist: document.getElementById('nav-watchlist'),
     accuracy:  document.getElementById('nav-accuracy'),
     sectors:   document.getElementById('nav-sectors'),
+    heatmap:   document.getElementById('nav-heatmap'),
+    screener:  document.getElementById('nav-screener'),
+    backtest:  document.getElementById('nav-backtest'),
     settings:  document.getElementById('nav-settings'),
   };
 
@@ -186,6 +195,30 @@ function navigateTo(viewName) {
     }).catch(err => {
       console.error('[App] Failed to load sectors module:', err);
       showToast('Sectors view failed to load. Please refresh.', 'error');
+    });
+  } else if (viewName === 'heatmap') {
+    import('./ui/heatmap.js').then(({ renderHeatmap }) => {
+      const container = document.getElementById('view-heatmap');
+      if (container) renderHeatmap(container, null, appState);
+    }).catch(err => {
+      console.error('[App] Failed to load heatmap module:', err);
+      showToast('Heatmap view failed to load. Please refresh.', 'error');
+    });
+  } else if (viewName === 'screener') {
+    import('./ui/screener.js').then(({ renderScreener }) => {
+      const container = document.getElementById('view-screener');
+      if (container) renderScreener(container, null, appState);
+    }).catch(err => {
+      console.error('[App] Failed to load screener module:', err);
+      showToast('Screener view failed to load. Please refresh.', 'error');
+    });
+  } else if (viewName === 'backtest') {
+    import('./ui/backtest-ui.js').then(({ renderBacktestUI }) => {
+      const container = document.getElementById('view-backtest');
+      if (container) renderBacktestUI(container, appState);
+    }).catch(err => {
+      console.error('[App] Failed to load backtest module:', err);
+      showToast('Backtest view failed to load. Please refresh.', 'error');
     });
   }
 }
