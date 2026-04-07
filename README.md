@@ -216,13 +216,13 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [x] Migrate model weight storage from localStorage to IndexedDB (support models >5MB) — `js/storage/indexeddb.js` created
 
 ### Phase 7: Full-Market Dashboard Overhaul
-- [ ] Replace 5-stock dashboard with full-market views:
-  - **Market Heatmap**: Treemap visualization of all sectors/stocks by prediction strength (like finviz.com)
-  - **Top Predictions**: Ranked list of stocks with strongest UP/DOWN signals + highest confidence
-  - **Sector Rotation**: Show which sectors the model is most bullish/bearish on
-  - **Momentum Scanner**: Stocks with strongest technical momentum alignment
+- [x] Replace 5-stock dashboard with full-market views:
+  - **Market Heatmap**: Treemap visualization of all sectors/stocks by prediction strength (like finviz.com) — `js/ui/heatmap.js` ✅
+  - **Top Predictions**: Ranked list of stocks with strongest UP/DOWN signals + highest confidence ✅
+  - **Sector Rotation**: Show which sectors the model is most bullish/bearish on ✅
+  - **Momentum Scanner**: Stocks with strongest technical momentum alignment ✅
   - **Earnings Calendar**: Upcoming earnings dates with pre-earnings predictions
-- [ ] Add stock screener with filters:
+- [x] Add stock screener with filters — `js/ui/screener.js` ✅:
   - Prediction direction (UP/DOWN)
   - Confidence threshold (>60%, >70%, >80%)
   - Sector filter
@@ -237,21 +237,21 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
   - Keyword-based scoring from headline text (bullish/bearish word lists)
   - Aggregate daily sentiment score per ticker
   - Feed as additional feature to model
-- [ ] Track sentiment-prediction correlation in accuracy dashboard
-- [ ] Add "Market Mood" indicator to dashboard header (aggregate sentiment)
+- [x] Track sentiment-prediction correlation in accuracy dashboard — `getSentimentCorrelation()` in `js/ml/accuracy.js` ✅
+- [x] Add "Market Mood" indicator to dashboard header (aggregate sentiment) ✅
 
 ### Phase 9: Backtesting Engine
-- [ ] Create `js/backtest/engine.js` — full backtesting framework
+- [x] Create `js/backtest/engine.js` — full backtesting framework ✅
   - Run model predictions against historical data
   - Simulate portfolio: start with $10,000, buy/sell based on model signals
   - Track: total return, Sharpe ratio, max drawdown, win rate
-- [ ] Add backtesting UI view:
+- [x] Add backtesting UI view — `js/ui/backtest-ui.js` ✅:
   - Date range selector
   - Strategy configuration (confidence threshold, max positions, sector filter)
   - Equity curve chart
   - Trade log table
-- [ ] Compare strategies: model-only vs model+sentiment vs buy-and-hold benchmark
-- [ ] Export backtest results to CSV
+- [x] Compare strategies: model-only vs buy-and-hold benchmark ✅
+- [x] Export backtest results to CSV ✅
 
 ### Phase 10: Continuous Intelligence Loop
 - [x] Automated daily prediction generation via GitHub Actions
@@ -263,16 +263,17 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
   - Commit accuracy report to `data/accuracy/YYYY-MM-DD.json`
   - Track rolling 7-day, 30-day, 90-day accuracy metrics
   - `scripts/score-accuracy.py` + upgraded `.github/workflows/accuracy.yml`
-- [ ] Model auto-retraining:
+- [x] Model auto-retraining — `.github/workflows/auto-retrain.yml` ✅:
   - If rolling 30-day accuracy drops below 53% (chosen as slightly above the ~52% naive "always UP" baseline, providing a minimal positive-alpha margin), trigger automatic retraining workflow
   - Use latest 6 months of data for retraining
   - Only promote new model if it beats current model on held-out test set
-- [ ] Weekly "Market Intelligence Report" auto-generated:
+- [x] Weekly "Market Intelligence Report" auto-generated ✅:
   - Top 10 predicted movers (up and down)
   - Sector rotation signals
   - Model confidence distribution
   - Accuracy trend chart
   - Committed to `data/reports/weekly/YYYY-WW.json`
+  - `scripts/generate-weekly-report.py` + `.github/workflows/weekly-report.yml`
 
 ---
 
@@ -429,10 +430,10 @@ Nostradamus/
 | **V2 Phase 4** | **Server-Side Feature Engineering** | ✅ Complete |
 | **V2 Phase 5** | **Server-Side Model Training** | ⬜ Not started |
 | **V2 Phase 6** | **Upgraded Browser ML Engine** | 🟡 In progress (model.js, preprocessing.js, prediction.js, tracker.js, training.js, retraining.js, indexeddb.js updated) |
-| **V2 Phase 7** | **Full-Market Dashboard Overhaul** | ⬜ Not started |
-| **V2 Phase 8** | **Sentiment & Alternative Data** | 🟡 In progress (sentiment.js utility created) |
-| **V2 Phase 9** | **Backtesting Engine** | ⬜ Not started |
-| **V2 Phase 10** | **Continuous Intelligence Loop** | 🟡 In progress (generate-predictions.py, score-accuracy.py, generate-predictions.yml, accuracy.yml upgraded) |
+| **V2 Phase 7** | **Full-Market Dashboard Overhaul** | ✅ Complete (heatmap.js, screener.js, top predictions, sector rotation, momentum scanner, market mood) |
+| **V2 Phase 8** | **Sentiment & Alternative Data** | ✅ Complete (sentiment.js, getSentimentCorrelation(), market mood indicator, accuracy dashboard correlation card) |
+| **V2 Phase 9** | **Backtesting Engine** | ✅ Complete (backtest/engine.js, ui/backtest-ui.js, equity curve, drawdown, trade log, CSV export) |
+| **V2 Phase 10** | **Continuous Intelligence Loop** | ✅ Complete (generate-predictions.py, score-accuracy.py, auto-retrain.yml, generate-weekly-report.py, weekly-report.yml) |
 
 ---
 

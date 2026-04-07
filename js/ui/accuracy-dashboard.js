@@ -13,7 +13,7 @@
  */
 
 import { getPredictions } from '../ml/tracker.js';
-import { getAccuracySummary, getWeeklyMetrics } from '../ml/accuracy.js';
+import { getAccuracySummary, getWeeklyMetrics, getSentimentCorrelation } from '../ml/accuracy.js';
 import { getVersions, getChampionVersion } from '../ml/versioning.js';
 import { getLastTrainingInfo } from '../ml/retraining.js';
 import { formatCurrency, showToast } from '../utils/helpers.js';
@@ -99,6 +99,9 @@ export function initAccuracyDashboard(appState) {
   if (versions.length > 0) {
     panel.appendChild(_renderVersionsTable(versions));
   }
+
+  // Sentiment correlation card
+  panel.appendChild(_renderSentimentCorrelation());
 
   // Recent predictions
   const predictions = getPredictions();
@@ -475,5 +478,92 @@ function _renderPredictionHistory(predictions) {
 
   table.appendChild(tbody);
   section.appendChild(table);
+  return section;
+}
+
+// ─── Sentiment correlation ────────────────────────────────────
+
+/**
+ * Render the sentiment-prediction correlation card.
+ * @returns {HTMLElement}
+ */
+function _renderSentimentCorrelation() {
+  const section = document.createElement('div');
+  section.className = 'accuracy-section';
+
+  const title = document.createElement('h3');
+  title.className = 'accuracy-section__title';
+  title.textContent = '💬 Sentiment–Prediction Correlation';
+  section.appendChild(title);
+
+  const note = document.createElement('p');
+  note.className = 'accuracy-panel__demo-notice';
+  note.textContent =
+    'Compares keyword-based news sentiment with model direction calls, measured against resolved outcomes.';
+  section.appendChild(note);
+
+  const corr = getSentimentCorrelation();
+
+  if (corr.sampleSize === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'accuracy-empty-note';
+    empty.textContent = 'No resolved predictions with sentiment data yet. Metrics appear once predictions are evaluated.';
+    section.appendChild(empty);
+    return section;
+  }
+
+  const fmt = v => isNaN(v) ? '—' : `${(v * 100).toFixed(1)}%`;
+
+  const grid = document.createElement('div');
+  grid.className = 'accuracy-metrics';
+
+  const cards = [
+    {
+      icon: '🤝', label: 'Agreement Rate',
+      value: fmt(corr.agreementRate),
+      sub:   'Sentiment & model same direction',
+      good:  !isNaN(corr.agreementRate) && corr.agreementRate > 0.5,
+    },
+    {
+      icon: '📰', label: 'Sentiment Accuracy',
+      value: fmt(corr.sentimentAccuracy),
+      sub:   'News sentiment direction correct',
+      good:  !isNaN(corr.sentimentAccuracy) && corr.sentimentAccuracy > 0.5,
+    },
+    {
+      icon: '🔮', label: 'Model Accuracy',
+      value: fmt(corr.predictionAccuracy),
+      sub:   'Model direction correct',
+      good:  !isNaN(corr.predictionAccuracy) && corr.predictionAccuracy > 0.5,
+    },
+    {
+      icon: '⚡', label: 'Combined Accuracy',
+      value: fmt(corr.combinedAccuracy),
+      sub:   'When both agreed — were they right?',
+      good:  !isNaN(corr.combinedAccuracy) && corr.combinedAccuracy > 0.55,
+    },
+  ];
+
+  cards.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'accuracy-metric-card';
+    if (c.good === true)  card.classList.add('accuracy-metric-card--good');
+    if (c.good === false) card.classList.add('accuracy-metric-card--bad');
+    card.innerHTML = `
+      <span class="accuracy-metric-card__icon">${c.icon}</span>
+      <span class="accuracy-metric-card__label">${c.label}</span>
+      <span class="accuracy-metric-card__value">${c.value}</span>
+      <span class="accuracy-metric-card__sub">${c.sub}</span>
+    `;
+    grid.appendChild(card);
+  });
+
+  section.appendChild(grid);
+
+  const sampleNote = document.createElement('p');
+  sampleNote.className = 'accuracy-empty-note';
+  sampleNote.textContent = `Based on ${corr.sampleSize} resolved prediction${corr.sampleSize !== 1 ? 's' : ''}.`;
+  section.appendChild(sampleNote);
+
   return section;
 }

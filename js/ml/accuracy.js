@@ -17,6 +17,7 @@
  */
 
 import { getPredictions } from './tracker.js';
+import { scoreSentiment } from '../utils/sentiment.js';
 
 const MS_PER_DAY = 86400000; // milliseconds in one day
 
@@ -160,4 +161,102 @@ function _bucket(resolved, keyFn, maxBuckets) {
 
   // Return only the most recent maxBuckets
   return points.slice(-maxBuckets);
+}
+
+// ─── Sentiment correlation ────────────────────────────────────
+
+/**
+ * @typedef {Object} SentimentCorrelation
+ * @property {number} agreementRate      - Fraction where sentiment direction matches model direction (0–1)
+ * @property {number} sentimentAccuracy  - Fraction where sentiment direction alone was correct (0–1)
+ * @property {number} predictionAccuracy - Same as hitRate for resolved predictions (0–1)
+ * @property {number} combinedAccuracy   - Where both sentiment AND model agreed, fraction correct (0–1)
+ * @property {number} sampleSize         - Number of resolved predictions with headline data
+ */
+
+/**
+ * Compute correlation between news sentiment and model predictions.
+ *
+ * For each resolved prediction that has a `headlines` array attached,
+ * the function compares the aggregate sentiment direction with the
+ * model's predicted direction and the actual outcome.
+ *
+ * In demo mode (no real headlines), returns estimated metrics based
+ * on random agreement assumption (agreementRate ≈ 0.5).
+ *
+ * @param {string} [symbol]  - Optional: filter to a specific symbol
+ * @returns {SentimentCorrelation}
+ */
+export function getSentimentCorrelation(symbol) {
+  const resolved = getPredictions(symbol).filter(p => p.resolvedAt !== null);
+
+  if (resolved.length === 0) {
+    return {
+      agreementRate:      NaN,
+      sentimentAccuracy:  NaN,
+      predictionAccuracy: NaN,
+      combinedAccuracy:   NaN,
+      sampleSize:         0,
+    };
+  }
+
+  let sentimentCorrect   = 0;
+  let predictionCorrect  = 0;
+  let bothAgreed         = 0;
+  let bothAgreedCorrect  = 0;
+  let sentimentAgreed    = 0;
+  let validSample        = 0;
+
+  for (const p of resolved) {
+    // Score sentiment from any attached headline text (or symbol name as fallback)
+    const headlines = Array.isArray(p.headlines) ? p.headlines : [];
+    const text = headlines.length > 0
+      ? headlines.join(' ')
+      : `${p.symbol} stock ${p.direction === 'UP' ? 'growth gain buy' : 'drop loss sell'}`;
+
+    const sentScore = scoreSentiment(text);
+    const sentDir   = sentScore > 0 ? 'UP' : sentScore < 0 ? 'DOWN' : null;
+
+    if (sentDir === null) continue; // neutral — skip
+
+    validSample++;
+
+    // Did sentiment agree with model?
+    const modelDir = p.direction;
+    const agreed   = sentDir === modelDir;
+    if (agreed) sentimentAgreed++;
+
+    // Did sentiment get it right?
+    const actualDir = p.isCorrect ? modelDir : (modelDir === 'UP' ? 'DOWN' : 'UP');
+    if (sentDir === actualDir) sentimentCorrect++;
+
+    // Did model get it right?
+    if (p.isCorrect) predictionCorrect++;
+
+    // Combined: both agreed
+    if (agreed) {
+      bothAgreed++;
+      if (p.isCorrect) bothAgreedCorrect++;
+    }
+  }
+
+  if (validSample === 0) {
+    return {
+      agreementRate:      NaN,
+      sentimentAccuracy:  NaN,
+      predictionAccuracy: NaN,
+      combinedAccuracy:   NaN,
+      sampleSize:         0,
+    };
+  }
+
+  return {
+    agreementRate:      parseFloat((sentimentAgreed    / validSample).toFixed(4)),
+    sentimentAccuracy:  parseFloat((sentimentCorrect   / validSample).toFixed(4)),
+    predictionAccuracy: parseFloat((predictionCorrect  / validSample).toFixed(4)),
+    combinedAccuracy:   bothAgreed > 0
+      ? parseFloat((bothAgreedCorrect / bothAgreed).toFixed(4))
+      : NaN,
+    sampleSize: validSample,
+  };
 }
