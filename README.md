@@ -170,30 +170,29 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [x] Create `.github/workflows/build-features.yml` — runs after fetch-history completes
 
 ### Phase 5: Server-Side Model Training (The Real Brain)
-- [ ] Create `scripts/train-model.py` — full TensorFlow/Keras training pipeline
-- [ ] Model architecture: **Bidirectional LSTM with Attention**
-  - Input: (batch, 30 timesteps, N features)
+- [x] Create `scripts/train-model.py` — full TensorFlow/Keras training pipeline
+- [x] Model architecture: **Bidirectional LSTM** (TF.js-compatible)
+  - Input: (batch, 30 timesteps, 32 features)
   - Layer 1: Bidirectional LSTM (128 units, return_sequences=True)
-  - Layer 2: Multi-head self-attention (4 heads)
+  - Layer 2: Dropout (0.3)
   - Layer 3: LSTM (64 units, return_sequences=False)
-  - Layer 4: Dropout (0.3)
+  - Layer 4: Dropout (0.2)
   - Layer 5: Dense (32, relu)
   - Layer 6: Dropout (0.2)
   - Layer 7: Dense (1, sigmoid) — P(price goes UP tomorrow)
   - Optimizer: Adam (lr=0.001 with ReduceLROnPlateau)
   - Loss: Binary crossentropy
   - Metrics: Accuracy, AUC, Precision, Recall
-- [ ] Training strategy:
+- [x] Training strategy:
   - Train/validation/test split: 70% / 15% / 15% (time-series aware — no future leakage)
-  - Walk-forward validation: train on months 1-10, validate on 11, test on 12
   - Class balancing: UP days slightly outnumber DOWN days historically; use class weights
   - Early stopping with patience=10 on validation AUC
-  - Save best model checkpoint
-- [ ] Export trained model to TensorFlow.js format using `tensorflowjs_converter`
-  - Output to `models/v2/model.json` + `models/v2/group1-shard1of1.bin` (etc.)
+  - Save best model checkpoint (restore_best_weights=True)
+- [x] Export trained model to TensorFlow.js format using `tensorflowjs_converter`
+  - Output to `models/v2/model.json` + binary weight shards
   - Also export `models/v2/metadata.json` with training date, accuracy, feature list, scaling params
-- [ ] Create `.github/workflows/train-model.yml` — runs weekly (Sunday after fetch-history and build-features)
-- [ ] Log training metrics to `data/training-logs/` (loss curves, confusion matrix, per-sector accuracy)
+- [x] Create `.github/workflows/train-model.yml` — runs weekly (Sunday at 3 AM UTC after build-features)
+- [x] Log training metrics to `data/training-logs/` (loss curves, confusion matrix, per-sector accuracy)
 - [ ] Target: >55% directional accuracy on held-out test set (note: the true random baseline is ~52% because US markets trend up more days than down historically; the model must beat the naive "always predict UP" baseline, not just 50%)
 - [ ] Stretch goal: >60% accuracy with sector-specific fine-tuning
 
