@@ -98,7 +98,7 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - GitHub Actions workflow runs nightly, fetches 1 year of daily data for all tickers
 - **Strategy:** Fetch in batches of 50 tickers at a time, 2-second delay between batches
 - Store as compressed JSON in `data/historical/` (split by sector: `technology.json`, `healthcare.json`, etc.)
-- Estimated total size: ~50–100MB for 7,000 tickers × 252 trading days × OHLCV — manageable with Git LFS or chunked files
+- Raw uncompressed size: ~400–500MB (7,000 tickers × 252 days × 5 OHLCV values × ~50 bytes/value). With aggressive JSON compression (gzip/deflate, ~75–80% reduction), this comes down to ~50–100MB. Git LFS is very likely required — configure it before committing historical data.
 
 ### 3. Existing APIs (Finnhub, Twelve Data, Polygon.io) for Real-Time Quotes
 - Same fallback chain as V1, but now used **only** for live/real-time data
@@ -195,7 +195,7 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
   - Also export `models/v2/metadata.json` with training date, accuracy, feature list, scaling params
 - [ ] Create `.github/workflows/train-model.yml` — runs weekly (Sunday after fetch-history and build-features)
 - [ ] Log training metrics to `data/training-logs/` (loss curves, confusion matrix, per-sector accuracy)
-- [ ] Target: >55% directional accuracy on held-out test set (beating random = 50%)
+- [ ] Target: >55% directional accuracy on held-out test set (note: the true random baseline is ~52% because US markets trend up more days than down historically; the model must beat the naive "always predict UP" baseline, not just 50%)
 - [ ] Stretch goal: >60% accuracy with sector-specific fine-tuning
 
 ### Phase 6: Upgraded Browser ML Engine
@@ -264,7 +264,7 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
   - Commit accuracy report to `data/accuracy/YYYY-MM-DD.json`
   - Track rolling 7-day, 30-day, 90-day accuracy metrics
 - [ ] Model auto-retraining:
-  - If rolling 30-day accuracy drops below 53%, trigger automatic retraining workflow
+  - If rolling 30-day accuracy drops below 53% (chosen as slightly above the ~52% naive "always UP" baseline, providing a minimal positive-alpha margin), trigger automatic retraining workflow
   - Use latest 6 months of data for retraining
   - Only promote new model if it beats current model on held-out test set
 - [ ] Weekly "Market Intelligence Report" auto-generated:
@@ -408,7 +408,7 @@ Nostradamus/
 8. **NEW: Python scripts run in GitHub Actions only** — The `scripts/` directory contains Python code that runs server-side in CI. It is NEVER loaded in the browser. Keep Python and JS code completely separate.
 9. **NEW: Git LFS** — If `data/historical/` exceeds 100MB total, configure Git LFS for `.json` files in that directory.
 10. **NEW: IndexedDB for large data** — Model weights and large datasets should use IndexedDB, not localStorage (which has a ~5MB limit per origin).
-11. **NEW: Feature parity** — The browser-side `preprocessing.js` must compute features IDENTICALLY to the server-side `build-features.py`. Any difference will cause model predictions to be garbage. Test this rigorously.
+11. **NEW: Feature parity** — The browser-side `preprocessing.js` must compute features IDENTICALLY to the server-side `build-features.py`. Any difference will cause model predictions to be garbage. Validate with `tests/preprocessing.test.js`: feed the same sample OHLCV data through both implementations and assert all output features match within floating-point tolerance (±1e-6). This test must pass before any Phase 5 model is promoted.
 12. **NEW: Time-series splitting** — NEVER use random train/test splits for time series data. Always split chronologically. The test set must be strictly AFTER the training set in time.
 13. **NEW: The model predicts P(UP)** — Output is sigmoid ∈ [0, 1]. Values > 0.5 = predicted UP, < 0.5 = predicted DOWN. The confidence is the distance from 0.5 (e.g., 0.85 = 85% confident UP, 0.15 = 85% confident DOWN).
 
