@@ -126,12 +126,12 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [x] Chart.js and TensorFlow.js CDN integration
 
 ### Phase 2: Universal Ticker Registry
-- [ ] Create `scripts/fetch-tickers.py` — downloads SEC EDGAR `company_tickers_exchange.json`
-- [ ] Filter to NYSE + NASDAQ + AMEX, exclude OTC/test tickers, output to `data/tickers/us_tickers.json`
-- [ ] Create `.github/workflows/fetch-tickers.yml` — runs weekly (Sunday midnight UTC)
-- [ ] Update frontend search to use committed ticker list for instant offline autocomplete
-- [ ] Add sector/industry classification from SEC SIC codes
-- [ ] Target: ~7,000+ actively traded US tickers
+- [x] Create `scripts/fetch-tickers.py` — downloads SEC EDGAR `company_tickers_exchange.json`
+- [x] Filter to NYSE + NASDAQ + AMEX, exclude OTC/test tickers, output to `data/tickers/us_tickers.json`
+- [x] Create `.github/workflows/fetch-tickers.yml` — runs weekly (Sunday midnight UTC)
+- [x] Update frontend search to use committed ticker list for instant offline autocomplete
+- [x] Add sector/industry classification from SEC SIC codes
+- [x] Target: ~7,000+ actively traded US tickers
 
 ### Phase 3: Full-Market Historical Data Pipeline
 - [ ] Create `scripts/fetch-history.py` — uses `yfinance` to bulk download 1 year OHLCV for all tickers
@@ -424,7 +424,7 @@ Nostradamus/
 | V1 Phase 4 | TensorFlow.js ML engine | ✅ Complete (with caveats — see autopsy) |
 | V1 Phase 5 | Self-learning, accuracy tracking | ✅ Complete (with caveats — see autopsy) |
 | V1 Phase 6 | Polish, PWA, sector analysis, news | ✅ Complete (with caveats — see autopsy) |
-| **V2 Phase 2** | **Universal Ticker Registry** | ⬜ Not started |
+| **V2 Phase 2** | **Universal Ticker Registry** | 🟢 Complete |
 | **V2 Phase 3** | **Full-Market Historical Data** | ⬜ Not started |
 | **V2 Phase 4** | **Server-Side Feature Engineering** | ⬜ Not started |
 | **V2 Phase 5** | **Server-Side Model Training** | ⬜ Not started |
