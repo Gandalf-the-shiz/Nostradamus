@@ -9,6 +9,6 @@ pandas>=2.2.0
 ta>=0.11.0
 numpy>=1.26.0
 
-# Phase 5 (future): Model training
-# tensorflow>=2.16.0
-# tensorflowjs>=4.17.0
+# Phase 5: Model training
+tensorflow>=2.16.0
+tensorflowjs>=4.17.0
