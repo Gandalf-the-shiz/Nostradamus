@@ -94,10 +94,6 @@ def safe_div(a: pd.Series, b: pd.Series) -> pd.Series:
     return a.div(b.replace(0, np.nan)).fillna(0)
 
 
-def round_list(values: list, decimals: int = DECIMALS) -> list:
-    return [round(float(v), decimals) if not math.isnan(float(v)) else 0.0 for v in values]
-
-
 # ---------------------------------------------------------------------------
 # Per-ticker feature computation
 # ---------------------------------------------------------------------------
@@ -156,6 +152,9 @@ def compute_features(ticker: str, candles: list) -> dict | None:
     bb = ta.volatility.BollingerBands(close=close, window=20, window_dev=2)
     bb_upper = bb.bollinger_hband()
     bb_lower = bb.bollinger_lband()
+    # bb_upper_rel: positive when price is below the upper band (room to grow).
+    # bb_lower_rel: positive when price is above the lower band (room to fall).
+    # Asymmetric signs are intentional — both values are positive in the normal range.
     bb_upper_rel = safe_div(bb_upper - close, close)
     bb_lower_rel = safe_div(close - bb_lower, close)
     bb_width = safe_div(bb_upper - bb_lower, close)
@@ -165,8 +164,8 @@ def compute_features(ticker: str, candles: list) -> dict | None:
     atr14_norm = safe_div(atr14, close)
 
     # --- OBV ---
-    obv = ta.volume.OnBalanceVolumeIndicator(close=close, volume=volume).on_balance_volume()
-    obv_norm, obv_min, obv_max = minmax_scale(obv)
+    obv_raw = ta.volume.OnBalanceVolumeIndicator(close=close, volume=volume).on_balance_volume()
+    obv_norm, obv_min, obv_max = minmax_scale(obv_raw)
 
     # --- Stochastic Oscillator ---
     stoch = ta.momentum.StochasticOscillator(high=high, low=low, close=close, window=14, smooth_window=3)
@@ -240,12 +239,13 @@ def compute_features(ticker: str, candles: list) -> dict | None:
     next_close = close.shift(-1)
     label = (next_close > close).astype(int)
 
-    # --- Drop rows with NaN in any feature (warmup period), and the last row (no label) ---
+    # Drop rows with NaN in any feature (indicator warmup period) and the last row
+    # (whose label is NaN because next_close is undefined for the final candle).
+    # Both cases are handled by dropna() since label NaN propagates into _label.
     feature_df["_label"] = label
     feature_df["_date"] = df["date"].dt.strftime("%Y-%m-%d")
     feature_df.replace([np.inf, -np.inf], np.nan, inplace=True)
     feature_df.dropna(inplace=True)
-    # Also remove the very last row since next_close is NaN there (already captured by dropna)
 
     if len(feature_df) < MIN_CANDLES:
         return None
