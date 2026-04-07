@@ -5,9 +5,9 @@ requests>=2.31.0
 yfinance>=0.2.36
 pandas>=2.2.0
 
-# Phase 4 (future): Feature engineering
-# ta>=0.11.0
-# numpy>=1.26.0
+# Phase 4: Feature engineering
+ta>=0.11.0
+numpy>=1.26.0
 
 # Phase 5 (future): Model training
 # tensorflow>=2.16.0

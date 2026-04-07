@@ -146,8 +146,8 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [x] Target: 1 year of daily OHLCV data for ~7,000 tickers
 
 ### Phase 4: Feature Engineering Pipeline (Server-Side)
-- [ ] Create `scripts/build-features.py` — reads raw OHLCV, computes full feature matrix
-- [ ] Implement 15+ features per ticker per day:
+- [x] Create `scripts/build-features.py` — reads raw OHLCV, computes full feature matrix
+- [x] Implement 15+ features per ticker per day:
   - OHLCV (5 features: open, high, low, close, volume)
   - RSI-14
   - MACD (signal line, histogram)
@@ -156,7 +156,6 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
   - Bollinger Bands (upper, lower, bandwidth)
   - ATR-14 (Average True Range)
   - OBV (On-Balance Volume)
-  - VWAP (approximate from daily data)
   - Stochastic Oscillator (%K, %D)
   - Rate of Change (ROC-10)
   - Day-of-week encoding (one-hot, 5 features)
@@ -164,11 +163,11 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
   - 30-day realized volatility
   - 5-day price momentum
   - Volume ratio (current / 20-day average)
-- [ ] Normalize all features using min-max scaling per-ticker (store scaling params)
-- [ ] Create windowed sequences: 30-day lookback windows → next-day direction label
-- [ ] Output to `data/features/` as compressed numpy-compatible JSON
-- [ ] Add `data/features/scaling_params.json` — global scaling parameters for the model
-- [ ] Create `.github/workflows/build-features.yml` — runs after fetch-history completes
+- [x] Normalize all features using min-max scaling per-ticker (store scaling params)
+- [x] Create windowed sequences: 30-day lookback windows → next-day direction label
+- [x] Output to `data/features/` as compressed numpy-compatible JSON
+- [x] Add `data/features/scaling_params.json` — global scaling parameters for the model
+- [x] Create `.github/workflows/build-features.yml` — runs after fetch-history completes
 
 ### Phase 5: Server-Side Model Training (The Real Brain)
 - [ ] Create `scripts/train-model.py` — full TensorFlow/Keras training pipeline
@@ -426,7 +425,7 @@ Nostradamus/
 | V1 Phase 6 | Polish, PWA, sector analysis, news | ✅ Complete (with caveats — see autopsy) |
 | **V2 Phase 2** | **Universal Ticker Registry** | 🟢 Complete |
 | **V2 Phase 3** | **Full-Market Historical Data** | ✅ Complete |
-| **V2 Phase 4** | **Server-Side Feature Engineering** | ⬜ Not started |
+| **V2 Phase 4** | **Server-Side Feature Engineering** | ✅ Complete |
 | **V2 Phase 5** | **Server-Side Model Training** | ⬜ Not started |
 | **V2 Phase 6** | **Upgraded Browser ML Engine** | ⬜ Not started |
 | **V2 Phase 7** | **Full-Market Dashboard Overhaul** | ⬜ Not started |
