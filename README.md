@@ -142,7 +142,7 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [x] Create `.github/workflows/fetch-history.yml` — runs nightly Mon-Fri at 9:30 PM UTC
 - [x] Add data validation: reject tickers with < 100 trading days of data
 - [x] Add `data/historical/manifest.json` — metadata file listing all available tickers, date ranges, last update timestamps
-- [ ] Configure Git LFS for `data/historical/*.json` if total size exceeds 100MB
+- [x] Configure Git LFS for `data/historical/*.json` if total size exceeds 100MB
 - [x] Target: 1 year of daily OHLCV data for ~7,000 tickers
 
 ### Phase 4: Feature Engineering Pipeline (Server-Side)
