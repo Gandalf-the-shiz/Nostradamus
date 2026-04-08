@@ -239,10 +239,14 @@ def compute_features(ticker: str, candles: list) -> dict | None:
     next_close = close.shift(-1)
     label = (next_close > close).astype(int)
 
+    # --- Regression target: next-day percentage return, clipped to ±20% ---
+    pct_return = ((next_close - close) / close).clip(-0.20, 0.20)
+
     # Drop rows with NaN in any feature (indicator warmup period) and the last row
     # (whose label is NaN because next_close is undefined for the final candle).
     # Both cases are handled by dropna() since label NaN propagates into _label.
     feature_df["_label"] = label
+    feature_df["_pct_return"] = pct_return
     feature_df["_date"] = df["date"].dt.strftime("%Y-%m-%d")
     feature_df.replace([np.inf, -np.inf], np.nan, inplace=True)
     feature_df.dropna(inplace=True)
@@ -252,6 +256,7 @@ def compute_features(ticker: str, candles: list) -> dict | None:
 
     dates = feature_df["_date"].tolist()
     labels = feature_df["_label"].astype(int).tolist()
+    pct_returns = [round(float(v), DECIMALS) for v in feature_df["_pct_return"].tolist()]
     raw_features = feature_df[FEATURE_NAMES].values
 
     # Round to 4 decimal places
@@ -261,6 +266,7 @@ def compute_features(ticker: str, candles: list) -> dict | None:
         "dates": dates,
         "features": features_rounded,
         "labels": labels,
+        "pct_returns": pct_returns,
         "scaling_params": {
             "priceMin": round(price_min, DECIMALS),
             "priceMax": round(price_max, DECIMALS),
@@ -318,6 +324,7 @@ def process_sector(sector_file: str, sector_name: str) -> dict:
             "dates": result["dates"],
             "features": result["features"],
             "labels": result["labels"],
+            "pct_returns": result["pct_returns"],
         }
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

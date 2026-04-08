@@ -2,20 +2,25 @@
  * js/ml/prediction.js
  * Prediction engine — generates UP/DOWN predictions with confidence scores.
  *
- * The V2 model outputs P(UP) via sigmoid (binary classification).
+ * The V2 model outputs two heads:
+ *  - cls_output: P(UP) via sigmoid (binary classification)
+ *  - reg_output: predicted next-day % return (linear, regression)
+ *
  *  - direction:  probability > 0.5 → 'UP', else 'DOWN'
  *  - confidence: Monte Carlo Dropout — run N forward passes with dropout active,
  *                average the outputs, compute std dev as uncertainty measure.
  *                confidence = 1 − (2 × stddev), clamped to [0.3, 0.99].
+ *  - delta:      derived from reg_output when available; falls back to ATR estimate
+ *                for legacy single-head models.
  *
  * Output format:
  *  {
  *    symbol:         'AAPL',
  *    direction:      'UP' | 'DOWN',
  *    probability:    0.72,   // raw sigmoid output (mean of MC passes)
- *    delta:          null,   // V2 is direction-only; estimated from ATR if available
+ *    delta:          null,   // estimated from reg_output or ATR fallback
  *    confidence:     0.73,   // 0..1, derived from MC dropout uncertainty
- *    predictedPrice: 187.30, // currentPrice × (1 + estimatedDelta) for UI compat
+ *    predictedPrice: 187.30, // currentPrice ± delta
  *    currentPrice:   185.15,
  *    generatedAt:    1712345678000,
  *    isDemo:         false,
@@ -33,7 +38,7 @@ const MC_PASSES = 20;
  * @property {string} symbol
  * @property {'UP'|'DOWN'} direction
  * @property {number} probability      - Raw P(UP) from model, mean of MC passes
- * @property {number|null} delta       - Estimated dollar change (null for V2 direction-only)
+ * @property {number|null} delta       - Estimated dollar change
  * @property {number} confidence       - 0..1, from MC dropout uncertainty
  * @property {number} predictedPrice
  * @property {number} currentPrice
@@ -41,7 +46,8 @@ const MC_PASSES = 20;
  */
 
 /**
- * Run N Monte Carlo Dropout forward passes and return mean + stddev.
+ * Run N Monte Carlo Dropout forward passes and return mean + stddev for the
+ * classification head, plus mean for the regression head when available.
  * Dropout layers must stay active during inference.
  *
  * In TF.js, `model.predict()` always runs in inference mode (dropout disabled).
@@ -50,24 +56,40 @@ const MC_PASSES = 20;
  *
  * @param {tf.LayersModel} model
  * @param {tf.Tensor} inputTensor  - Shape [1, windowSize, features]
- * @returns {{ mean: number, stddev: number }}
+ * @returns {{ mean: number, stddev: number, regMean: number|null }}
  */
 async function mcDropoutPredict(model, inputTensor) {
-  const results = [];
+  const clsResults = [];
+  const regResults = [];
+  const isDualHead = Array.isArray(model.outputs) && model.outputs.length >= 2;
+
   for (let i = 0; i < MC_PASSES; i++) {
     // model.call() with training=true keeps dropout active during inference
     const rawOut = model.call(inputTensor, { training: true });
-    // call() may return a Tensor directly or an array of Tensors
-    const out = Array.isArray(rawOut) ? rawOut[0] : rawOut;
-    const val = (await out.data())[0];
-    out.dispose();
-    results.push(val);
+    if (isDualHead) {
+      const outputs = Array.isArray(rawOut) ? rawOut : [rawOut];
+      const clsVal = (await outputs[0].data())[0];
+      const regVal = outputs.length > 1 ? (await outputs[1].data())[0] : null;
+      outputs.forEach(t => t.dispose());
+      clsResults.push(clsVal);
+      if (regVal !== null) regResults.push(regVal);
+    } else {
+      const out = Array.isArray(rawOut) ? rawOut[0] : rawOut;
+      const val = (await out.data())[0];
+      out.dispose();
+      clsResults.push(val);
+    }
   }
 
-  const mean   = results.reduce((s, v) => s + v, 0) / MC_PASSES;
-  const variance = results.reduce((s, v) => s + (v - mean) ** 2, 0) / MC_PASSES;
-  const stddev = Math.sqrt(variance);
-  return { mean, stddev };
+  const clsMean = clsResults.reduce((s, v) => s + v, 0) / clsResults.length;
+  const clsVariance = clsResults.reduce((s, v) => s + (v - clsMean) ** 2, 0) / clsResults.length;
+
+  let regMean = null;
+  if (regResults.length > 0) {
+    regMean = regResults.reduce((s, v) => s + v, 0) / regResults.length;
+  }
+
+  return { mean: clsMean, stddev: Math.sqrt(clsVariance), regMean };
 }
 
 /**
@@ -138,11 +160,12 @@ export async function runPrediction(symbol, candles) {
 
   // 4. Create tensor and run MC Dropout passes
   const inputTensor = tf.tensor3d([window]); // shape [1, 30, 32]
-  let probability, confidence;
+  let probability, confidence, regMean;
   try {
-    const { mean, stddev } = await mcDropoutPredict(model, inputTensor);
-    probability = parseFloat(mean.toFixed(4));
-    confidence  = computeConfidence(stddev);
+    const result = await mcDropoutPredict(model, inputTensor);
+    probability = parseFloat(result.mean.toFixed(4));
+    confidence  = computeConfidence(result.stddev);
+    regMean     = result.regMean;
   } finally {
     inputTensor.dispose();
   }
@@ -150,8 +173,17 @@ export async function runPrediction(symbol, candles) {
   // 5. Interpret binary classification output
   const direction = probability > 0.5 ? 'UP' : 'DOWN';
 
-  // 6. Estimate delta for UI display (model predicts direction only)
-  const delta = estimateDelta(candles);
+  // 6. Compute delta: use regression head when available, fall back to ATR estimate
+  let delta;
+  if (regMean !== null) {
+    // regMean is predicted % return (e.g. 0.02 = +2%, -0.02 = -2%).
+    // `delta` is always a non-negative dollar magnitude; the classification
+    // head's `direction` determines whether we add or subtract from currentPrice.
+    // This mirrors how estimateDelta() (ATR) always returns a positive value.
+    delta = parseFloat((currentPrice * Math.abs(regMean)).toFixed(2));
+  } else {
+    delta = estimateDelta(candles);
+  }
   const predictedPrice = parseFloat(
     (currentPrice + (direction === 'UP' ? delta : -delta)).toFixed(2)
   );
