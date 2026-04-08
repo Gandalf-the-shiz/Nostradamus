@@ -331,11 +331,12 @@ def train(model, X_train, y_cls_train, y_reg_train, X_val, y_cls_val, y_reg_val,
     # (Keras doesn't support class_weight with multi-output models)
     sample_weights_cls = np.where(y_cls_train == 1, class_weights[1], class_weights[0]).astype(np.float32)
 
-    # For dual-head: sample_weight must be a dict mapping output names to weight arrays
+    # Pass as a list matching model output order: [cls_output, reg_output]
+    # Keras resolves sample_weight by integer index, not string key, for list-output models.
     # reg_output gets uniform weights (no class balancing needed for regression)
-    sample_weight_dict = {"cls_output": sample_weights_cls}
+    sample_weights_list = [sample_weights_cls]
     if y_reg_train is not None:
-        sample_weight_dict["reg_output"] = np.ones(len(y_cls_train), dtype=np.float32)
+        sample_weights_list.append(np.ones(len(y_cls_train), dtype=np.float32))
 
     history = model.fit(
         X_train,
@@ -343,7 +344,7 @@ def train(model, X_train, y_cls_train, y_reg_train, X_val, y_cls_val, y_reg_val,
         validation_data=(X_val, y_val_dict),
         epochs=100,
         batch_size=256,
-        sample_weight=sample_weight_dict,
+        sample_weight=sample_weights_list,
         callbacks=callbacks,
         verbose=1,
     )
