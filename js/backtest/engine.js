@@ -273,15 +273,21 @@ function _indexPredictions(predictions, bySymbol) {
   const map = new Map();
 
   if (!Array.isArray(predictions) || predictions.length === 0) {
-    // Generate simple momentum signal: compare today's close vs. 5-day SMA
+    // Generate simple momentum signal using ONLY past data (no lookahead bias).
+    // Signal for day[i] uses previous day's close vs 5-day SMA of days [i-6..i-2].
+    // At the start of day[i], we know yesterday's close (candles[i-1].close) and all
+    // prior closes, but NOT today's close (candles[i].close).
     for (const [sym, candles] of bySymbol) {
       const inner = new Map();
-      for (let i = 5; i < candles.length; i++) {
+      for (let i = 6; i < candles.length; i++) {
+        // SMA of the 5 days ending at i-2 (all known before day i opens)
         let sma5 = 0;
-        for (let k = 1; k <= 5; k++) sma5 += candles[i - k].close;
+        for (let k = 2; k <= 6; k++) sma5 += candles[i - k].close;
         sma5 /= 5;
-        const direction  = candles[i].close > sma5 ? 'UP' : 'DOWN';
-        const confidence = Math.min(0.9, 0.5 + Math.abs(candles[i].close - sma5) / sma5 * 5);
+        // Compare previous day's close (known) against the historical SMA
+        const prevClose  = candles[i - 1].close;
+        const direction  = prevClose > sma5 ? 'UP' : 'DOWN';
+        const confidence = Math.min(0.9, 0.5 + Math.abs(prevClose - sma5) / sma5 * 5);
         inner.set(candles[i].date, { direction, confidence });
       }
       map.set(sym, inner);
