@@ -100,24 +100,8 @@ export async function loadV2Model() {
 }
 
 /**
- * Load the pre-trained starter model from the repo (last-resort fallback).
- * @returns {Promise<tf.LayersModel|null>}
- */
-export async function loadStarterModel() {
-  if (typeof tf === 'undefined') return null;
-  try {
-    const model = await tf.loadLayersModel('./models/starter/model.json');
-    console.log('[Model] Loaded starter model from repo');
-    return model;
-  } catch (err) {
-    console.warn('[Model] Failed to load starter model:', err.message);
-    return null;
-  }
-}
-
-/**
  * Load model weights.
- * Fallback chain: localStorage → V2 pre-trained → starter → null
+ * Fallback chain: localStorage → V2 pre-trained → null (demo mode)
  *
  * @param {string} [slot='default']
  * @returns {Promise<tf.LayersModel|null>}  null if no model found anywhere
@@ -139,9 +123,7 @@ export async function loadModel(slot = 'default') {
   const v2 = await loadV2Model();
   if (v2) return v2;
 
-  // 3. Try starter model
-  const starter = await loadStarterModel();
-  if (starter) return starter;
-
+  // 3. No model available — caller should fall back to demo mode
+  console.warn('[Model] No model available. App will run in demo mode.');
   return null;
 }

@@ -117,7 +117,7 @@ export async function runPrediction(symbol, candles) {
 
   const currentPrice = candles[candles.length - 1].close;
 
-  // 1. Try to load model: localStorage 'best' → 'default' → V2 → starter
+  // 1. Try to load model: localStorage 'best' → 'default' → V2 → null (demo mode)
   const model = await loadModel('best');
 
   if (!model) {
