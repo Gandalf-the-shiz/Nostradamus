@@ -5,8 +5,9 @@
  * Model overview:
  *  - Input: Sliding window of 30 days × 32 features
  *  - Architecture: Bidirectional LSTM (128) → Dropout(0.3) → LSTM(64) →
- *                  Dropout(0.2) → Dense(32, relu) → Dropout(0.2) → Dense(1, sigmoid)
- *  - Output: P(price UP tomorrow) ∈ [0, 1]  (binary classification)
+ *                  Dropout(0.2) → Dense(32, relu) → Dropout(0.2)
+ *                  → cls_output: Dense(1, sigmoid)  — P(price UP tomorrow)
+ *                  → reg_output: Dense(1, linear)   — predicted % return
  *  - Matches server-side train-model.py architecture exactly
  */
 
@@ -23,47 +24,42 @@ export const MODEL_CONFIG = {
 };
 
 /**
- * Build and return an untrained Bidirectional LSTM model matching the
+ * Build and return an untrained dual-head Bidirectional LSTM model matching the
  * server-side architecture in train-model.py.
  * Requires TensorFlow.js to be loaded (window.tf).
  *
- * @returns {tf.Sequential}
+ * @returns {tf.LayersModel}
  */
 export function buildModel() {
   if (typeof tf === 'undefined') {
     throw new Error('TensorFlow.js is not loaded. Cannot build model.');
   }
 
-  const model = tf.sequential();
+  const input = tf.input({ shape: [MODEL_CONFIG.inputWindowSize, MODEL_CONFIG.featuresPerStep] });
 
-  // Bidirectional LSTM layer — returns sequences for stacking
-  model.add(tf.layers.bidirectional({
-    layer: tf.layers.lstm({
-      units: MODEL_CONFIG.lstmUnits[0],
-      returnSequences: true,
-    }),
-    inputShape: [MODEL_CONFIG.inputWindowSize, MODEL_CONFIG.featuresPerStep],
-  }));
-  model.add(tf.layers.dropout({ rate: 0.3 }));
+  // Shared backbone
+  let x = tf.layers.bidirectional({
+    layer: tf.layers.lstm({ units: MODEL_CONFIG.lstmUnits[0], returnSequences: true }),
+  }).apply(input);
+  x = tf.layers.dropout({ rate: 0.3 }).apply(x);
+  x = tf.layers.lstm({ units: MODEL_CONFIG.lstmUnits[1], returnSequences: false }).apply(x);
+  x = tf.layers.dropout({ rate: MODEL_CONFIG.dropoutRate }).apply(x);
+  x = tf.layers.dense({ units: 32, activation: 'relu' }).apply(x);
+  x = tf.layers.dropout({ rate: MODEL_CONFIG.dropoutRate }).apply(x);
 
-  // Second LSTM layer — returns only final output
-  model.add(tf.layers.lstm({
-    units: MODEL_CONFIG.lstmUnits[1],
-    returnSequences: false,
-  }));
-  model.add(tf.layers.dropout({ rate: MODEL_CONFIG.dropoutRate }));
+  // Classification head — P(UP) [0, 1]
+  const clsOutput = tf.layers.dense({ units: 1, activation: 'sigmoid', name: 'cls_output' }).apply(x);
 
-  // Dense hidden layer
-  model.add(tf.layers.dense({ units: 32, activation: 'relu' }));
-  model.add(tf.layers.dropout({ rate: MODEL_CONFIG.dropoutRate }));
+  // Regression head — predicted % return (linear activation)
+  const regOutput = tf.layers.dense({ units: 1, activation: 'linear', name: 'reg_output' }).apply(x);
 
-  // Output layer — sigmoid for binary classification P(UP)
-  model.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }));
+  const model = tf.model({ inputs: input, outputs: [clsOutput, regOutput] });
 
   model.compile({
     optimizer: tf.train.adam(MODEL_CONFIG.learningRate),
-    loss: 'binaryCrossentropy',
-    metrics: ['accuracy'],
+    loss: ['binaryCrossentropy', 'meanSquaredError'],
+    lossWeights: [1.0, 0.5],
+    metrics: { cls_output: 'accuracy' },
   });
 
   return model;

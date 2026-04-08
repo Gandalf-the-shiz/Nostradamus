@@ -213,20 +213,36 @@ def load_model():
 def predict_ticker(model, features: list[list[float]]) -> dict:
     """
     Run inference on the last TIMESTEPS rows of a feature matrix.
-    Returns probability, direction, and confidence.
+    Returns probability, direction, confidence, and predictedReturn when available.
+
+    Handles both single-head (legacy) and dual-head models:
+    - Single-head: outputs P(UP) as a scalar
+    - Dual-head: outputs [cls_output, reg_output] — P(UP) and predicted % return
     """
     import numpy as np
 
     window = np.array([features[-TIMESTEPS:]], dtype=np.float32)  # shape (1, 30, 32)
-    probability = float(model.predict(window, verbose=0)[0][0])
+    outputs = model.predict(window, verbose=0)
+
+    # Handle dual-head vs single-head output
+    if isinstance(outputs, list) and len(outputs) == 2:
+        probability = float(outputs[0][0][0])
+        predicted_return = float(outputs[1][0][0])
+    else:
+        probability = float(outputs[0][0])
+        predicted_return = None
+
     direction   = "UP" if probability > 0.5 else "DOWN"
     confidence  = round(abs(probability - 0.5) * 2, 4)
 
-    return {
+    result = {
         "probability": round(probability, 4),
         "direction":   direction,
         "confidence":  confidence,
     }
+    if predicted_return is not None:
+        result["predictedReturn"] = round(predicted_return, 4)
+    return result
 
 
 # ---------------------------------------------------------------------------

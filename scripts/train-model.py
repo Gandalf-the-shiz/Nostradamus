@@ -75,17 +75,19 @@ def load_feature_files(features_dir: str) -> list[dict]:
     return sectors
 
 
-def build_windows(features: list[list[float]], labels: list[int], timesteps: int):
+def build_windows(features: list[list[float]], labels: list[int], timesteps: int,
+                   pct_returns: list[float] | None = None):
     """
     Build sliding windows from a single ticker's per-day feature vectors.
     Window [i] covers days [i .. i+timesteps-1].
     The label for window [i] is labels[i + timesteps - 1].
 
-    Returns X (num_windows, timesteps, num_features) and y (num_windows,).
+    Returns X (num_windows, timesteps, num_features), y_cls (num_windows,),
+    and optionally y_reg (num_windows,) when pct_returns is provided.
     """
     n = len(features)
     if n < timesteps:
-        return None, None
+        return None, None, None
     num_windows = n - timesteps + 1
     X = np.array(features, dtype=np.float32)   # (n, FEATURES)
     y_all = np.array(labels, dtype=np.float32)
@@ -97,19 +99,28 @@ def build_windows(features: list[list[float]], labels: list[int], timesteps: int
     ).copy()
     y_windows = y_all[timesteps - 1 :]
     assert len(X_windows) == len(y_windows), "Window/label count mismatch"
-    return X_windows, y_windows
+
+    y_reg_windows = None
+    if pct_returns is not None:
+        y_reg_all = np.array(pct_returns, dtype=np.float32)
+        y_reg_windows = y_reg_all[timesteps - 1 :]
+        assert len(X_windows) == len(y_reg_windows), "Window/pct_return count mismatch"
+
+    return X_windows, y_windows, y_reg_windows
 
 
 def collect_ticker_data(sectors: list[dict], timesteps: int):
     """
     Iterate all tickers across all sectors and build windowed arrays.
-    Returns (X, y, sector_labels) where sector_labels[i] is the sector name
+    Returns (X, y_cls, y_reg, sector_labels) where sector_labels[i] is the sector name
     for sample i (for per-sector accuracy computation).
     Also returns feature_names from the first sector file encountered.
+    y_reg may be None if no pct_returns data is available in the feature files.
     """
-    X_all, y_all, sector_all = [], [], []
+    X_all, y_cls_all, y_reg_all, sector_all = [], [], [], []
     feature_names = None
     tickers_used = 0
+    has_reg = False
 
     for sector_data in sectors:
         sector_name = sector_data.get("sector", "Unknown")
@@ -120,13 +131,17 @@ def collect_ticker_data(sectors: list[dict], timesteps: int):
         for ticker, td in tickers.items():
             features = td.get("features", [])
             labels_raw = td.get("labels", [])
+            pct_returns_raw = td.get("pct_returns", None)
             if not features or not labels_raw:
                 continue
-            X_t, y_t = build_windows(features, labels_raw, timesteps)
+            X_t, y_cls_t, y_reg_t = build_windows(features, labels_raw, timesteps, pct_returns_raw)
             if X_t is None or len(X_t) == 0:
                 continue
             X_all.append(X_t)
-            y_all.append(y_t)
+            y_cls_all.append(y_cls_t)
+            if y_reg_t is not None:
+                y_reg_all.append(y_reg_t)
+                has_reg = True
             sector_all.extend([sector_name] * len(X_t))
             tickers_used += 1
 
@@ -135,17 +150,19 @@ def collect_ticker_data(sectors: list[dict], timesteps: int):
         sys.exit(1)
 
     X_out = np.concatenate(X_all, axis=0)
-    y_out = np.concatenate(y_all, axis=0)
+    y_cls_out = np.concatenate(y_cls_all, axis=0)
+    y_reg_out = np.concatenate(y_reg_all, axis=0) if has_reg else None
     sector_out = np.array(sector_all)
 
-    return X_out, y_out, sector_out, feature_names, tickers_used
+    return X_out, y_cls_out, y_reg_out, sector_out, feature_names, tickers_used
 
 
 # ---------------------------------------------------------------------------
 # Time-series-aware train / val / test split
 # ---------------------------------------------------------------------------
 
-def timeseries_split(X: np.ndarray, y: np.ndarray, sector_labels: np.ndarray,
+def timeseries_split(X: np.ndarray, y_cls: np.ndarray, y_reg: np.ndarray | None,
+                     sector_labels: np.ndarray,
                      train_frac: float = TRAIN_FRAC, val_frac: float = VAL_FRAC):
     """
     Per-ticker chronological split: first 70% train, next 15% val, last 15% test.
@@ -161,30 +178,44 @@ def timeseries_split(X: np.ndarray, y: np.ndarray, sector_labels: np.ndarray,
     train_end = int(n * train_frac)
     val_end = int(n * (train_frac + val_frac))
 
-    X_train, y_train = X[:train_end], y[:train_end]
-    X_val, y_val = X[train_end:val_end], y[train_end:val_end]
-    X_test, y_test = X[val_end:], y[val_end:]
+    X_train, y_cls_train = X[:train_end], y_cls[:train_end]
+    X_val, y_cls_val = X[train_end:val_end], y_cls[train_end:val_end]
+    X_test, y_cls_test = X[val_end:], y_cls[val_end:]
     sectors_test = sector_labels[val_end:]
 
-    return X_train, y_train, X_val, y_val, X_test, y_test, sectors_test
+    if y_reg is not None:
+        y_reg_train = y_reg[:train_end]
+        y_reg_val = y_reg[train_end:val_end]
+        y_reg_test = y_reg[val_end:]
+    else:
+        y_reg_train = y_reg_val = y_reg_test = None
+
+    return (X_train, y_cls_train, y_reg_train,
+            X_val, y_cls_val, y_reg_val,
+            X_test, y_cls_test, y_reg_test,
+            sectors_test)
 
 
-def shuffle_training_set(X_train: np.ndarray, y_train: np.ndarray, seed: int = 42):
+def shuffle_training_set(X_train: np.ndarray, y_cls_train: np.ndarray,
+                          y_reg_train: np.ndarray | None, seed: int = 42):
     """Shuffle training set (NOT val or test)."""
     rng = np.random.default_rng(seed)
     idx = rng.permutation(len(X_train))
-    return X_train[idx], y_train[idx]
+    y_reg_out = y_reg_train[idx] if y_reg_train is not None else None
+    return X_train[idx], y_cls_train[idx], y_reg_out
 
 
-def subsample_training_set(X_train: np.ndarray, y_train: np.ndarray,
+def subsample_training_set(X_train: np.ndarray, y_cls_train: np.ndarray,
+                            y_reg_train: np.ndarray | None,
                             max_samples: int, seed: int = 42):
     """Randomly subsample training set when it exceeds max_samples."""
     if len(X_train) <= max_samples:
-        return X_train, y_train
+        return X_train, y_cls_train, y_reg_train
     print(f"  Training set ({len(X_train):,}) exceeds {max_samples:,}. Subsampling…")
     rng = np.random.default_rng(seed)
     idx = rng.choice(len(X_train), size=max_samples, replace=False)
-    return X_train[idx], y_train[idx]
+    y_reg_out = y_reg_train[idx] if y_reg_train is not None else None
+    return X_train[idx], y_cls_train[idx], y_reg_out
 
 
 def compute_class_weights(y: np.ndarray) -> dict:
@@ -206,7 +237,7 @@ def compute_class_weights(y: np.ndarray) -> dict:
 
 def build_model(timesteps: int = TIMESTEPS, features: int = FEATURES):
     """
-    TF.js-compatible BiLSTM model.
+    TF.js-compatible dual-head BiLSTM model.
 
     Architecture:
       Input(30, 32)
@@ -216,7 +247,8 @@ def build_model(timesteps: int = TIMESTEPS, features: int = FEATURES):
       → Dropout(0.2)
       → Dense(32, relu)
       → Dropout(0.2)
-      → Dense(1, sigmoid)
+      → cls_output: Dense(1, sigmoid)  — P(price UP tomorrow)
+      → reg_output: Dense(1, linear)   — predicted % return
 
     All layers are supported by tensorflowjs_converter.
     """
@@ -240,10 +272,13 @@ def build_model(timesteps: int = TIMESTEPS, features: int = FEATURES):
     x = layers.Dense(32, activation="relu", name="dense_1")(x)
     x = layers.Dropout(0.2, name="dropout_3")(x)
 
-    # Output — P(price UP tomorrow)
-    outputs = layers.Dense(1, activation="sigmoid", name="output")(x)
+    # Classification head — P(UP) [0, 1]
+    cls_output = layers.Dense(1, activation="sigmoid", name="cls_output")(x)
 
-    model = Model(inputs=inputs, outputs=outputs, name="nostradamus_v2")
+    # Regression head — predicted % return (linear activation)
+    reg_output = layers.Dense(1, activation="linear", name="reg_output")(x)
+
+    model = Model(inputs=inputs, outputs=[cls_output, reg_output], name="nostradamus_v2")
     return model
 
 
@@ -251,23 +286,35 @@ def build_model(timesteps: int = TIMESTEPS, features: int = FEATURES):
 # Training
 # ---------------------------------------------------------------------------
 
-def train(model, X_train, y_train, X_val, y_val, class_weights: dict):
+def train(model, X_train, y_cls_train, y_reg_train, X_val, y_cls_val, y_reg_val, class_weights: dict):
     import tensorflow as tf
+
+    # Build target dicts for dual-head model
+    y_train_dict = {"cls_output": y_cls_train}
+    y_val_dict   = {"cls_output": y_cls_val}
+    if y_reg_train is not None:
+        y_train_dict["reg_output"] = y_reg_train
+        y_val_dict["reg_output"]   = y_reg_val
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-        loss="binary_crossentropy",
-        metrics=[
-            "accuracy",
-            tf.keras.metrics.AUC(name="auc"),
-            tf.keras.metrics.Precision(name="precision"),
-            tf.keras.metrics.Recall(name="recall"),
-        ],
+        loss={
+            "cls_output": "binary_crossentropy",
+            "reg_output": "mse",
+        },
+        loss_weights={
+            "cls_output": 1.0,
+            "reg_output": 0.5,
+        },
+        metrics={
+            "cls_output": ["accuracy", tf.keras.metrics.AUC(name="auc")],
+            "reg_output": ["mae"],
+        },
     )
 
     callbacks = [
         tf.keras.callbacks.EarlyStopping(
-            monitor="val_auc",
+            monitor="val_cls_output_auc",
             patience=10,
             mode="max",
             restore_best_weights=True,
@@ -282,8 +329,8 @@ def train(model, X_train, y_train, X_val, y_val, class_weights: dict):
 
     history = model.fit(
         X_train,
-        y_train,
-        validation_data=(X_val, y_val),
+        y_train_dict,
+        validation_data=(X_val, y_val_dict),
         epochs=100,
         batch_size=256,
         class_weight=class_weights,
@@ -297,17 +344,29 @@ def train(model, X_train, y_train, X_val, y_val, class_weights: dict):
 # Evaluation
 # ---------------------------------------------------------------------------
 
-def evaluate_model(model, X_test, y_test, sectors_test):
+def evaluate_model(model, X_test, y_cls_test, y_reg_test, sectors_test):
     """Evaluate on held-out test set; return metrics dict."""
     import tensorflow as tf
 
-    results = model.evaluate(X_test, y_test, verbose=0)
+    y_test_dict = {"cls_output": y_cls_test}
+    if y_reg_test is not None:
+        y_test_dict["reg_output"] = y_reg_test
+
+    results = model.evaluate(X_test, y_test_dict, verbose=0)
     metric_names = model.metrics_names
     metrics = dict(zip(metric_names, results))
 
-    y_pred_prob = model.predict(X_test, verbose=0).flatten()
+    # Dual-head model returns [cls_output, reg_output]
+    raw_preds = model.predict(X_test, verbose=0)
+    if isinstance(raw_preds, list) and len(raw_preds) == 2:
+        y_pred_prob = raw_preds[0].flatten()
+        y_reg_pred  = raw_preds[1].flatten()
+    else:
+        y_pred_prob = raw_preds.flatten()
+        y_reg_pred  = None
+
     y_pred = (y_pred_prob >= 0.5).astype(int)
-    y_true = y_test.astype(int)
+    y_true = y_cls_test.astype(int)
 
     # Confusion matrix
     tp = ((y_pred == 1) & (y_true == 1)).sum()
@@ -316,17 +375,23 @@ def evaluate_model(model, X_test, y_test, sectors_test):
     fn = ((y_pred == 0) & (y_true == 1)).sum()
     confusion = [[int(tn), int(fp)], [int(fn), int(tp)]]
 
-    # F1
-    prec = metrics.get("precision", 0.0)
-    rec = metrics.get("recall", 0.0)
-    f1 = (2 * prec * rec / (prec + rec)) if (prec + rec) > 0 else 0.0
+    # Classification metrics — look for prefixed or unprefixed names
+    accuracy  = metrics.get("cls_output_accuracy",  metrics.get("accuracy",  0.0))
+    auc_val   = metrics.get("cls_output_auc",        metrics.get("auc",       0.0))
+    prec_val  = metrics.get("cls_output_precision",  metrics.get("precision", 0.0))
+    rec_val   = metrics.get("cls_output_recall",     metrics.get("recall",    0.0))
+    f1 = (2 * prec_val * rec_val / (prec_val + rec_val)) if (prec_val + rec_val) > 0 else 0.0
+
+    # Regression MAE
+    reg_mae = None
+    if y_reg_test is not None and y_reg_pred is not None:
+        reg_mae = float(np.abs(y_reg_pred - y_reg_test).mean())
 
     print("\n=== Test Set Evaluation ===")
-    print(f"  Accuracy : {metrics.get('accuracy', 0):.4f}")
-    print(f"  AUC      : {metrics.get('auc', 0):.4f}")
-    print(f"  Precision: {prec:.4f}")
-    print(f"  Recall   : {rec:.4f}")
-    print(f"  F1       : {f1:.4f}")
+    print(f"  Accuracy : {accuracy:.4f}")
+    print(f"  AUC      : {auc_val:.4f}")
+    if reg_mae is not None:
+        print(f"  Reg MAE  : {reg_mae:.6f}  (predicted % return)")
     print(f"  Confusion Matrix (TN, FP, FN, TP): {tn}, {fp}, {fn}, {tp}")
 
     # Per-sector accuracy
@@ -340,17 +405,18 @@ def evaluate_model(model, X_test, y_test, sectors_test):
             s_acc = (y_pred[mask] == y_true[mask]).mean()
             print(f"    {s:<30} {s_acc:.4f}  (n={mask.sum():,})")
 
-    if metrics.get("accuracy", 0) < 0.50:
+    if accuracy < 0.50:
         print("\nWARN: Test accuracy < 50% (worse than random). Model will still be exported.")
 
-    return {
-        "accuracy": round(float(metrics.get("accuracy", 0)), 4),
-        "auc": round(float(metrics.get("auc", 0)), 4),
-        "precision": round(float(prec), 4),
-        "recall": round(float(rec), 4),
-        "f1": round(float(f1), 4),
+    out = {
+        "accuracy":         round(float(accuracy), 4),
+        "auc":              round(float(auc_val), 4),
+        "f1":               round(float(f1), 4),
         "confusion_matrix": confusion,
     }
+    if reg_mae is not None:
+        out["reg_mae"] = round(reg_mae, 6)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -388,8 +454,9 @@ def write_metadata(
 
     trained_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    # Best epoch = epoch with highest val_auc
-    val_auc_list = history.history.get("val_auc", [])
+    # Best epoch = epoch with highest val_cls_output_auc (dual-head) or val_auc (legacy)
+    val_auc_list = (history.history.get("val_cls_output_auc")
+                    or history.history.get("val_auc", []))
     best_epoch = int(np.argmax(val_auc_list)) + 1 if val_auc_list else epochs_run
 
     lr_history = history.history.get("lr", [])
@@ -398,13 +465,13 @@ def write_metadata(
     metadata = {
         "version": "2.0.0",
         "trainedAt": trained_at,
-        "architecture": "BiLSTM-Dense",
+        "architecture": "BiLSTM-Dense-DualHead",
         "inputShape": [TIMESTEPS, FEATURES],
         "featureCount": FEATURES,
         "featureNames": feature_names,
         "lookbackDays": TIMESTEPS,
-        "outputType": "binary_classification",
-        "outputInterpretation": "P(price_UP_tomorrow), sigmoid [0,1]",
+        "outputType": "dual_head_classification_regression",
+        "outputInterpretation": "cls_output: P(price_UP_tomorrow) sigmoid [0,1]; reg_output: predicted % return linear",
         "trainingStats": {
             "totalSamples": train_samples + val_samples + test_samples,
             "trainSamples": train_samples,
@@ -417,13 +484,14 @@ def write_metadata(
         "testMetrics": {
             "accuracy": test_metrics["accuracy"],
             "auc": test_metrics["auc"],
-            "precision": test_metrics["precision"],
-            "recall": test_metrics["recall"],
             "f1": test_metrics["f1"],
         },
         "classWeights": {str(k): v for k, v in class_weights.items()},
         "scalingParams": "See data/features/scaling_params.json",
     }
+
+    if "reg_mae" in test_metrics:
+        metadata["testMetrics"]["reg_mae"] = test_metrics["reg_mae"]
 
     path = os.path.join(models_v2_dir, "metadata.json")
     with open(path, "w") as fh:
@@ -486,17 +554,18 @@ def main():
 
     # --- 2. Build windowed dataset ---
     print("\n[2/7] Building sliding-window dataset …")
-    X, y, sector_labels, feature_names, tickers_used = collect_ticker_data(
+    X, y_cls, y_reg, sector_labels, feature_names, tickers_used = collect_ticker_data(
         sectors, TIMESTEPS
     )
 
     total_samples = len(X)
-    n_up = int((y == 1).sum())
-    n_down = int((y == 0).sum())
+    n_up = int((y_cls == 1).sum())
+    n_down = int((y_cls == 0).sum())
     print(f"  Total samples  : {total_samples:,}")
     print(f"  UP  (label=1)  : {n_up:,}  ({n_up/total_samples*100:.1f}%)")
     print(f"  DOWN(label=0)  : {n_down:,}  ({n_down/total_samples*100:.1f}%)")
     print(f"  Tickers used   : {tickers_used:,}")
+    print(f"  Regression targets available: {y_reg is not None}")
 
     if total_samples < MIN_SAMPLES:
         print(f"\nWARN: Only {total_samples:,} samples (< {MIN_SAMPLES:,}). "
@@ -504,21 +573,24 @@ def main():
 
     # --- 3. Split ---
     print("\n[3/7] Time-series-aware train/val/test split …")
-    X_train, y_train, X_val, y_val, X_test, y_test, sectors_test = timeseries_split(
-        X, y, sector_labels
-    )
+    (X_train, y_cls_train, y_reg_train,
+     X_val,   y_cls_val,   y_reg_val,
+     X_test,  y_cls_test,  y_reg_test,
+     sectors_test) = timeseries_split(X, y_cls, y_reg, sector_labels)
     print(f"  Train : {len(X_train):,}")
     print(f"  Val   : {len(X_val):,}")
     print(f"  Test  : {len(X_test):,}")
 
     # Subsample training set if needed
-    X_train, y_train = subsample_training_set(X_train, y_train, MAX_TRAIN_SAMPLES)
+    X_train, y_cls_train, y_reg_train = subsample_training_set(
+        X_train, y_cls_train, y_reg_train, MAX_TRAIN_SAMPLES
+    )
 
     # Shuffle training set (NOT val or test)
-    X_train, y_train = shuffle_training_set(X_train, y_train)
+    X_train, y_cls_train, y_reg_train = shuffle_training_set(X_train, y_cls_train, y_reg_train)
 
-    # Class weights
-    class_weights = compute_class_weights(y_train)
+    # Class weights (based on classification labels only)
+    class_weights = compute_class_weights(y_cls_train)
     print(f"\n  Class weights: DOWN={class_weights[0]}, UP={class_weights[1]}")
 
     # --- 4. Build model ---
@@ -528,13 +600,13 @@ def main():
 
     # --- 5. Train ---
     print("\n[5/7] Training …")
-    history = train(model, X_train, y_train, X_val, y_val, class_weights)
+    history = train(model, X_train, y_cls_train, y_reg_train, X_val, y_cls_val, y_reg_val, class_weights)
     epochs_run = len(history.history.get("loss", []))
     print(f"\n  Training complete. Epochs run: {epochs_run}")
 
     # --- 6. Evaluate ---
     print("\n[6/7] Evaluating on test set …")
-    test_metrics = evaluate_model(model, X_test, y_test, sectors_test)
+    test_metrics = evaluate_model(model, X_test, y_cls_test, y_reg_test, sectors_test)
 
     # --- 7. Export ---
     print("\n[7/7] Exporting model …")
