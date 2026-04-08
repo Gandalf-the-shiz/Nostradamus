@@ -27,18 +27,13 @@ jobs:
       - name: Fetch tickers from SEC EDGAR
         run: python scripts/fetch-tickers.py
 
-      - name: Check for changes
-        id: changes
-        run: |
-          git diff --quiet data/tickers/us_tickers.json || echo "changed=true" >> "$GITHUB_OUTPUT"
-
       - name: Commit updated ticker registry
-        if: steps.changes.outputs.changed == 'true'
         run: |
-          TICKER_COUNT=$(python -c "import json; d=json.load(open('data/tickers/us_tickers.json')); print(d['metadata']['totalTickers'])")
-          TODAY=$(date -u +%Y-%m-%d)
           git config user.name  "Nostradamus Bot"
           git config user.email "bot@nostradamus.app"
           git add data/tickers/us_tickers.json
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          TICKER_COUNT=$(python -c "import json; d=json.load(open('data/tickers/us_tickers.json')); print(d['metadata']['totalTickers'])")
+          TODAY=$(date -u +%Y-%m-%d)
           git commit -m "📋 Weekly ticker registry update [${TODAY}] — ${TICKER_COUNT} tickers"
           git push
