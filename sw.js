@@ -12,7 +12,7 @@
  *   - data/sample.json, models/ → cache-first
  */
 
-const CACHE_VERSION = 'nostradamus-v1';
+const CACHE_VERSION = 'nostradamus-v2';
 const SHELL_CACHE   = `${CACHE_VERSION}-shell`;
 const CDN_CACHE     = `${CACHE_VERSION}-cdn`;
 
@@ -50,8 +50,6 @@ const SHELL_ASSETS = [
   './js/storage/cache.js',
   './js/utils/helpers.js',
   './data/sample.json',
-  './models/starter/model.json',
-  './models/starter/weights.bin',
   './manifest.json',
   './icons/icon-192.svg',
   './icons/icon-512.svg',
