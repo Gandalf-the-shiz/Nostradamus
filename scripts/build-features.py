@@ -34,7 +34,7 @@ HISTORICAL_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "historic
 FEATURES_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "features")
 MIN_CANDLES = 50          # skip tickers with fewer valid rows after NaN warmup
 LOOKBACK_DAYS = 30        # window size (used in metadata; windowing done by Phase 5)
-FEATURE_COUNT = 32
+FEATURE_COUNT = 33
 DECIMALS = 4              # round all floats to 4 decimal places
 
 FEATURE_NAMES = [
@@ -70,6 +70,7 @@ FEATURE_NAMES = [
     "dow_fri",          # 29
     "month_sin",        # 30
     "month_cos",        # 31
+    "sentiment",        # 32 — sentiment proxy (technical composite)
 ]
 
 assert len(FEATURE_NAMES) == FEATURE_COUNT, "FEATURE_NAMES length mismatch"
@@ -199,6 +200,15 @@ def compute_features(ticker: str, candles: list) -> dict | None:
     month_sin = np.sin(2 * math.pi * month / 12)
     month_cos = np.cos(2 * math.pi * month / 12)
 
+    # --- Sentiment proxy (technical composite) ---
+    # In server-side training we don't have real news headlines, so we construct
+    # a sentiment proxy from existing technical signals that correlate with
+    # market sentiment: RSI deviation from neutral, short-term momentum, and
+    # MACD histogram direction. The result is clipped to [-1, +1] to match
+    # the range of the browser-side keyword sentiment scorer.
+    rsi_deviation = (rsi_14 - 0.5) * 2  # RSI centered at 0, range ~ [-1, +1]
+    sentiment_proxy = (rsi_deviation * 0.5 + momentum5 * 2 + macd_hist * 10).apply(math.tanh)
+
     # --- Assemble feature matrix ---
     feature_df = pd.DataFrame({
         "close_norm":   close_norm,
@@ -233,6 +243,7 @@ def compute_features(ticker: str, candles: list) -> dict | None:
         "dow_fri":      dow_fri,
         "month_sin":    month_sin,
         "month_cos":    month_cos,
+        "sentiment":    sentiment_proxy,
     })
 
     # --- Labels: did price go UP the next day? ---

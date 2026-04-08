@@ -34,7 +34,7 @@ PREDICTIONS_DIR = os.path.join(REPO_ROOT, "data", "predictions")
 # ---------------------------------------------------------------------------
 
 TIMESTEPS     = 30
-FEATURE_COUNT = 32
+FEATURE_COUNT = 33
 MIN_CANDLES   = 60   # minimum candles needed after indicator warmup
 
 FEATURE_NAMES = [
@@ -48,6 +48,7 @@ FEATURE_NAMES = [
     "roc10", "momentum5", "volatility30", "volume_ratio",
     "dow_mon", "dow_tue", "dow_wed", "dow_thu", "dow_fri",
     "month_sin", "month_cos",
+    "sentiment",
 ]
 assert len(FEATURE_NAMES) == FEATURE_COUNT
 
@@ -155,6 +156,10 @@ def _build_features_for_candles(candles: list) -> list[list[float]] | None:
     month_sin = np.sin(2 * math.pi * month / 12)
     month_cos = np.cos(2 * math.pi * month / 12)
 
+    # --- Sentiment proxy (technical composite, matching build-features.py) ---
+    rsi_deviation = (rsi_14 - 0.5) * 2
+    sentiment_proxy = (rsi_deviation * 0.5 + momentum5 * 2 + macd_hist * 10).apply(math.tanh)
+
     feature_df = pd.DataFrame({
         "close_norm":   close_norm, "open_norm":    open_norm,
         "high_norm":    high_norm,  "low_norm":     low_norm,
@@ -173,6 +178,7 @@ def _build_features_for_candles(candles: list) -> list[list[float]] | None:
         "dow_wed":      dow_wed,    "dow_thu":      dow_thu,
         "dow_fri":      dow_fri,    "month_sin":    month_sin,
         "month_cos":    month_cos,
+        "sentiment":    sentiment_proxy,
     })
 
     import numpy as _np
