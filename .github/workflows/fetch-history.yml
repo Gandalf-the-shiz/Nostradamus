@@ -23,8 +23,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Need full history for LFS if we use it later
           fetch-depth: 1
+          lfs: true
+
+      - name: Configure Git LFS
+        run: git lfs install
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
