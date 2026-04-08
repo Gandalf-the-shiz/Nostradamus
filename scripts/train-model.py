@@ -289,12 +289,13 @@ def build_model(timesteps: int = TIMESTEPS, features: int = FEATURES):
 def train(model, X_train, y_cls_train, y_reg_train, X_val, y_cls_val, y_reg_val, class_weights: dict):
     import tensorflow as tf
 
-    # Build target dicts for dual-head model
-    y_train_dict = {"cls_output": y_cls_train}
-    y_val_dict   = {"cls_output": y_cls_val}
+    # Build target lists for dual-head model (must match model output order)
+    # Both y and sample_weight must use the same format (list) for Keras 3 / TF >=2.16
+    y_train_list = [y_cls_train]
+    y_val_list   = [y_cls_val]
     if y_reg_train is not None:
-        y_train_dict["reg_output"] = y_reg_train
-        y_val_dict["reg_output"]   = y_reg_val
+        y_train_list.append(y_reg_train)
+        y_val_list.append(y_reg_val)
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
@@ -340,8 +341,8 @@ def train(model, X_train, y_cls_train, y_reg_train, X_val, y_cls_val, y_reg_val,
 
     history = model.fit(
         X_train,
-        y_train_dict,
-        validation_data=(X_val, y_val_dict),
+        y_train_list,
+        validation_data=(X_val, y_val_list),
         epochs=100,
         batch_size=256,
         sample_weight=sample_weights_list,
