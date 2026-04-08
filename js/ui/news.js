@@ -121,6 +121,31 @@ export function scoreSentiment(text) {
   return 'neutral';
 }
 
+/**
+ * Fetch news headlines for a symbol as plain strings (for sentiment scoring).
+ * Returns up to 5 headlines. Gracefully falls back to demo data.
+ *
+ * @param {string} symbol
+ * @param {{ mode: 'demo'|'live' }} appState
+ * @returns {Promise<string[]>}
+ */
+export async function fetchNewsHeadlines(symbol, appState) {
+  let articles = [];
+  if (appState.mode === 'live') {
+    try {
+      const from = daysAgoISO(7);
+      const to   = todayISO();
+      articles = await getCompanyNews(symbol, from, to);
+      articles = (articles || []).slice(0, 5);
+    } catch {
+      articles = _getDemoNews(symbol);
+    }
+  } else {
+    articles = _getDemoNews(symbol);
+  }
+  return articles.map(a => a.headline || a.summary || '').filter(Boolean);
+}
+
 // ─── Private helpers ──────────────────────────────────────────
 
 /**

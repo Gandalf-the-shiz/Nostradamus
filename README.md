@@ -239,6 +239,7 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
   - Feed as additional feature to model
 - [x] Track sentiment-prediction correlation in accuracy dashboard — `getSentimentCorrelation()` in `js/ml/accuracy.js` ✅
 - [x] Add "Market Mood" indicator to dashboard header (aggregate sentiment) ✅
+- [x] Display sentiment badge (😊/😐/😟) + gauge in stock detail modal (`js/ui/detail.js`) ✅
 
 ### Phase 9: Backtesting Engine
 - [x] Create `js/backtest/engine.js` — full backtesting framework ✅
@@ -267,6 +268,7 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
   - If rolling 30-day accuracy drops below 53% (chosen as slightly above the ~52% naive "always UP" baseline, providing a minimal positive-alpha margin), trigger automatic retraining workflow
   - Use latest 6 months of data for retraining
   - Only promote new model if it beats current model on held-out test set
+  - `accuracy.yml` now automatically triggers `auto-retrain.yml` when the threshold is breached
 - [x] Weekly "Market Intelligence Report" auto-generated ✅:
   - Top 10 predicted movers (up and down)
   - Sector rotation signals
@@ -428,10 +430,10 @@ Nostradamus/
 | **V2 Phase 2** | **Universal Ticker Registry** | 🟢 Complete |
 | **V2 Phase 3** | **Full-Market Historical Data** | ✅ Complete |
 | **V2 Phase 4** | **Server-Side Feature Engineering** | ✅ Complete |
-| **V2 Phase 5** | **Server-Side Model Training** | ⬜ Not started |
-| **V2 Phase 6** | **Upgraded Browser ML Engine** | 🟡 In progress (model.js, preprocessing.js, prediction.js, tracker.js, training.js, retraining.js, indexeddb.js updated) |
+| **V2 Phase 5** | **Server-Side Model Training** | ✅ Complete (scripts/train-model.py, scripts/build-features.py, scripts/fetch-history.py, CI workflows) |
+| **V2 Phase 6** | **Upgraded Browser ML Engine** | ✅ Complete (model.js, preprocessing.js, prediction.js, tracker.js, training.js, retraining.js, indexeddb.js updated) |
 | **V2 Phase 7** | **Full-Market Dashboard Overhaul** | ✅ Complete (heatmap.js, screener.js, top predictions, sector rotation, momentum scanner, market mood) |
-| **V2 Phase 8** | **Sentiment & Alternative Data** | ✅ Complete (sentiment.js, getSentimentCorrelation(), market mood indicator, accuracy dashboard correlation card) |
+| **V2 Phase 8** | **Sentiment & Alternative Data** | ✅ Complete (sentiment.js, getSentimentCorrelation(), market mood indicator, accuracy dashboard correlation card, detail modal sentiment badge) |
 | **V2 Phase 9** | **Backtesting Engine** | ✅ Complete (backtest/engine.js, ui/backtest-ui.js, equity curve, drawdown, trade log, CSV export) |
 | **V2 Phase 10** | **Continuous Intelligence Loop** | ✅ Complete (generate-predictions.py, score-accuracy.py, auto-retrain.yml, generate-weekly-report.py, weekly-report.yml) |
 

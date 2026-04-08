@@ -14,7 +14,9 @@ import { formatCurrency, formatPercent, formatDollarChange, formatLargeNumber } 
 import { renderDetailChart, renderFullChart, destroyContainerChart } from './charts.js';
 import { isInWatchlist, addToWatchlist, removeFromWatchlist } from './watchlist.js';
 import { renderNewsPanel } from './news.js';
+import { fetchNewsHeadlines } from './news.js';
 import { buildShareButtons } from './share.js';
+import { aggregateSentiment, classifySentiment } from '../utils/sentiment.js';
 
 const OVERLAY_ID = 'stock-detail-overlay';
 
@@ -71,6 +73,28 @@ export function openStockDetail(symbol, stock, candles, prediction, appState = {
   const newsContainer = overlay.querySelector('.detail-overlay__news-body');
   if (newsContainer) {
     renderNewsPanel(newsContainer, symbol, appState);
+  }
+
+  // Async: compute and display sentiment badge from recent headlines
+  const sentimentEl = overlay.querySelector('.detail-overlay__sentiment');
+  if (sentimentEl) {
+    fetchNewsHeadlines(symbol, appState).then(headlines => {
+      if (!headlines.length) return;
+      const result = aggregateSentiment(headlines);
+      const label  = classifySentiment(result.average);
+      const emoji  = label === 'bullish' ? '😊' : label === 'bearish' ? '😟' : '😐';
+      const pct    = Math.round((result.average + 1) * 50); // map [-1,1] → [0,100]
+      sentimentEl.querySelector('.sentiment-badge__text').textContent =
+        `${emoji} ${label.charAt(0).toUpperCase() + label.slice(1)}`;
+      sentimentEl.querySelector('.sentiment-badge__score').textContent =
+        `${result.average >= 0 ? '+' : ''}${result.average.toFixed(2)}`;
+      const bar = sentimentEl.querySelector('.sentiment-gauge__fill');
+      if (bar) {
+        bar.style.width = `${pct}%`;
+        bar.className = `sentiment-gauge__fill sentiment-gauge__fill--${label}`;
+      }
+      sentimentEl.removeAttribute('hidden');
+    }).catch(() => { /* sentiment is optional — fail silently */ });
   }
 }
 
@@ -170,6 +194,16 @@ function _buildOverlay(symbol, stock, candles, prediction, appState) {
         </div>
       </div>
       ` : ''}
+
+      <!-- Sentiment Badge (populated asynchronously) -->
+      <div class="detail-overlay__sentiment sentiment-badge" hidden aria-live="polite">
+        <span class="sentiment-badge__label">📰 News Sentiment:</span>
+        <span class="sentiment-badge__text">—</span>
+        <span class="sentiment-badge__score"></span>
+        <div class="sentiment-gauge" aria-hidden="true">
+          <div class="sentiment-gauge__fill"></div>
+        </div>
+      </div>
 
       <!-- Actions -->
       <div class="detail-overlay__actions">
