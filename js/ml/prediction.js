@@ -128,9 +128,10 @@ function estimateDelta(candles) {
  *
  * @param {string} symbol
  * @param {import('./preprocessing.js').OHLCV[]} candles  - Last 60+ days of OHLCV data
+ * @param {Map<string, number>|null} [sentimentScores=null]  - Optional map of date→sentiment score
  * @returns {Promise<Prediction>}
  */
-export async function runPrediction(symbol, candles) {
+export async function runPrediction(symbol, candles, sentimentScores = null) {
   if (typeof tf === 'undefined') {
     console.warn('[Prediction] TensorFlow.js not loaded. Returning demo prediction.');
     const currentPrice = candles.length > 0 ? candles[candles.length - 1].close : 100;
@@ -147,19 +148,29 @@ export async function runPrediction(symbol, candles) {
     return demoPrediction(symbol, currentPrice);
   }
 
-  // 2. Build 32-feature matrix from candles
-  const { features } = buildFeatureMatrix(candles);
+  // 2. Build feature matrix from candles
+  // Check if the loaded model expects 32 (old) or 33 (new) features.
+  // If the model only has 32 inputs, exclude sentiment to stay compatible.
+  const modelInputShape = model.inputs[0].shape;
+  const modelFeatures = modelInputShape[modelInputShape.length - 1];
+  const usesSentiment = modelFeatures === 33;
 
-  if (features.length < MODEL_CONFIG.inputWindowSize) {
+  const { features } = buildFeatureMatrix(candles, null, usesSentiment ? sentimentScores : null);
+  // For legacy 32-feature models, trim the last column (sentiment) from each row
+  const featureRows = usesSentiment
+    ? features
+    : features.map(row => row.slice(0, 32));
+
+  if (featureRows.length < MODEL_CONFIG.inputWindowSize) {
     console.warn('[Prediction] Not enough feature data. Returning demo prediction.');
     return demoPrediction(symbol, currentPrice);
   }
 
   // 3. Take the last inputWindowSize rows as the input window
-  const window = features.slice(features.length - MODEL_CONFIG.inputWindowSize);
+  const window = featureRows.slice(featureRows.length - MODEL_CONFIG.inputWindowSize);
 
   // 4. Create tensor and run MC Dropout passes
-  const inputTensor = tf.tensor3d([window]); // shape [1, 30, 32]
+  const inputTensor = tf.tensor3d([window]); // shape [1, 30, modelFeatures]
   let probability, confidence, regMean;
   try {
     const result = await mcDropoutPredict(model, inputTensor);
@@ -205,14 +216,14 @@ export async function runPrediction(symbol, candles) {
  * Run predictions for multiple symbols in sequence.
  * Avoids running all in parallel to prevent OOM on low-end devices.
  *
- * @param {Array<{symbol: string, candles: import('./preprocessing.js').OHLCV[]}>} items
+ * @param {Array<{symbol: string, candles: import('./preprocessing.js').OHLCV[], sentimentScores?: Map<string, number>}>} items
  * @returns {Promise<Prediction[]>}
  */
 export async function batchPredict(items) {
   const predictions = [];
   for (const item of items) {
     try {
-      const pred = await runPrediction(item.symbol, item.candles);
+      const pred = await runPrediction(item.symbol, item.candles, item.sentimentScores ?? null);
       predictions.push(pred);
     } catch (err) {
       console.error(`[Prediction] Failed for ${item.symbol}:`, err.message);

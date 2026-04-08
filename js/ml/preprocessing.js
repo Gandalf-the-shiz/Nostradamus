@@ -3,7 +3,7 @@
  * Data preprocessing utilities for the ML pipeline.
  *
  * Converts raw OHLCV data into normalised feature tensors suitable for LSTM training.
- * Computes exactly 32 features per time step in the same order as FEATURE_NAMES in
+ * Computes exactly 33 features per time step in the same order as FEATURE_NAMES in
  * build-features.py — feature parity is CRITICAL for server-trained model inference.
  *
  * Feature set (indices match build-features.py FEATURE_NAMES):
@@ -39,6 +39,7 @@
  *  29 dow_fri          — 1 if Friday else 0
  *  30 month_sin        — sin(2π × month ÷ 12)
  *  31 month_cos        — cos(2π × month ÷ 12)
+ *  32 sentiment        — sentiment score [-1, +1] (from news or technical proxy)
  */
 
 /**
@@ -321,17 +322,22 @@ function smaArr(values, period) {
 }
 
 /**
- * Convert an array of OHLCV objects into a 2D feature matrix with 32 features per row.
+ * Convert an array of OHLCV objects into a 2D feature matrix with 33 features per row.
  * Feature order is IDENTICAL to FEATURE_NAMES in build-features.py.
  *
  * Optionally applies per-ticker scaling parameters from models/v2/metadata.json
  * when passed as the second argument.
  *
+ * An optional `sentimentScores` map (date string → score in [-1, +1]) can be provided
+ * to supply real news-derived sentiment for each day. When a date has no entry in the map,
+ * a technical sentiment proxy is computed instead (matching build-features.py).
+ *
  * @param {OHLCV[]} candles  - Sorted oldest → newest; must include open/high/low/close/volume/date
  * @param {Object|null} [scalingParams=null]  - Optional per-ticker scaling from metadata.json
+ * @param {Map<string, number>|null} [sentimentScores=null]  - Optional map of date→sentiment score
  * @returns {{ features: number[][], priceMin: number, priceMax: number, volumeMin: number, volumeMax: number }}
  */
-export function buildFeatureMatrix(candles, scalingParams = null) {
+export function buildFeatureMatrix(candles, scalingParams = null, sentimentScores = null) {
   const n = candles.length;
   if (n === 0) return { features: [], priceMin: 0, priceMax: 0, volumeMin: 0, volumeMax: 0 };
 
@@ -450,6 +456,18 @@ export function buildFeatureMatrix(candles, scalingParams = null) {
     const dow = dateObj.getDay(); // 0=Sun, 1=Mon, …, 6=Sat
     const month = dateObj.getMonth() + 1; // 1–12
 
+    // Sentiment: use real score from map when available, otherwise compute technical proxy
+    // matching build-features.py: tanh(rsiDev * 0.5 + momentum5 * 2 + macdHist * 10)
+    const dateStr = candles[i].date.slice(0, 10); // normalise to YYYY-MM-DD
+    let sentimentValue;
+    if (sentimentScores !== null && sentimentScores.has(dateStr)) {
+      sentimentValue = sentimentScores.get(dateStr);
+    } else {
+      // Technical sentiment proxy matching build-features.py
+      const rsiDev = (rsi14[i] - 0.5) * 2;
+      sentimentValue = Math.tanh(rsiDev * 0.5 + momentum5[i] * 2 + macdHist[i] * 10);
+    }
+
     features.push([
       closeNorm[i],           //  0 close_norm
       openNorm[i],            //  1 open_norm
@@ -483,6 +501,7 @@ export function buildFeatureMatrix(candles, scalingParams = null) {
       dow === 5 ? 1 : 0,      // 29 dow_fri
       Math.sin(2 * Math.PI * month / 12),  // 30 month_sin
       Math.cos(2 * Math.PI * month / 12),  // 31 month_cos
+      sentimentValue,                       // 32 sentiment
     ]);
   }
 

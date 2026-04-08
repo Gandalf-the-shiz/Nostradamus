@@ -6,7 +6,7 @@ Bidirectional LSTM model, trains it with time-series-aware splits, evaluates
 on a held-out test set, then exports to TensorFlow.js format.
 
 Architecture: BiLSTM (128) → LSTM (64) → Dense (32, relu) → Dense (1, sigmoid)
-Input shape:  (30, 32) — 30 timesteps × 32 features from Phase 4
+Input shape:  (30, 33) — 30 timesteps × 33 features from Phase 4
 Output:       P(price UP tomorrow) ∈ [0, 1]
 
 All layers are TF.js-compatible (no MultiHeadAttention, no Lambda).
@@ -38,7 +38,7 @@ TRAINING_LOGS_DIR = os.path.join(REPO_ROOT, "data", "training-logs")
 # ---------------------------------------------------------------------------
 
 TIMESTEPS = 30       # lookback window (must match Phase 4 LOOKBACK_DAYS)
-FEATURES = 32        # feature count (must match Phase 4 FEATURE_COUNT)
+FEATURES = 33        # feature count (must match Phase 4 FEATURE_COUNT)
 TRAIN_FRAC = 0.70
 VAL_FRAC = 0.15
 # TEST_FRAC = 0.15   (implicit: remainder)
@@ -240,7 +240,7 @@ def build_model(timesteps: int = TIMESTEPS, features: int = FEATURES):
     TF.js-compatible dual-head BiLSTM model.
 
     Architecture:
-      Input(30, 32)
+      Input(30, 33)
       → Bidirectional(LSTM(128, return_sequences=True))
       → Dropout(0.3)
       → LSTM(64, return_sequences=False)

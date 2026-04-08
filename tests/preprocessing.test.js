@@ -183,12 +183,12 @@ function makeCandles(n = 120) {
 }
 
 describe('buildFeatureMatrix', () => {
-  it('returns exactly 32 features per row', () => {
+  it('returns exactly 33 features per row', () => {
     const candles = makeCandles(120);
     const { features } = buildFeatureMatrix(candles);
     assert.ok(features.length > 0, 'Expected at least one feature row');
     features.forEach((row, i) => {
-      assert.equal(row.length, 32, `Row ${i} has ${row.length} features, expected 32`);
+      assert.equal(row.length, 33, `Row ${i} has ${row.length} features, expected 33`);
     });
   });
 

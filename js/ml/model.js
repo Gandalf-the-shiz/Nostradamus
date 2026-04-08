@@ -14,7 +14,7 @@
 // ─── Hyperparameters ──────────────────────────────────────────
 export const MODEL_CONFIG = {
   inputWindowSize: 30,      // Number of days of history fed as input
-  featuresPerStep:  32,     // Features per time step — must match build-features.py FEATURE_COUNT
+  featuresPerStep:  33,     // Features per time step — must match build-features.py FEATURE_COUNT
   lstmUnits:       [128, 64], // BiLSTM then LSTM layer sizes
   dropoutRate:     0.2,
   learningRate:    0.001,
