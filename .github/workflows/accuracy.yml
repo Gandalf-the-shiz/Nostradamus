@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write    # required to trigger auto-retrain.yml via the API
 
 jobs:
   score-accuracy:
@@ -42,4 +43,47 @@ jobs:
           else
             git commit -m "chore: update accuracy metrics $(date -u +%Y-%m-%d)"
             git push
+          fi
+
+      - name: Check rolling accuracy and trigger retraining if needed
+        id: set_flag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          flag=$(python - <<'EOF'
+          import json, sys
+          from datetime import datetime, timedelta, timezone
+
+          log_path  = "data/accuracy/accuracy-log.json"
+          threshold = 0.53   # below this → trigger auto-retrain
+          try:
+              with open(log_path) as f:
+                  data = json.load(f)
+              entries = data.get("entries", [])
+              if not entries:
+                  print("true"); sys.exit(0)
+              cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+              recent = [
+                  e for e in entries
+                  if datetime.fromisoformat(e["date"].replace("Z", "+00:00")) >= cutoff
+              ]
+              if not recent:
+                  print("true"); sys.exit(0)
+              correct  = sum(1 for e in recent if e.get("isCorrect", False))
+              hit_rate = correct / len(recent)
+              import sys as _sys
+              print(f"Rolling 30-day accuracy: {hit_rate:.4f} ({correct}/{len(recent)})", file=_sys.stderr)
+              print("true" if hit_rate < threshold else "false")
+          except Exception as exc:
+              import sys as _sys
+              print(f"Error reading accuracy log ({exc}); defaulting to false", file=_sys.stderr)
+              print("false")
+          EOF
+          )
+          echo "needs_retrain=$flag" >> "$GITHUB_OUTPUT"
+          if [ "$flag" = "true" ]; then
+            echo "Rolling accuracy is below threshold — triggering auto-retrain workflow."
+            gh workflow run auto-retrain.yml --repo "$GITHUB_REPOSITORY"
+          else
+            echo "Model accuracy is acceptable. No retraining needed."
           fi
