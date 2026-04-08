@@ -46,7 +46,7 @@
 | **Hosting** | GitHub Pages | Same |
 | **Frontend** | Vanilla HTML/CSS/JS | Same |
 | **Charting** | Chart.js (CDN) | Same |
-| **ML Engine** | TensorFlow.js (CDN) | **Upgraded model: Transformer-LSTM hybrid, 30-day sliding window, 15+ features** |
+| **ML Engine** | TensorFlow.js (CDN) | **Upgraded model: Bidirectional LSTM (128→64), 30-day sliding window, 32 features, binary classification** |
 | **Ticker Registry** | SEC EDGAR `company_tickers_exchange.json` | **NEW: ~7,000+ US exchange tickers auto-updated weekly** |
 | **Historical Data Pipeline** | GitHub Actions + Python (`yfinance`) | **NEW: Bulk download all tickers, compress to JSON, commit to repo** |
 | **Pre-trained Model** | GitHub Actions + Python (`tensorflow/keras`) | **NEW: Server-side training on full market, export TF.js model to `models/`** |
@@ -55,7 +55,7 @@
 | **Tertiary API** | Polygon.io | Same |
 | **NEW: Quaternary API** | Alpha Vantage | **NEW: 25 calls/day free, technical indicators endpoint** |
 | **Data Persistence** | localStorage + IndexedDB | **UPGRADED: IndexedDB for large datasets (model weights, historical data)** |
-| **CI/CD** | GitHub Actions | **UPGRADED: 5 workflows (deploy, fetch-tickers, fetch-history, train-model, score-accuracy)** |
+| **CI/CD** | GitHub Actions | **UPGRADED: 10 workflows (deploy, fetch-tickers, fetch-history, build-features, train-model, generate-predictions, accuracy, auto-retrain, weekly-report, fetch-data)** |
 
 ### Why These APIs?
 GitHub Pages serves files with no backend proxy. All API calls happen directly from the user's browser, so **CORS support is mandatory**. Finnhub, Twelve Data, and Polygon.io all support CORS from browser clients.
@@ -228,11 +228,11 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
   - Sector filter
   - Market cap filter
   - Volume filter
-- [ ] Pagination and virtual scrolling for 7,000+ ticker list
-- [ ] Lazy-load stock cards as user scrolls (IntersectionObserver)
+- [x] Pagination and virtual scrolling for 7,000+ ticker list
+- [x] Lazy-load stock cards as user scrolls (IntersectionObserver)
 
 ### Phase 8: Sentiment & Alternative Data
-- [ ] Integrate Finnhub company news into ML feature pipeline
+- [x] Integrate Finnhub company news into ML feature pipeline
 - [x] Build simple client-side sentiment scorer (`js/utils/sentiment.js`):
   - Keyword-based scoring from headline text (bullish/bearish word lists)
   - Aggregate daily sentiment score per ticker
@@ -296,9 +296,13 @@ Nostradamus/
 │       ├── deploy.yml                 # GitHub Pages deployment
 │       ├── fetch-tickers.yml          # Weekly: SEC EDGAR ticker refresh
 │       ├── fetch-history.yml          # Nightly: yfinance OHLCV download
+│       ├── fetch-data.yml             # V1 legacy data fetch
 │       ├── build-features.yml         # After fetch-history: compute features
 │       ├── train-model.yml            # Weekly: full model training
-│       └── score-accuracy.yml         # Daily: prediction accuracy scoring
+│       ├── generate-predictions.yml   # Weekdays: daily prediction generation
+│       ├── accuracy.yml               # Daily: prediction accuracy scoring
+│       ├── auto-retrain.yml           # Triggered: retrain if accuracy < 53%
+│       └── weekly-report.yml          # Saturday: weekly intelligence report
 ├── css/
 │   └── styles.css
 ├── js/
@@ -349,7 +353,9 @@ Nostradamus/
 │   ├── train-model.py                 # TensorFlow/Keras model training
 │   ├── generate-predictions.py        # Daily prediction generation
 │   ├── score-accuracy.py              # Compare predictions to actuals
-│   └── requirements.txt               # Python dependencies
+│   ├── generate-weekly-report.py      # Weekly intelligence report aggregation
+│   ├── requirements.txt               # Python dependencies
+│   └── fetch-historical.js            # V1 legacy (deprecated)
 ├── data/
 │   ├── sample.json                    # Demo data (V1 compat)
 │   ├── tickers/
@@ -388,16 +394,113 @@ Nostradamus/
 │       ├── model.json                 # TF.js model topology
 │       ├── group1-shard1of1.bin       # Model weights (real, trained)
 │       └── metadata.json              # Training date, accuracy, features, scaling
-└── tests/                             # NEW: test suite
-    ├── preprocessing.test.js
-    ├── api-manager.test.js
-    ├── prediction.test.js
-    └── backtest.test.js
+└── tests/                             # Test suite
+    ├── preprocessing.test.js          # minMaxScale, RSI, MACD, buildFeatureMatrix
+    ├── prediction.test.js             # demoPrediction, confidence clamping, MC dropout
+    ├── api-manager.test.js            # Fallback chain, cache TTL, error handling
+    └── backtest.test.js               # Backtest engine (placeholder stubs)
 ```
 
 ---
 
-## Technical Notes for Future Agents
+## Complete File Inventory (as of PR #13)
+
+### Frontend (js/)
+| File | Size | Purpose |
+|---|---|---|
+| `js/app.js` | ~11KB | Main entry point, navigation, settings, PWA, service worker |
+| `js/api/finnhub.js` | ~4.5KB | Finnhub API client (quotes, candles, company news) |
+| `js/api/twelvedata.js` | ~3.7KB | Twelve Data API client (fallback) |
+| `js/api/polygon.js` | ~3.0KB | Polygon.io API client (fallback) |
+| `js/api/manager.js` | ~15.6KB | API orchestrator, fallback chain, caching, demo data |
+| `js/ml/model.js` | ~4.7KB | V2 BiLSTM model builder + loader (32 features, IndexedDB) |
+| `js/ml/preprocessing.js` | ~18.8KB | 32-feature engineering pipeline (browser-side, matches build-features.py) |
+| `js/ml/prediction.js` | ~7.7KB | Monte Carlo Dropout inference, binary classification |
+| `js/ml/tracker.js` | ~7.5KB | T+1 prediction storage and resolution |
+| `js/ml/training.js` | ~5.4KB | Browser-side training, returns Promise |
+| `js/ml/retraining.js` | ~4.4KB | Auto-retrain trigger, async/await completion |
+| `js/ml/accuracy.js` | ~9.5KB | Hit-rate, MAE, daily/weekly time-series metrics |
+| `js/ml/versioning.js` | ~6.9KB | Model A/B testing, champion/candidate promotion |
+| `js/ui/dashboard.js` | ~18.4KB | Top Predictions, Sector Rotation, Momentum Scanner, Market Mood |
+| `js/ui/heatmap.js` | ~13.2KB | Canvas treemap market visualization |
+| `js/ui/screener.js` | ~15.0KB | Filterable stock table with pagination |
+| `js/ui/backtest-ui.js` | ~22.4KB | Backtesting interface with equity curve and trade log |
+| `js/ui/charts.js` | ~14.2KB | Chart.js wrapper for price/volume charts |
+| `js/ui/stockcard.js` | ~8.1KB | Individual stock card component |
+| `js/ui/search.js` | ~12.6KB | Offline autocomplete from ticker registry |
+| `js/ui/detail.js` | ~11.6KB | Stock detail modal with sentiment badge |
+| `js/ui/watchlist.js` | ~7.1KB | User watchlist management |
+| `js/ui/accuracy-dashboard.js` | ~18.4KB | Accuracy charts, sentiment correlation |
+| `js/ui/sectors.js` | ~7.7KB | Sector analysis view |
+| `js/ui/news.js` | ~9.8KB | News display with sentiment scoring |
+| `js/ui/theme.js` | ~2.8KB | Dark/light theme toggle |
+| `js/ui/help.js` | ~9.4KB | User guide modal |
+| `js/ui/share.js` | ~5.0KB | Social sharing (Web Share API) |
+| `js/ui/export.js` | ~4.1KB | CSV export utility |
+| `js/backtest/engine.js` | ~16.8KB | Portfolio simulation (Sharpe, drawdown, win rate) |
+| `js/storage/cache.js` | ~3.9KB | localStorage cache with TTL |
+| `js/storage/indexeddb.js` | ~4KB+ | IndexedDB wrapper for large data |
+| `js/utils/helpers.js` | ~6.9KB | Date helpers, toast notifications |
+| `js/utils/sentiment.js` | ~4KB+ | Weighted keyword sentiment scorer [-1, +1] |
+
+### Server-Side Scripts (scripts/)
+| File | Size | Purpose |
+|---|---|---|
+| `scripts/fetch-tickers.py` | ~10KB | SEC EDGAR ticker download, SIC→sector mapping |
+| `scripts/fetch-history.py` | ~15KB | yfinance bulk OHLCV download, batched, incremental |
+| `scripts/build-features.py` | ~16KB | 32-feature engineering with `ta` library |
+| `scripts/train-model.py` | ~20KB | BiLSTM training, TF.js export, evaluation |
+| `scripts/generate-predictions.py` | ~13KB | Daily prediction generation for all tickers |
+| `scripts/score-accuracy.py` | ~13KB | Compare predictions to actuals, rolling metrics |
+| `scripts/generate-weekly-report.py` | ~8.7KB | Weekly intelligence report aggregation |
+| `scripts/requirements.txt` | 227B | Python dependencies |
+| `scripts/fetch-historical.js` | ~3.9KB | V1 legacy (deprecated, kept for reference) |
+
+### Workflows (.github/workflows/)
+| Workflow | Schedule | Purpose |
+|---|---|---|
+| `deploy.yml` | On push to main | GitHub Pages deployment |
+| `fetch-tickers.yml` | Weekly Sunday midnight | SEC EDGAR ticker refresh |
+| `fetch-history.yml` | Nightly Mon-Fri 9:30 PM UTC | yfinance OHLCV download |
+| `fetch-data.yml` | On schedule | V1 legacy data fetch |
+| `build-features.yml` | After fetch-history | Compute 32-feature matrices |
+| `train-model.yml` | Weekly Sunday 3 AM UTC | Full BiLSTM training + TF.js export |
+| `generate-predictions.yml` | Weekdays 10:30 PM UTC | Daily prediction generation |
+| `accuracy.yml` | Daily 11:55 PM UTC | Score predictions, trigger auto-retrain |
+| `auto-retrain.yml` | Triggered by accuracy.yml or manual | Retrain if accuracy < 53% |
+| `weekly-report.yml` | Saturday 5 AM UTC | Weekly intelligence report |
+
+### Tests (tests/)
+| File | Tests | Purpose |
+|---|---|---|
+| `tests/preprocessing.test.js` | ~20 tests | minMaxScale, RSI, MACD, buildFeatureMatrix, stack overflow prevention |
+| `tests/prediction.test.js` | ~15 tests | demoPrediction structure, confidence clamping, MC dropout |
+| `tests/api-manager.test.js` | ~15 tests | Fallback chain, cache TTL, error handling |
+| `tests/backtest.test.js` | ~4 stubs | Backtest engine (placeholder for real historical data) |
+
+---
+
+## PR History
+
+| PR | Title | Lines Changed | Key Deliverables |
+|---|---|---|---|
+| #1 | Phase 1: Scaffold | — | HTML/CSS/JS structure, GitHub Pages |
+| #2 | Phase 2: Data Layer | — | API fallback chain (Finnhub→TwelveData→Polygon), caching |
+| #3 | Phase 3: Frontend Dashboard | — | Charts, watchlist, search, detail modal, theme |
+| #4 | Phase 4: TF.js LSTM Engine | — | V1 model, prediction, preprocessing (7 features) |
+| #5 | Phase 5: Self-Learning | — | Tracker, accuracy, versioning, retraining |
+| #6 | Phase 6: PWA + Polish | — | Service worker, sectors, news, export, help, sharing |
+| #7 | V2 Master Plan | — | README rewrite with 10-phase roadmap |
+| #8 | V2 Phase 2: Ticker Registry | — | SEC EDGAR pipeline, SIC→sector mapping |
+| #9 | V2 Phase 3: Historical Data | — | yfinance bulk download, incremental updates |
+| #10 | V2 Phase 4: Feature Engineering | — | 32-feature pipeline with `ta` library |
+| #11 | V2 Phase 5: Model Training | — | BiLSTM (128→64), binary crossentropy, TF.js export |
+| #12 | V2 Phase 6 + Partial 8/10 | +2,272 -337 | Browser ML fix (32 features, MC dropout, T+1), generate-predictions.py, score-accuracy.py, tests, sentiment.js, indexeddb.js |
+| #13 | V2 Phases 7+8+9+10 Capstone | +3,000+ | Heatmap, screener, backtest engine+UI, Market Mood, sentiment integration, auto-retrain workflow, weekly reports |
+
+---
+
+
 
 1. **No build step** — Same as V1. Vanilla JS, ES modules, GitHub Pages.
 2. **Mobile-first** — Same as V1. 375px minimum width.
@@ -421,21 +524,64 @@ Nostradamus/
 
 | Phase | Description | Status |
 |---|---|---|
-| V1 Phase 1 | Project scaffold, GitHub Pages, CI/CD | ✅ Complete (with caveats — see autopsy) |
-| V1 Phase 2 | Data layer, API fallback chain, caching | ✅ Complete (with caveats — see autopsy) |
-| V1 Phase 3 | Frontend dashboard, search, stock cards | ✅ Complete (with caveats — see autopsy) |
-| V1 Phase 4 | TensorFlow.js ML engine | ✅ Complete (with caveats — see autopsy) |
-| V1 Phase 5 | Self-learning, accuracy tracking | ✅ Complete (with caveats — see autopsy) |
-| V1 Phase 6 | Polish, PWA, sector analysis, news | ✅ Complete (with caveats — see autopsy) |
-| **V2 Phase 2** | **Universal Ticker Registry** | 🟢 Complete |
-| **V2 Phase 3** | **Full-Market Historical Data** | ✅ Complete |
-| **V2 Phase 4** | **Server-Side Feature Engineering** | ✅ Complete |
-| **V2 Phase 5** | **Server-Side Model Training** | ✅ Complete (scripts/train-model.py, scripts/build-features.py, scripts/fetch-history.py, CI workflows) |
-| **V2 Phase 6** | **Upgraded Browser ML Engine** | ✅ Complete (model.js, preprocessing.js, prediction.js, tracker.js, training.js, retraining.js, indexeddb.js updated) |
-| **V2 Phase 7** | **Full-Market Dashboard Overhaul** | ✅ Complete (heatmap.js, screener.js, top predictions, sector rotation, momentum scanner, market mood) |
-| **V2 Phase 8** | **Sentiment & Alternative Data** | ✅ Complete (sentiment.js, getSentimentCorrelation(), market mood indicator, accuracy dashboard correlation card, detail modal sentiment badge) |
-| **V2 Phase 9** | **Backtesting Engine** | ✅ Complete (backtest/engine.js, ui/backtest-ui.js, equity curve, drawdown, trade log, CSV export) |
-| **V2 Phase 10** | **Continuous Intelligence Loop** | ✅ Complete (generate-predictions.py, score-accuracy.py, auto-retrain.yml, generate-weekly-report.py, weekly-report.yml) |
+| V1 Phases 1-6 | Foundation, data layer, UI, ML engine, self-learning, PWA | ✅ Complete |
+| V2 Phase 2 | Universal Ticker Registry (SEC EDGAR) | ✅ Code complete — workflow needs first manual trigger |
+| V2 Phase 3 | Full-Market Historical Data Pipeline | ✅ Code complete — workflow needs first manual trigger |
+| V2 Phase 4 | Server-Side Feature Engineering (32 features) | ✅ Code complete — workflow needs first manual trigger |
+| V2 Phase 5 | Server-Side BiLSTM Training Pipeline | ✅ Code complete — workflow needs first manual trigger |
+| V2 Phase 6 | Upgraded Browser ML Engine | ✅ Complete — BiLSTM, 32 features, MC dropout, T+1, IndexedDB |
+| V2 Phase 7 | Full-Market Dashboard Overhaul | ✅ Complete — Heatmap, Screener, Top Predictions, Sector Rotation, Momentum Scanner |
+| V2 Phase 8 | Sentiment & Alternative Data | ✅ Complete — sentiment.js utility, detail badge, Market Mood, correlation panel |
+| V2 Phase 9 | Backtesting Engine | ✅ Complete — engine.js + full UI with equity curve, trade log, CSV export |
+| V2 Phase 10 | Continuous Intelligence Loop | ✅ Complete — daily predictions, accuracy scoring, auto-retrain, weekly reports |
+
+---
+
+## ⚠️ CRITICAL: First-Run Bootstrap — Data Pipeline Has Never Executed
+
+All code and workflows are complete, but the data directories are still empty. The CI/CD workflows have never been triggered. **The app currently runs in demo mode with fake predictions.**
+
+To activate the full pipeline for the first time, manually trigger these workflows IN ORDER via GitHub Actions → workflow_dispatch:
+
+1. **`fetch-tickers.yml`** → Populates `data/tickers/us_tickers.json` (~7K tickers from SEC EDGAR)
+2. **`fetch-history.yml`** → Downloads 1 year OHLCV to `data/historical/*.json` (~400MB raw, 50-100MB compressed)
+3. **`build-features.yml`** → Computes 32-feature matrices to `data/features/*.json`
+4. **`train-model.yml`** → Trains BiLSTM, exports to `models/v2/model.json` + weight shards
+5. **`generate-predictions.yml`** → Generates first daily predictions to `data/predictions/`
+6. **`accuracy.yml`** → Scores predictions (needs at least 2 days of predictions + actuals)
+
+**Wait for each to complete before triggering the next.** After the first successful run, the scheduled crons handle everything automatically:
+- `fetch-tickers.yml`: Weekly (Sunday midnight UTC)
+- `fetch-history.yml`: Nightly Mon-Fri (9:30 PM UTC)
+- `build-features.yml`: After fetch-history completes
+- `train-model.yml`: Weekly (Sunday 3 AM UTC)
+- `generate-predictions.yml`: Weekdays (10:30 PM UTC)
+- `accuracy.yml`: Daily (11:55 PM UTC)
+- `auto-retrain.yml`: Triggered by accuracy.yml when 30-day accuracy < 53%
+- `weekly-report.yml`: Saturday (5 AM UTC)
+
+### What Happens After Bootstrap
+- `models/v2/` gets real `model.json` + weight shards
+- Browser loads pre-trained model instead of falling back to demo predictions
+- Heatmap, screener, and top predictions show real ML outputs
+- Accuracy dashboard tracks real performance
+- Auto-retraining kicks in if accuracy drops
+- Weekly intelligence reports auto-generated
+
+---
+
+## Known Remaining Work
+
+| Item | Priority | Notes |
+|---|---|---|
+| **Trigger data pipeline for first time** | 🔴 Critical | See bootstrap section above. Nothing works until data + model exist. |
+| **Git LFS for historical data** | 🟡 High | `data/historical/*.json` will exceed 100MB. Configure Git LFS before first `fetch-history.yml` run. |
+| **Validate model accuracy > 55%** | 🟡 High | Can only verify after first training run. If < 55%, tune hyperparameters or add features. |
+| **Remove/replace V1 starter model** | 🟡 Medium | `models/starter/weights.bin` is 0 bytes. Either delete or generate a small working model. |
+| **Fundamental data features (P/E, EPS)** | 🟠 Low | V1 Autopsy Issue #13. Model only sees technicals. Add from yfinance `info` dict in `build-features.py`. |
+| **Transfer Learning (browser fine-tune)** | 🟠 Low | Phase 6 stretch goal. Let users fine-tune on their watchlist stocks. |
+| **Earnings Calendar** | 🟠 Low | Phase 7 stretch. Add earnings dates from Finnhub to dashboard. |
+| **Market cap filter in screener** | 🟠 Low | Screener exists but market cap data requires API enrichment. |
 
 ---
 
