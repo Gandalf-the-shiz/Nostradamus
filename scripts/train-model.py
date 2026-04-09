@@ -441,7 +441,7 @@ def export_model(model, models_v2_dir: str):
     import tensorflowjs as tfjs
 
     os.makedirs(models_v2_dir, exist_ok=True)
-    keras_path = os.path.join(models_v2_dir, "keras_model")
+    keras_path = os.path.join(models_v2_dir, "keras_model.keras")
     print(f"\nSaving Keras model to {keras_path} …")
     model.save(keras_path)
 
