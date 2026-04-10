@@ -125,7 +125,6 @@ function initDemoBanner() {
   const banner  = document.getElementById('demo-banner');
   const closeBtn = document.getElementById('demo-banner-close');
   const settingsBtn = document.getElementById('demo-banner-settings-btn');
-  const bannerText = banner?.querySelector('.demo-banner__text');
 
   if (!banner) return;
 
@@ -135,48 +134,29 @@ function initDemoBanner() {
     return;
   }
 
-  // If V2 predictions are available, show an informational banner instead of
-  // the "demo mode" warning.
-  if (appState.v2Predictions && bannerText) {
-    banner.style.background = 'rgba(38, 217, 127, 0.10)';
-    banner.style.borderBottomColor = 'rgba(38, 217, 127, 0.30)';
-    banner.style.color = 'var(--color-up)';
-    const iconEl = banner.querySelector('.demo-banner__icon');
-    if (iconEl) iconEl.textContent = '🔮';
-
-    // Build banner content safely (no innerHTML interpolation for user-derived values)
-    bannerText.innerHTML = '';
-    const strong = document.createElement('strong');
-    strong.textContent = 'AI Predictions Loaded';
-    const sep1 = document.createTextNode(' — Showing pre-computed V2 model predictions from ');
-    const dateStrong = document.createElement('strong');
-    // Date is always YYYY-MM-DD from the JSON; safe to use textContent
-    dateStrong.textContent = appState.v2Predictions.date;
-    const sep2 = document.createTextNode('. ');
-    const addKeysBtn = document.createElement('button');
-    addKeysBtn.id = 'demo-banner-settings-btn';
-    addKeysBtn.className = 'demo-banner__link';
-    addKeysBtn.setAttribute('aria-label', 'Open settings to configure API key');
-    addKeysBtn.textContent = 'Add API keys';
-    const suffix = document.createTextNode(' for live prices.');
-
-    bannerText.append(strong, sep1, dateStrong, sep2, addKeysBtn, suffix);
-
-    addKeysBtn.addEventListener('click', () => {
-      navigateTo('settings');
-    });
+  // When V2 predictions are loaded the app is fully functional without API keys —
+  // suppress the banner entirely so the user isn't nagged about demo mode.
+  if (appState.v2Predictions) {
+    banner.hidden = true;
+    return;
   }
 
+  // Check if the user already dismissed the banner in this browser
+  const dismissed = localStorage.getItem('nostradamus_demobanner_dismissed');
+  if (dismissed === 'true') {
+    banner.hidden = true;
+    return;
+  }
+
+  // Persist dismissal so it doesn't reappear on next page load
   closeBtn?.addEventListener('click', () => {
     banner.hidden = true;
+    localStorage.setItem('nostradamus_demobanner_dismissed', 'true');
   });
 
-  // Original settings button (only present when V2 predictions are NOT loaded)
-  if (!appState.v2Predictions) {
-    settingsBtn?.addEventListener('click', () => {
-      navigateTo('settings');
-    });
-  }
+  settingsBtn?.addEventListener('click', () => {
+    navigateTo('settings');
+  });
 }
 
 // ─── Navigation ───────────────────────────────────────────────
@@ -474,8 +454,12 @@ function clearApiKeys() {
   Object.values(STORAGE_KEYS).forEach(key => removeItem(key));
   showToast('API keys cleared. Demo mode active.', 'info');
   detectMode();
+  // Only surface the demo banner if there are no V2 predictions to rely on
   const banner = document.getElementById('demo-banner');
-  if (banner) banner.hidden = false;
+  if (banner && !appState.v2Predictions) {
+    localStorage.removeItem('nostradamus_demobanner_dismissed');
+    banner.hidden = false;
+  }
   populateSettingsInputs();
 }
 
@@ -531,16 +515,28 @@ let _deferredInstallPrompt = null;
 /**
  * Handle the PWA "Add to Home Screen" install prompt.
  * Defers the browser prompt and shows our custom install banner.
+ * Dismissal is persisted to localStorage for 30 days.
  */
 function initPWAInstallPrompt() {
   const banner     = document.getElementById('pwa-install-banner');
   const installBtn = document.getElementById('pwa-install-btn');
   const dismissBtn = document.getElementById('pwa-install-dismiss');
 
+  const DISMISS_KEY        = 'nostradamus_pwa_dismissed';
+  const DISMISS_EXPIRY_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+  function wasDismissed() {
+    const raw = localStorage.getItem(DISMISS_KEY);
+    if (!raw) return false;
+    const ts = parseInt(raw, 10);
+    return !isNaN(ts) && (Date.now() - ts) < DISMISS_EXPIRY_MS;
+  }
+
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _deferredInstallPrompt = e;
-    if (banner) banner.hidden = false;
+    // Only show the banner if the user hasn't recently dismissed it
+    if (banner && !wasDismissed()) banner.hidden = false;
   });
 
   installBtn?.addEventListener('click', async () => {
@@ -554,6 +550,8 @@ function initPWAInstallPrompt() {
 
   dismissBtn?.addEventListener('click', () => {
     if (banner) banner.hidden = true;
+    // Persist dismissal so the banner doesn't reappear on the next page load
+    localStorage.setItem(DISMISS_KEY, Date.now().toString());
   });
 
   // Hide the banner once the app is installed

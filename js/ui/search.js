@@ -324,7 +324,14 @@ async function addSymbolToDashboard(symbol, appState) {
       candles: candles || [],
     };
 
-    const prediction = demoPrediction(stock.symbol, stock.quote.current);
+    // Use V2 pipeline prediction if available for this symbol; fall back to demo
+    const v2Item = appState?.v2Predictions?.items?.find(p => p.symbol === symbol);
+    const prediction = v2Item || demoPrediction(stock.symbol, stock.quote.current);
+
+    // Attach V2 prediction to stock object so the card renders correctly
+    if (v2Item) {
+      stock._v2Prediction = v2Item;
+    }
 
     // Add card to dashboard grid if it's not already there
     if (!stockGrid.querySelector(`[data-symbol="${symbol}"]`)) {
@@ -334,7 +341,7 @@ async function addSymbolToDashboard(symbol, appState) {
     }
 
     // Open detail view
-    openStockDetail(symbol, stock, candles, prediction);
+    openStockDetail(symbol, stock, candles, prediction, appState);
     console.log(`[Search] Added ${symbol} to dashboard and opened detail.`);
   } catch (err) {
     console.error(`[Search] Failed to add ${symbol}:`, err.message);
