@@ -27,9 +27,12 @@ import { aggregateSentiment } from '../utils/sentiment.js';
 
 const DEFAULT_WATCHLIST = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA'];
 
+/** Number of top bullish + top bearish cards to show from V2 predictions */
+const V2_TOP_N = 10;
+
 /**
  * Initialize the dashboard with the given app state.
- * @param {{ mode: 'demo'|'live', tfReady: boolean, chartReady: boolean }} appState
+ * @param {{ mode: 'demo'|'live', tfReady: boolean, chartReady: boolean, v2Predictions: object|null }} appState
  */
 export async function initDashboard(appState) {
   console.log('[Dashboard] Initializing…');
@@ -42,11 +45,15 @@ export async function initDashboard(appState) {
 
   let stocks = [];
 
-  if (appState.mode === 'demo') {
+  if (appState.mode === 'live') {
+    stocks = await loadLiveStocks(appState, stockGrid);
+  } else if (appState.v2Predictions && appState.v2Predictions.items.length > 0) {
+    // V2 pipeline predictions are available — surface the most interesting ones.
+    stocks = _buildStocksFromV2Predictions(appState.v2Predictions);
+  } else {
+    // True demo fallback: sample.json
     const demoData = await loadDemoData();
     stocks = demoData.stocks || [];
-  } else {
-    stocks = await loadLiveStocks(appState, stockGrid);
   }
 
   // Clear skeletons
@@ -80,7 +87,11 @@ export async function initDashboard(appState) {
   for (let i = 0; i < stocks.length; i++) {
     const stock = stocks[i];
     let prediction;
-    if (appState.tfReady && stock.candles && stock.candles.length >= 30) {
+
+    // Use the pre-attached V2 prediction if available (avoids redundant ML inference)
+    if (stock._v2Prediction) {
+      prediction = stock._v2Prediction;
+    } else if (appState.tfReady && stock.candles && stock.candles.length >= 30) {
       try {
         prediction = await runPrediction(stock.symbol, stock.candles);
       } catch (err) {
@@ -116,9 +127,57 @@ export async function initDashboard(appState) {
   _renderDashboardPanels(stocks, appState);
 
   // Market Mood indicator in header
-  _renderMarketMood(stocks);
+  _renderMarketMood(stocks, appState);
 
   console.log(`[Dashboard] Rendered ${stocks.length} stock cards.`);
+}
+
+/**
+ * Build a minimal stocks array from V2 pipeline predictions.
+ * Selects the top N bullish + top N bearish tickers by confidence
+ * to display on the dashboard.
+ *
+ * @param {{ date: string, generatedAt: string, items: Array }} v2Preds
+ * @returns {Array}
+ */
+function _buildStocksFromV2Predictions(v2Preds) {
+  const items = v2Preds.items;
+
+  const bullish = items
+    .filter(p => p.direction === 'UP')
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
+    .slice(0, V2_TOP_N);
+
+  const bearish = items
+    .filter(p => p.direction === 'DOWN')
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
+    .slice(0, V2_TOP_N);
+
+  const selected = [...bullish, ...bearish];
+
+  return selected.map(pred => ({
+    symbol:    pred.symbol,
+    name:      pred.symbol,
+    exchange:  null,
+    industry:  null,
+    marketCap: null,
+    quote: {
+      current:       pred.currentPrice || 0,
+      open:          0,
+      high:          0,
+      low:           0,
+      previousClose: 0,
+      change:        pred.delta || 0,
+      changePercent: pred.currentPrice
+        ? ((pred.delta || 0) / pred.currentPrice) * 100
+        : 0,
+      volume:  0,
+      history: [],
+    },
+    candles: [],
+    // Attach the pre-computed V2 prediction so the render loop can use it directly
+    _v2Prediction: pred,
+  }));
 }
 
 /**
@@ -308,7 +367,7 @@ const DEMO_SECTORS_DB = {
 /**
  * Render Top Predictions, Sector Rotation, and Momentum Scanner panels.
  * @param {Array} stocks
- * @param {{ mode: string }} appState
+ * @param {{ mode: string, v2Predictions: object|null }} appState
  */
 function _renderDashboardPanels(stocks, appState) {
   const dashView = document.getElementById('view-dashboard');
@@ -317,18 +376,22 @@ function _renderDashboardPanels(stocks, appState) {
   // Remove stale panels from a previous render
   dashView.querySelectorAll('.dashboard-panels').forEach(el => el.remove());
 
-  const allPreds = getPredictions();
-
-  // Build latest-per-symbol map from tracker
-  const latestMap = new Map();
-  for (const p of allPreds) {
-    const ex = latestMap.get(p.symbol);
-    if (!ex || p.generatedAt > ex.generatedAt) latestMap.set(p.symbol, p);
+  // Prefer V2 pipeline predictions (thousands of tickers) over tracker data (few symbols)
+  let predsArr;
+  if (appState.v2Predictions && appState.v2Predictions.items.length > 0) {
+    predsArr = appState.v2Predictions.items;
+  } else {
+    const allPreds = getPredictions();
+    const latestMap = new Map();
+    for (const p of allPreds) {
+      const ex = latestMap.get(p.symbol);
+      if (!ex || p.generatedAt > ex.generatedAt) latestMap.set(p.symbol, p);
+    }
+    if (latestMap.size === 0) return;
+    predsArr = Array.from(latestMap.values());
   }
 
-  if (latestMap.size === 0) return;
-
-  const predsArr = Array.from(latestMap.values());
+  if (!predsArr || predsArr.length === 0) return;
 
   const panels = document.createElement('div');
   panels.className = 'dashboard-panels';
@@ -520,20 +583,25 @@ function _buildMomentumPanel(preds) {
 /**
  * Render Market Mood indicator in the dashboard header area.
  * @param {Array} stocks
+ * @param {{ v2Predictions: object|null }} appState
  */
-function _renderMarketMood(stocks) {
+function _renderMarketMood(stocks, appState) {
   const moodEl = document.getElementById('market-mood');
   if (!moodEl) return;
 
-  // Aggregate sentiment from news data (demo: use predictions probabilities)
-  const allPreds = getPredictions();
-  if (allPreds.length === 0 && stocks.length === 0) {
+  // Prefer V2 predictions for a more representative mood calculation
+  let source = [];
+  if (appState && appState.v2Predictions && appState.v2Predictions.items.length > 0) {
+    source = appState.v2Predictions.items;
+  } else {
+    source = getPredictions();
+  }
+
+  if (source.length === 0 && stocks.length === 0) {
     moodEl.hidden = true;
     return;
   }
 
-  // Use avg prediction probability as mood proxy
-  const source = allPreds.length > 0 ? allPreds : [];
   let avgProb = 0.5;
 
   if (source.length > 0) {

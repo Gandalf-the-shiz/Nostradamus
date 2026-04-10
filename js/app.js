@@ -22,7 +22,7 @@ import { initTheme, toggleTheme } from './ui/theme.js';
 import { initWatchlist } from './ui/watchlist.js';
 import { initAccuracyDashboard } from './ui/accuracy-dashboard.js';
 import { trainModel } from './ml/training.js';
-import { loadDemoData } from './api/manager.js';
+import { loadDemoData, loadLatestPredictions } from './api/manager.js';
 import { clearPredictions } from './ml/tracker.js';
 import { openHelp } from './ui/help.js';
 
@@ -43,6 +43,12 @@ const appState = {
   chartReady: false,
   /** @type {'dashboard'|'watchlist'|'settings'} */
   activeView: 'dashboard',
+  /**
+   * V2 pipeline predictions loaded from data/predictions/YYYY-MM-DD.json.
+   * null = not yet loaded (or not available).
+   * @type {{ date: string, generatedAt: string, items: Array } | null}
+   */
+  v2Predictions: null,
 };
 
 // ─── Initialisation ───────────────────────────────────────────
@@ -58,6 +64,15 @@ async function init() {
   checkLibraries();
   detectMode();
   initNavigation();
+  initHamburgerMenu();
+
+  // Load V2 predictions before rendering UI so they're available for all views
+  try {
+    appState.v2Predictions = await loadLatestPredictions();
+  } catch (err) {
+    console.warn('[Nostradamus] Could not load V2 predictions:', err.message);
+  }
+
   initDemoBanner();
   initSettingsPanel();
   initThemeToggle();
@@ -110,6 +125,7 @@ function initDemoBanner() {
   const banner  = document.getElementById('demo-banner');
   const closeBtn = document.getElementById('demo-banner-close');
   const settingsBtn = document.getElementById('demo-banner-settings-btn');
+  const bannerText = banner?.querySelector('.demo-banner__text');
 
   if (!banner) return;
 
@@ -119,13 +135,34 @@ function initDemoBanner() {
     return;
   }
 
+  // If V2 predictions are available, show an informational banner instead of
+  // the "demo mode" warning.
+  if (appState.v2Predictions && bannerText) {
+    banner.style.background = 'rgba(38, 217, 127, 0.10)';
+    banner.style.borderBottomColor = 'rgba(38, 217, 127, 0.30)';
+    banner.style.color = 'var(--color-up)';
+    const iconEl = banner.querySelector('.demo-banner__icon');
+    if (iconEl) iconEl.textContent = '🔮';
+    bannerText.innerHTML = `
+      <strong>AI Predictions Loaded</strong> — Showing pre-computed V2 model predictions from <strong>${appState.v2Predictions.date}</strong>.
+      <button id="demo-banner-settings-btn" class="demo-banner__link" aria-label="Open settings to configure API key">Add API keys</button> for live prices.
+    `;
+    // Re-wire the settings button since we replaced the HTML
+    bannerText.querySelector('#demo-banner-settings-btn')?.addEventListener('click', () => {
+      navigateTo('settings');
+    });
+  }
+
   closeBtn?.addEventListener('click', () => {
     banner.hidden = true;
   });
 
-  settingsBtn?.addEventListener('click', () => {
-    navigateTo('settings');
-  });
+  // Original settings button (only present when V2 predictions are NOT loaded)
+  if (!appState.v2Predictions) {
+    settingsBtn?.addEventListener('click', () => {
+      navigateTo('settings');
+    });
+  }
 }
 
 // ─── Navigation ───────────────────────────────────────────────
@@ -182,6 +219,9 @@ function navigateTo(viewName) {
 
   appState.activeView = viewName;
 
+  // Notify mobile nav to sync active state
+  document.dispatchEvent(new CustomEvent('navigated', { detail: { view: viewName } }));
+
   // Refresh view-specific content on navigation (lazy-loaded modules)
   if (viewName === 'watchlist') {
     initWatchlist(appState);
@@ -199,7 +239,7 @@ function navigateTo(viewName) {
   } else if (viewName === 'heatmap') {
     import('./ui/heatmap.js').then(({ renderHeatmap }) => {
       const container = document.getElementById('view-heatmap');
-      if (container) renderHeatmap(container, null, appState);
+      if (container) renderHeatmap(container, appState.v2Predictions?.items ?? null, appState);
     }).catch(err => {
       console.error('[App] Failed to load heatmap module:', err);
       showToast('Heatmap view failed to load. Please refresh.', 'error');
@@ -207,7 +247,7 @@ function navigateTo(viewName) {
   } else if (viewName === 'screener') {
     import('./ui/screener.js').then(({ renderScreener }) => {
       const container = document.getElementById('view-screener');
-      if (container) renderScreener(container, null, appState);
+      if (container) renderScreener(container, appState.v2Predictions?.items ?? null, appState);
     }).catch(err => {
       console.error('[App] Failed to load screener module:', err);
       showToast('Screener view failed to load. Please refresh.', 'error');
@@ -228,6 +268,71 @@ function navigateTo(viewName) {
 function initThemeToggle() {
   const btn = document.getElementById('theme-toggle');
   btn?.addEventListener('click', toggleTheme);
+}
+
+// ─── Hamburger Mobile Menu ────────────────────────────────────
+
+function initHamburgerMenu() {
+  const hamburger     = document.getElementById('nav-hamburger');
+  const mobileNav     = document.getElementById('mobile-nav');
+  const mobileOverlay = document.getElementById('mobile-nav-overlay');
+  const closeBtn      = document.getElementById('mobile-nav-close');
+  const themeBtn      = document.getElementById('mobile-theme-toggle');
+  const helpBtn       = document.getElementById('mobile-nav-help');
+
+  if (!hamburger || !mobileNav) return;
+
+  function openMenu() {
+    mobileNav.classList.add('mobile-nav--open');
+    if (mobileOverlay) mobileOverlay.classList.add('mobile-nav-overlay--visible');
+    hamburger.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('mobile-nav-active');
+  }
+
+  function closeMenu() {
+    mobileNav.classList.remove('mobile-nav--open');
+    if (mobileOverlay) mobileOverlay.classList.remove('mobile-nav-overlay--visible');
+    hamburger.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('mobile-nav-active');
+  }
+
+  hamburger.addEventListener('click', () => {
+    const isOpen = mobileNav.classList.contains('mobile-nav--open');
+    isOpen ? closeMenu() : openMenu();
+  });
+
+  closeBtn?.addEventListener('click', closeMenu);
+  mobileOverlay?.addEventListener('click', closeMenu);
+
+  // Wire mobile nav buttons to navigateTo and close the panel
+  mobileNav.querySelectorAll('[data-nav]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigateTo(btn.dataset.nav);
+      closeMenu();
+    });
+  });
+
+  themeBtn?.addEventListener('click', () => {
+    toggleTheme();
+    closeMenu();
+  });
+
+  helpBtn?.addEventListener('click', () => {
+    openHelp();
+    closeMenu();
+  });
+
+  // Keep mobile nav active state in sync with the desktop nav
+  document.addEventListener('navigated', e => {
+    mobileNav.querySelectorAll('[data-nav]').forEach(btn => {
+      btn.classList.toggle('nav-btn--active', btn.dataset.nav === e.detail?.view);
+    });
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeMenu();
+  });
 }
 
 // ─── Settings Panel ───────────────────────────────────────────
