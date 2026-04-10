@@ -215,12 +215,26 @@ function renderErrorCard(container, symbol, message) {
   card.className = 'stock-card stock-card--error';
   card.innerHTML = `
     <div class="stock-card__header">
-      <span class="stock-card__symbol">${symbol}</span>
+      <span class="stock-card__symbol">${_escapeHtml(symbol)}</span>
     </div>
     <p class="stock-card__error-text">Failed to load data.</p>
-    <p class="stock-card__error-detail" style="font-size:0.75rem;color:var(--color-text-muted)">${message || ''}</p>
+    <p class="stock-card__error-detail" style="font-size:0.75rem;color:var(--color-text-muted)">${_escapeHtml(message || '')}</p>
   `;
   container.appendChild(card);
+}
+
+/**
+ * Escape HTML special characters to prevent injection via innerHTML.
+ * @param {string} str
+ * @returns {string}
+ */
+function _escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**

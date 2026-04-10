@@ -145,7 +145,7 @@ jobs:
           with open(new_meta_path) as f:
               new_meta = json.load(f)
 
-          new_acc = new_meta.get("testAccuracy", 0.0)
+          new_acc = new_meta.get("testMetrics", {}).get("accuracy", 0.0)
           print(f"New model test accuracy: {new_acc:.4f}")
 
           # Check if there's a "previous" metadata to compare against
@@ -153,7 +153,7 @@ jobs:
           if prev_meta_path.exists():
               with open(prev_meta_path) as f:
                   prev_meta = json.load(f)
-              prev_acc = prev_meta.get("testAccuracy", 0.0)
+              prev_acc = prev_meta.get("testMetrics", {}).get("accuracy", 0.0)
               print(f"Previous model test accuracy: {prev_acc:.4f}")
 
               if new_acc > prev_acc:

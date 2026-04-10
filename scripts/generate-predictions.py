@@ -198,7 +198,7 @@ def _build_features_for_candles(candles: list) -> list[list[float]] | None:
 def load_model():
     """Load the V2 TensorFlow model for server-side inference."""
     model_path = os.path.join(MODELS_V2_DIR, "saved_model")
-    keras_path = os.path.join(MODELS_V2_DIR, "model.keras")
+    keras_path = os.path.join(MODELS_V2_DIR, "keras_model.keras")
     h5_path    = os.path.join(MODELS_V2_DIR, "model.h5")
 
     for path in [keras_path, h5_path, model_path]:

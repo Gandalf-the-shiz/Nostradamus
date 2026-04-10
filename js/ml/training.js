@@ -45,8 +45,8 @@ export async function trainModel(candles, onProgress) {
     throw new Error(`Not enough data for training. Need at least ${MODEL_CONFIG.inputWindowSize + 10} valid feature rows, got ${features.length}.`);
   }
 
-  // 2. Create sliding windows
-  const { X, y } = createWindows(features, MODEL_CONFIG.inputWindowSize);
+  // 2. Create sliding windows (with regression labels for dual-head model)
+  const { X, y, yReg } = createWindows(features, MODEL_CONFIG.inputWindowSize, priceMin, priceMax);
 
   if (X.length === 0) {
     throw new Error('No training windows could be created from the data.');
@@ -56,16 +56,20 @@ export async function trainModel(candles, onProgress) {
 
   // 3. Split into train/validation (80/20)
   const splitIdx = Math.floor(X.length * 0.8);
-  const xTrain = X.slice(0, splitIdx);
-  const yTrain = y.slice(0, splitIdx);
-  const xVal = X.slice(splitIdx);
-  const yVal = y.slice(splitIdx);
+  const xTrain    = X.slice(0, splitIdx);
+  const yTrain    = y.slice(0, splitIdx);
+  const yRegTrain = yReg.slice(0, splitIdx);
+  const xVal      = X.slice(splitIdx);
+  const yVal      = y.slice(splitIdx);
+  const yRegVal   = yReg.slice(splitIdx);
 
-  // 4. Convert to tensors
-  const xTrainTensor = tf.tensor3d(xTrain);
-  const yTrainTensor = tf.tensor2d(yTrain, [yTrain.length, 1]);
-  const xValTensor   = tf.tensor3d(xVal);
-  const yValTensor   = tf.tensor2d(yVal, [yVal.length, 1]);
+  // 4. Convert to tensors — dual-head model expects [cls_tensor, reg_tensor]
+  const xTrainTensor    = tf.tensor3d(xTrain);
+  const yTrainTensor    = tf.tensor2d(yTrain,    [yTrain.length, 1]);
+  const yRegTrainTensor = tf.tensor2d(yRegTrain, [yRegTrain.length, 1]);
+  const xValTensor      = tf.tensor3d(xVal);
+  const yValTensor      = tf.tensor2d(yVal,    [yVal.length, 1]);
+  const yRegValTensor   = tf.tensor2d(yRegVal, [yRegVal.length, 1]);
 
   // 5. Load existing model or build new one
   let model = await loadModel('default');
@@ -80,10 +84,10 @@ export async function trainModel(candles, onProgress) {
   let patienceCounter = 0;
   const PATIENCE = MODEL_CONFIG.earlyStoppingPatience;
 
-  await model.fit(xTrainTensor, yTrainTensor, {
+  await model.fit(xTrainTensor, [yTrainTensor, yRegTrainTensor], {
     epochs: totalEpochs,
     batchSize: MODEL_CONFIG.batchSize,
-    validationData: [xValTensor, yValTensor],
+    validationData: [xValTensor, [yValTensor, yRegValTensor]],
     shuffle: true,
     callbacks: {
       onEpochEnd: async (epoch, logs) => {
@@ -120,8 +124,10 @@ export async function trainModel(candles, onProgress) {
   // 7. Cleanup tensors
   xTrainTensor.dispose();
   yTrainTensor.dispose();
+  yRegTrainTensor.dispose();
   xValTensor.dispose();
   yValTensor.dispose();
+  yRegValTensor.dispose();
 
   // 8. Save scaling params for prediction-time descaling
   const scalingParams = { priceMin, priceMax };

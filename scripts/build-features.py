@@ -379,7 +379,7 @@ def main():
     with open(manifest_path, "r") as f:
         manifest = json.load(f)
 
-    sectors_in_manifest = manifest.get("sectors", [])
+    sectors_in_manifest = manifest.get("sectorFiles", {})
     print(f"[build-features] Found {len(sectors_in_manifest)} sectors in manifest.")
 
     # Discover sector files
