@@ -55,8 +55,10 @@ export function renderStockCard(stock, prediction, chartAvailable) {
   // V2 mode: no live prices available
   const isV2 = !stock.quote.current && stock._v2Prediction;
 
+  // Determine the card's gain/loss class
+  const gainLossClass = isV2 ? (predUp ? 'gainer' : 'loser') : (isUp ? 'gainer' : 'loser');
   const card = document.createElement('div');
-  card.className = `stock-card stock-card--${isV2 ? (predUp ? 'gainer' : 'loser') : (isUp ? 'gainer' : 'loser')}${isV2 ? ' stock-card--v2' : ''}`;
+  card.className = `stock-card stock-card--${gainLossClass}${isV2 ? ' stock-card--v2' : ''}`;
   card.setAttribute('role', 'article');
   card.setAttribute('aria-label', `${stock.symbol} stock card`);
   card.dataset.symbol = stock.symbol;

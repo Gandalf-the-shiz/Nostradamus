@@ -658,9 +658,13 @@ function _renderPredDateBar(v2Preds) {
   dot.setAttribute('aria-hidden', 'true');
 
   const text = document.createElement('span');
-  const genDate = v2Preds.generatedAt
-    ? new Date(v2Preds.generatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
-    : v2Preds.date;
+  let genDate = v2Preds.date;
+  if (v2Preds.generatedAt) {
+    const d = new Date(v2Preds.generatedAt);
+    if (!isNaN(d.getTime())) {
+      genDate = d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+    }
+  }
   text.textContent = `🔮 AI Predictions · ${v2Preds.items.length.toLocaleString()} stocks · Generated ${genDate}`;
 
   bar.appendChild(dot);
