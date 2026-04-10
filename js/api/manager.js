@@ -528,13 +528,11 @@ export async function loadLatestPredictions() {
         const probability     = pred.probability ?? 0.5;
         const direction       = pred.direction   ?? (probability > 0.5 ? 'UP' : 'DOWN');
         const confidence      = pred.confidence  ?? Math.abs(probability - 0.5) * 2;
-        const predictedReturn = pred.predictedReturn ?? null;
-        // Without live prices we leave currentPrice at 0; callers can enrich if needed.
+        // Without live prices, currentPrice is 0. predictedPrice and delta are 0 as well,
+        // and will be enriched by the live API once a user adds API keys.
         const currentPrice    = 0;
-        const predictedPrice  = predictedReturn !== null
-          ? parseFloat((currentPrice * (1 + predictedReturn)).toFixed(2))
-          : 0;
-        const delta           = predictedPrice - currentPrice;
+        const predictedPrice  = 0;
+        const delta           = 0;
 
         return {
           symbol,

@@ -168,9 +168,7 @@ function _buildStocksFromV2Predictions(v2Preds) {
       low:           0,
       previousClose: 0,
       change:        pred.delta || 0,
-      changePercent: pred.currentPrice
-        ? ((pred.delta || 0) / pred.currentPrice) * 100
-        : 0,
+      changePercent: 0,
       volume:  0,
       history: [],
     },

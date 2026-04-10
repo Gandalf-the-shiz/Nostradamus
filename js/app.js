@@ -143,12 +143,26 @@ function initDemoBanner() {
     banner.style.color = 'var(--color-up)';
     const iconEl = banner.querySelector('.demo-banner__icon');
     if (iconEl) iconEl.textContent = '🔮';
-    bannerText.innerHTML = `
-      <strong>AI Predictions Loaded</strong> — Showing pre-computed V2 model predictions from <strong>${appState.v2Predictions.date}</strong>.
-      <button id="demo-banner-settings-btn" class="demo-banner__link" aria-label="Open settings to configure API key">Add API keys</button> for live prices.
-    `;
-    // Re-wire the settings button since we replaced the HTML
-    bannerText.querySelector('#demo-banner-settings-btn')?.addEventListener('click', () => {
+
+    // Build banner content safely (no innerHTML interpolation for user-derived values)
+    bannerText.innerHTML = '';
+    const strong = document.createElement('strong');
+    strong.textContent = 'AI Predictions Loaded';
+    const sep1 = document.createTextNode(' — Showing pre-computed V2 model predictions from ');
+    const dateStrong = document.createElement('strong');
+    // Date is always YYYY-MM-DD from the JSON; safe to use textContent
+    dateStrong.textContent = appState.v2Predictions.date;
+    const sep2 = document.createTextNode('. ');
+    const addKeysBtn = document.createElement('button');
+    addKeysBtn.id = 'demo-banner-settings-btn';
+    addKeysBtn.className = 'demo-banner__link';
+    addKeysBtn.setAttribute('aria-label', 'Open settings to configure API key');
+    addKeysBtn.textContent = 'Add API keys';
+    const suffix = document.createTextNode(' for live prices.');
+
+    bannerText.append(strong, sep1, dateStrong, sep2, addKeysBtn, suffix);
+
+    addKeysBtn.addEventListener('click', () => {
       navigateTo('settings');
     });
   }
