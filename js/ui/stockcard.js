@@ -52,17 +52,58 @@ export function renderStockCard(stock, prediction, chartAvailable) {
   const predUp = prediction.direction === 'UP';
   const inWL   = isInWatchlist(stock.symbol);
 
+  // V2 mode: no live prices available
+  const isV2 = !stock.quote.current && stock._v2Prediction;
+
   const card = document.createElement('div');
-  card.className = `stock-card stock-card--${isUp ? 'gainer' : 'loser'}`;
+  card.className = `stock-card stock-card--${predUp ? 'gainer' : 'loser'}${isV2 ? ' stock-card--v2' : ''}`;
   card.setAttribute('role', 'article');
   card.setAttribute('aria-label', `${stock.symbol} stock card`);
   card.dataset.symbol = stock.symbol;
 
-  // Range bar calculation
+  // Range bar calculation (only meaningful with live prices)
   const low     = stock.quote.low  || 0;
   const high    = stock.quote.high || 0;
   const current = stock.quote.current || 0;
   const rangeWidth = high > low ? Math.round(((current - low) / (high - low)) * 100) : 50;
+
+  // Confidence gauge tier
+  const confTier = prediction.confidence >= 0.75 ? 'high' : prediction.confidence >= 0.6 ? 'medium' : 'low';
+  const confPct  = Math.round(prediction.confidence * 100);
+
+  // Prediction section HTML differs for V2 vs live mode
+  const predictionHTML = isV2
+    ? `<div class="stock-card__prediction">
+        <div style="display:flex;align-items:center;gap:var(--space-2);">
+          <span class="stock-card__pred-dir stock-card__pred-dir--${predUp ? 'up' : 'down'}">
+            ${predUp ? '▲' : '▼'} ${predUp ? 'UP' : 'DOWN'}
+          </span>
+          ${prediction.predictedReturn != null
+            ? `<span class="stock-card__pred-return stock-card__pred-return--${predUp ? 'up' : 'down'}">${predUp ? '+' : ''}${(prediction.predictedReturn * 100).toFixed(2)}%</span>`
+            : ''
+          }
+          <span class="stock-card__prediction-badge stock-card__prediction-badge--${confTier}" style="margin-left:auto;">${confPct}%</span>
+        </div>
+        <div class="conf-gauge">
+          <div class="conf-gauge__fill conf-gauge__fill--${confTier}" style="width:${confPct}%"></div>
+        </div>
+      </div>`
+    : `<div class="stock-card__prediction">
+        <span class="stock-card__prediction-label">${prediction.isDemo ? '📊' : '🧠'} Prediction:</span>
+        <span class="stock-card__prediction-value stock-card__prediction-value--${predUp ? 'up' : 'down'}">
+          ${predUp ? '▲' : '▼'} ${prediction.delta === 0 && prediction.predictedReturn != null
+            ? `${predUp ? '+' : ''}${(prediction.predictedReturn * 100).toFixed(2)}%`
+            : formatDollarChange(predUp ? prediction.delta : -prediction.delta)
+          }
+        </span>
+        ${prediction.isDemo
+          ? '<span class="stock-card__prediction-badge">Demo</span>'
+          : `<span class="stock-card__prediction-badge stock-card__prediction-badge--${confTier}">${confPct}%</span>`
+        }
+        <div class="conf-gauge">
+          <div class="conf-gauge__fill conf-gauge__fill--${confTier}" style="width:${confPct}%"></div>
+        </div>
+      </div>`;
 
   card.innerHTML = `
     <div class="stock-card__header">
@@ -78,16 +119,20 @@ export function renderStockCard(stock, prediction, chartAvailable) {
     </div>
 
     <div class="stock-card__price-row">
-      <span class="stock-card__price">${formatCurrency(stock.quote.current)}</span>
-      <span class="stock-card__change stock-card__change--${isUp ? 'up' : 'down'}">
-        ${formatDollarChange(stock.quote.change)} (${formatPercent(stock.quote.changePercent)})
-      </span>
+      <span class="stock-card__price">${isV2 ? '—' : formatCurrency(stock.quote.current)}</span>
+      ${isV2
+        ? '<span class="stock-card__change stock-card__change--up" style="opacity:0.4;">--</span>'
+        : `<span class="stock-card__change stock-card__change--${isUp ? 'up' : 'down'}">
+            ${formatDollarChange(stock.quote.change)} (${formatPercent(stock.quote.changePercent)})
+           </span>`
+      }
     </div>
 
     <div class="stock-card__chart-container" id="chart-${escapeHtml(stock.symbol)}">
-      ${chartAvailable ? '' : '<p style="font-size:11px;color:var(--color-text-faint);text-align:center;padding:8px 0;">Chart unavailable</p>'}
+      ${chartAvailable && !isV2 ? '' : '<p style="font-size:11px;color:var(--color-text-faint);text-align:center;padding:8px 0;">Chart unavailable</p>'}
     </div>
 
+    ${isV2 ? '' : `
     <div class="stock-card__ohlcv-row">
       <div class="stock-card__ohlcv-item"><span class="stock-card__ohlcv-label">O</span><span class="stock-card__ohlcv-value">${formatCurrency(stock.quote.open || 0)}</span></div>
       <div class="stock-card__ohlcv-item"><span class="stock-card__ohlcv-label">H</span><span class="stock-card__ohlcv-value stock-card__ohlcv-value--up">${formatCurrency(stock.quote.high || 0)}</span></div>
@@ -103,21 +148,13 @@ export function renderStockCard(stock, prediction, chartAvailable) {
       </div>
       <span class="stock-card__range-label">${formatCurrency(high)}</span>
     </div>
+    `}
 
-    <div class="stock-card__prediction">
-      <span class="stock-card__prediction-label">${prediction.isDemo ? '📊' : '🧠'} Prediction:</span>
-      <span class="stock-card__prediction-value stock-card__prediction-value--${predUp ? 'up' : 'down'}">
-        ${predUp ? '▲' : '▼'} ${formatDollarChange(predUp ? prediction.delta : -prediction.delta)}
-      </span>
-      ${prediction.isDemo
-        ? '<span class="stock-card__prediction-badge">Demo</span>'
-        : `<span class="stock-card__prediction-badge stock-card__prediction-badge--${prediction.confidence >= 0.75 ? 'high' : prediction.confidence >= 0.6 ? 'medium' : 'low'}">${Math.round(prediction.confidence * 100)}%</span>`
-      }
-    </div>
+    ${predictionHTML}
   `;
 
   // Render sparkline chart lazily (only when the card enters the viewport)
-  if (chartAvailable && stock.quote.history && stock.quote.history.length > 0) {
+  if (!isV2 && chartAvailable && stock.quote.history && stock.quote.history.length > 0) {
     const chartContainer = card.querySelector(`#chart-${stock.symbol}`);
     if (chartContainer) {
       _observeSparkline(chartContainer, stock.quote.history, isUp);

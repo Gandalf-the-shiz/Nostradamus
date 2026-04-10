@@ -12,7 +12,7 @@
  *   - data/sample.json, models/ → cache-first
  */
 
-const CACHE_VERSION = 'nostradamus-v2';
+const CACHE_VERSION = 'nostradamus-v3';
 const SHELL_CACHE   = `${CACHE_VERSION}-shell`;
 const CDN_CACHE     = `${CACHE_VERSION}-cdn`;
 
@@ -129,11 +129,44 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Prediction JSON files: network-first so fresh data is always preferred
+  if (url.pathname.includes('/data/predictions/')) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
   // App shell: cache-first with network fallback
   event.respondWith(cacheFirst(event.request));
 });
 
 // ─── Cache Strategies ────────────────────────────────────────
+
+/**
+ * Network-first strategy.
+ * Fetches from the network first; caches the response on success.
+ * Falls back to the cache if the network request fails.
+ * Returns a 503 if both fail.
+ *
+ * @param {Request} request
+ * @returns {Promise<Response>}
+ */
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(SHELL_CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return new Response('Prediction data unavailable offline.', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
+}
 
 /**
  * Cache-first strategy.

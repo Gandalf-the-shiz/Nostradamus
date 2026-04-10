@@ -66,6 +66,10 @@ export async function initDashboard(appState) {
 
   renderMarketOverview(stocks);
 
+  if (appState.v2Predictions) {
+    _renderPredDateBar(appState.v2Predictions);
+  }
+
   // Build a price map for resolving any pending predictions from earlier runs
   const priceMap = {};
   for (const stock of stocks) {
@@ -634,3 +638,39 @@ function _esc(str) {
     .replace(/'/g, '&#39;');
 }
 
+
+/**
+ * Render a date info bar above the stock grid showing prediction metadata.
+ * @param {{ date: string, generatedAt?: string, items: Array }} v2Preds
+ */
+function _renderPredDateBar(v2Preds) {
+  const dashView = document.getElementById('view-dashboard');
+  if (!dashView) return;
+
+  // Remove any existing bar
+  dashView.querySelectorAll('.pred-date-bar').forEach(el => el.remove());
+
+  const bar = document.createElement('div');
+  bar.className = 'pred-date-bar';
+
+  const dot = document.createElement('span');
+  dot.className = 'pred-date-bar__dot';
+  dot.setAttribute('aria-hidden', 'true');
+
+  const text = document.createElement('span');
+  const genDate = v2Preds.generatedAt
+    ? new Date(v2Preds.generatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
+    : v2Preds.date;
+  text.textContent = `🔮 AI Predictions · ${v2Preds.items.length.toLocaleString()} stocks · Generated ${genDate}`;
+
+  bar.appendChild(dot);
+  bar.appendChild(text);
+
+  // Insert before the stock grid
+  const grid = document.getElementById('stock-grid');
+  if (grid) {
+    dashView.insertBefore(bar, grid);
+  } else {
+    dashView.prepend(bar);
+  }
+}

@@ -542,6 +542,7 @@ export async function loadLatestPredictions() {
           currentPrice,
           predictedPrice,
           delta,
+          predictedReturn: pred.predictedReturn ?? null,
           generatedAt,
         };
       });
