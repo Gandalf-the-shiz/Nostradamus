@@ -189,6 +189,8 @@ button {
   background: var(--color-bg-surface);
   border-bottom: 1px solid var(--color-border);
   padding: var(--space-3) var(--space-4);
+  /* Prevent nav items from ever escaping the viewport */
+  overflow: hidden;
 }
 
 .app-header__inner {
@@ -388,16 +390,16 @@ button {
 
 /* ─── Responsive breakpoints for the header nav ─────────────── */
 
-/* Tablet (768px – 1023px): allow buttons to wrap */
-@media (max-width: 1023px) {
+/* Tablet (900px – 1199px): allow buttons to wrap */
+@media (max-width: 1199px) {
   .app-header__nav {
     flex-wrap: wrap;
     justify-content: flex-end;
   }
 }
 
-/* Mobile (<768px): hide desktop nav, show hamburger + mobile panel */
-@media (max-width: 767px) {
+/* Mobile / narrow tablet (<900px): hide desktop nav, show hamburger + mobile panel */
+@media (max-width: 899px) {
   .app-header__nav {
     display: none;
   }
@@ -1199,7 +1201,8 @@ html.theme-transitioning * {
   max-height: 92dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--space-5) var(--space-4) var(--space-7);
+  /* Extra bottom padding so content isn't hidden behind the PWA install banner */
+  padding: var(--space-5) var(--space-4) calc(var(--space-7) + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -1740,6 +1743,8 @@ html.theme-transitioning * {
   bottom: var(--space-4);
   left: var(--space-4);
   right: var(--space-4);
+  /* Account for home indicator on notched devices */
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
   max-width: 480px;
   margin: 0 auto;
   background: var(--color-bg-elevated);
@@ -2949,3 +2954,35 @@ html.theme-transitioning * {
   50%       { opacity: 0.4; }
 }
 
+/* ─── Safe-area & orientation responsive helpers ─────────────── */
+
+/* Respect the safe-area on notched iPhones / Androids */
+body {
+  padding-left:  env(safe-area-inset-left,  0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Landscape mobile: reduce panel height so content is reachable */
+@media (max-width: 899px) and (orientation: landscape) {
+  .detail-overlay__panel {
+    max-height: 95dvh;
+    border-radius: var(--radius-md);
+  }
+  .app-header {
+    padding-top:    var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+}
+
+/* Very small screens: single-column stock grid */
+@media (max-width: 399px) {
+  .stock-grid {
+    grid-template-columns: 1fr;
+  }
+  .search-section {
+    padding: var(--space-2) var(--space-3);
+  }
+  .app-header__title {
+    font-size: var(--font-size-base);
+  }
+}
