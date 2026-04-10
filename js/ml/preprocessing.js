@@ -510,21 +510,44 @@ export function buildFeatureMatrix(candles, scalingParams = null, sentimentScore
 
 /**
  * Slice the feature matrix into overlapping windows for sequence modeling.
+ *
  * @param {number[][]} features
  * @param {number} windowSize
- * @returns {{ X: number[][][], y: number[] }}
- *   X[i] = window of windowSize rows
- *   y[i] = 1 if next close > current close, else 0  (binary classification label)
+ * @param {number} [priceMin=0]   - Returned by buildFeatureMatrix; used to descale close for regression labels.
+ * @param {number} [priceMax=1]   - Returned by buildFeatureMatrix; used to descale close for regression labels.
+ * @returns {{ X: number[][][], y: number[], yReg: number[] }}
+ *   X[i]    = window of windowSize rows (input tensor)
+ *   y[i]    = 1 if next close > current close, else 0  (binary classification label)
+ *   yReg[i] = approximate next-day % return, clipped to ±0.20 (regression label)
  */
-export function createWindows(features, windowSize) {
-  const X = [];
-  const y = [];
+export function createWindows(features, windowSize, priceMin = 0, priceMax = 1) {
+  const X    = [];
+  const y    = [];
+  const yReg = [];
+
+  const priceRange = priceMax - priceMin;
 
   for (let i = 0; i + windowSize < features.length; i++) {
     X.push(features.slice(i, i + windowSize));
-    // Binary label: did price go UP? (close_norm is index 0)
-    y.push(features[i + windowSize][0] > features[i + windowSize - 1][0] ? 1 : 0);
+
+    // close_norm is feature index 0
+    const closeNormCurr = features[i + windowSize - 1][0];
+    const closeNormNext = features[i + windowSize][0];
+
+    // Binary classification label: did price go UP?
+    y.push(closeNormNext > closeNormCurr ? 1 : 0);
+
+    // Regression label: approximate % return from descaled close prices, clipped to ±20%
+    // Matches server-side build-features.py: pct_return = ((next - curr) / curr).clip(-0.20, 0.20)
+    if (priceRange > 0) {
+      const closeCurr = closeNormCurr * priceRange + priceMin;
+      const closeNext = closeNormNext * priceRange + priceMin;
+      const pct = closeCurr > 0 ? (closeNext - closeCurr) / closeCurr : 0;
+      yReg.push(Math.max(-0.20, Math.min(0.20, pct)));
+    } else {
+      yReg.push(0);
+    }
   }
 
-  return { X, y };
+  return { X, y, yReg };
 }

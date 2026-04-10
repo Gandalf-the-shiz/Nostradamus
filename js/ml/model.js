@@ -3,7 +3,7 @@
  * TensorFlow.js model definition for stock price direction prediction.
  *
  * Model overview:
- *  - Input: Sliding window of 30 days × 32 features
+ *  - Input: Sliding window of 30 days × 33 features
  *  - Architecture: Bidirectional LSTM (128) → Dropout(0.3) → LSTM(64) →
  *                  Dropout(0.2) → Dense(32, relu) → Dropout(0.2)
  *                  → cls_output: Dense(1, sigmoid)  — P(price UP tomorrow)

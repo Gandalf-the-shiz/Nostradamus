@@ -360,14 +360,6 @@ def evaluate_model(model, X_test, y_cls_test, y_reg_test, sectors_test):
     """Evaluate on held-out test set; return metrics dict."""
     import tensorflow as tf
 
-    y_test_dict = {"cls_output": y_cls_test}
-    if y_reg_test is not None:
-        y_test_dict["reg_output"] = y_reg_test
-
-    results = model.evaluate(X_test, y_test_dict, verbose=0)
-    metric_names = model.metrics_names
-    metrics = dict(zip(metric_names, results))
-
     # Dual-head model returns [cls_output, reg_output]
     raw_preds = model.predict(X_test, verbose=0)
     if isinstance(raw_preds, list) and len(raw_preds) == 2:
@@ -387,11 +379,17 @@ def evaluate_model(model, X_test, y_cls_test, y_reg_test, sectors_test):
     fn = ((y_pred == 0) & (y_true == 1)).sum()
     confusion = [[int(tn), int(fp)], [int(fn), int(tp)]]
 
-    # Classification metrics — look for prefixed or unprefixed names
-    accuracy  = metrics.get("cls_output_accuracy",  metrics.get("accuracy",  0.0))
-    auc_val   = metrics.get("cls_output_auc",        metrics.get("auc",       0.0))
-    prec_val  = metrics.get("cls_output_precision",  metrics.get("precision", 0.0))
-    rec_val   = metrics.get("cls_output_recall",     metrics.get("recall",    0.0))
+    # Accuracy computed directly from predictions (robust across Keras versions)
+    accuracy = float((y_pred == y_true).mean())
+
+    # AUC via TF metrics API (numerically stable, no sklearn dependency)
+    auc_metric = tf.keras.metrics.AUC(name="auc")
+    auc_metric.update_state(y_true, y_pred_prob)
+    auc_val = float(auc_metric.result())
+
+    # Precision / Recall / F1
+    prec_val = float(tp / (tp + fp)) if (tp + fp) > 0 else 0.0
+    rec_val  = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
     f1 = (2 * prec_val * rec_val / (prec_val + rec_val)) if (prec_val + rec_val) > 0 else 0.0
 
     # Regression MAE
@@ -402,6 +400,7 @@ def evaluate_model(model, X_test, y_cls_test, y_reg_test, sectors_test):
     print("\n=== Test Set Evaluation ===")
     print(f"  Accuracy : {accuracy:.4f}")
     print(f"  AUC      : {auc_val:.4f}")
+    print(f"  F1       : {f1:.4f}")
     if reg_mae is not None:
         print(f"  Reg MAE  : {reg_mae:.6f}  (predicted % return)")
     print(f"  Confusion Matrix (TN, FP, FN, TP): {tn}, {fp}, {fn}, {tp}")
@@ -523,7 +522,8 @@ def write_training_log(
     os.makedirs(training_logs_dir, exist_ok=True)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    val_auc_list = history.history.get("val_auc", [])
+    val_auc_list = (history.history.get("val_cls_output_auc")
+                    or history.history.get("val_auc", []))
     best_epoch = int(np.argmax(val_auc_list)) + 1 if val_auc_list else epochs_run
 
     # Convert numpy floats to Python floats
