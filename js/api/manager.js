@@ -544,6 +544,7 @@ export async function loadLatestPredictions() {
           delta,
           predictedReturn: pred.predictedReturn ?? null,
           generatedAt,
+          isDemo: false,
         };
       });
 

@@ -20,6 +20,7 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -1408,6 +1409,11 @@ html.theme-transitioning * {
   border-radius: var(--radius-pill);
   background: var(--color-accent-dim);
   color: var(--color-accent);
+}
+
+.detail-overlay__prediction-badge--live {
+  background: rgba(38, 217, 127, 0.15);
+  color: var(--color-up);
 }
 
 .detail-overlay__prediction-body {
@@ -2984,5 +2990,16 @@ body {
   }
   .app-header__title {
     font-size: var(--font-size-base);
+  }
+}
+
+/* ─── Mobile minimum font-size polish ──────────────────────── */
+/* Bump intentionally-tiny label text to ≥11px on narrow screens */
+@media (max-width: 899px) {
+  .stock-card__ohlcv-label,
+  .stock-card__range-label,
+  .detail-overlay__stat-label,
+  .accuracy-demo-tag {
+    font-size: 11px;
   }
 }

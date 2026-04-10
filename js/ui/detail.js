@@ -66,6 +66,14 @@ export function openStockDetail(symbol, stock, candles, prediction, appState = {
     } else if (stock.quote.history && stock.quote.history.length > 0) {
       const history = stock.quote.history.map((close, i) => ({ date: String(i), close }));
       renderDetailChart(chartContainer, history, prediction);
+    } else {
+      // V2 prediction-only mode — no live price history available
+      chartContainer.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--color-text-muted);font-size:13px;text-align:center;padding:16px;">
+          <span style="font-size:2rem;">📊</span>
+          <span>Live price history unavailable in prediction-only mode.</span>
+          <span style="font-size:11px;opacity:0.6;">Add API keys in Settings to enable charts.</span>
+        </div>`;
     }
   }
 
@@ -181,16 +189,19 @@ function _buildOverlay(symbol, stock, candles, prediction, appState) {
       <div class="detail-overlay__prediction">
         <div class="detail-overlay__prediction-header">
           <span class="detail-overlay__prediction-title">🔮 AI Prediction</span>
-          <span class="detail-overlay__prediction-badge">${prediction.isDemo ? 'Demo' : Math.round(prediction.confidence * 100) + '%'}</span>
+          <span class="detail-overlay__prediction-badge${prediction.isDemo ? '' : ' detail-overlay__prediction-badge--live'}">${prediction.isDemo ? 'Demo' : Math.round((prediction.confidence ?? 0) * 100) + '%'}</span>
         </div>
         <div class="detail-overlay__prediction-body">
           <span class="detail-overlay__prediction-direction detail-overlay__prediction-direction--${predUp ? 'up' : 'down'}">
             ${predUp ? '▲ UP' : '▼ DOWN'}
           </span>
-          <span class="detail-overlay__prediction-price">${formatCurrency(prediction.predictedPrice || 0)}</span>
-          <span class="detail-overlay__prediction-delta detail-overlay__prediction-delta--${predUp ? 'up' : 'down'}">
-            ${formatDollarChange(predUp ? prediction.delta : -prediction.delta)}
-          </span>
+          ${prediction.isDemo === false && prediction.predictedPrice === 0 && prediction.predictedReturn !== null
+            ? `<span class="detail-overlay__prediction-price">${predUp ? '+' : ''}${(prediction.predictedReturn * 100).toFixed(2)}%</span>`
+            : `<span class="detail-overlay__prediction-price">${formatCurrency(prediction.predictedPrice || 0)}</span>
+               <span class="detail-overlay__prediction-delta detail-overlay__prediction-delta--${predUp ? 'up' : 'down'}">
+                 ${formatDollarChange(predUp ? prediction.delta : -(prediction.delta || 0))}
+               </span>`
+          }
         </div>
       </div>
       ` : ''}
