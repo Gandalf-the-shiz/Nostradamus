@@ -490,3 +490,69 @@ export async function loadDemoData() {
     return { stocks: [] };
   }
 }
+
+/**
+ * Load the latest V2 pipeline predictions from data/predictions/YYYY-MM-DD.json.
+ * Tries today's date first, then scans back up to 7 days to find the most recent file.
+ *
+ * The file is produced by scripts/generate-predictions.py and has the shape:
+ *   { date, predictionFor, generatedAt, modelVersion, predictions: { SYMBOL: { probability, direction, confidence, predictedReturn? } } }
+ *
+ * Returns an object: { date, generatedAt, items: Prediction[] }
+ * where each Prediction has: { symbol, direction, probability, confidence, currentPrice, predictedPrice, delta, generatedAt }
+ *
+ * Returns null if no prediction file can be found.
+ *
+ * @returns {Promise<{ date: string, generatedAt: string, items: Array } | null>}
+ */
+export async function loadLatestPredictions() {
+  const MAX_LOOKBACK_DAYS = 7;
+  const now = new Date();
+
+  for (let i = 0; i < MAX_LOOKBACK_DAYS; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+
+    try {
+      const res = await fetch(`./data/predictions/${dateStr}.json`);
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      if (!data || typeof data.predictions !== 'object') continue;
+
+      // Convert dict { SYMBOL: { probability, direction, confidence, predictedReturn? } }
+      // into a flat array of Prediction objects.
+      const generatedAt = data.generatedAt || new Date().toISOString();
+      const items = Object.entries(data.predictions).map(([symbol, pred]) => {
+        const probability     = pred.probability ?? 0.5;
+        const direction       = pred.direction   ?? (probability > 0.5 ? 'UP' : 'DOWN');
+        const confidence      = pred.confidence  ?? Math.abs(probability - 0.5) * 2;
+        // Without live prices, currentPrice is 0. predictedPrice and delta are 0 as well,
+        // and will be enriched by the live API once a user adds API keys.
+        const currentPrice    = 0;
+        const predictedPrice  = 0;
+        const delta           = 0;
+
+        return {
+          symbol,
+          direction,
+          probability,
+          confidence,
+          currentPrice,
+          predictedPrice,
+          delta,
+          generatedAt,
+        };
+      });
+
+      console.log(`[APIManager] Loaded V2 predictions for ${dateStr}: ${items.length} tickers`);
+      return { date: dateStr, generatedAt, items };
+    } catch (_err) {
+      // Network or parse error — try the previous day
+    }
+  }
+
+  console.warn('[APIManager] No V2 prediction files found in the last 7 days.');
+  return null;
+}

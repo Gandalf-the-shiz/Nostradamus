@@ -122,7 +122,7 @@ export function renderScreener(container, predictionsData, appState) {
   title.textContent = '🔍 Stock Screener';
   container.appendChild(title);
 
-  if (appState.mode === 'demo') {
+  if (appState.mode === 'demo' && (!predictionsData || predictionsData.length === 0)) {
     const note = document.createElement('p');
     note.className = 'screener-demo-note';
     note.textContent = 'Demo mode — showing sample predictions.';

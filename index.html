@@ -66,8 +66,37 @@
         <button id="theme-toggle"  class="nav-btn" aria-label="Toggle dark/light theme" title="Toggle theme">🌙</button>
         <button id="nav-settings"  class="nav-btn" aria-label="Settings">⚙️</button>
       </nav>
+      <!-- Hamburger button — visible only on mobile (<768px) -->
+      <button id="nav-hamburger" class="nav-hamburger" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobile-nav">
+        <span class="nav-hamburger__bar"></span>
+        <span class="nav-hamburger__bar"></span>
+        <span class="nav-hamburger__bar"></span>
+      </button>
     </div>
   </header>
+
+  <!-- Mobile nav overlay (backdrop) -->
+  <div id="mobile-nav-overlay" class="mobile-nav-overlay" aria-hidden="true"></div>
+
+  <!-- Mobile nav panel -->
+  <nav id="mobile-nav" class="mobile-nav" aria-label="Mobile navigation">
+    <div class="mobile-nav__header">
+      <span class="mobile-nav__title">🔮 Nostradamus</span>
+      <button id="mobile-nav-close" class="mobile-nav__close" aria-label="Close navigation menu">✕</button>
+    </div>
+    <div class="mobile-nav__items">
+      <button class="nav-btn mobile-nav__btn nav-btn--active" data-nav="dashboard">📊 Dashboard</button>
+      <button class="nav-btn mobile-nav__btn" data-nav="watchlist">⭐ Watchlist</button>
+      <button class="nav-btn mobile-nav__btn" data-nav="heatmap">🌡️ Heatmap</button>
+      <button class="nav-btn mobile-nav__btn" data-nav="screener">🔍 Screener</button>
+      <button class="nav-btn mobile-nav__btn" data-nav="backtest">📈 Backtesting</button>
+      <button class="nav-btn mobile-nav__btn" data-nav="accuracy">📊 Accuracy</button>
+      <button class="nav-btn mobile-nav__btn" data-nav="sectors">🏭 Sectors</button>
+      <button class="nav-btn mobile-nav__btn" id="mobile-nav-help">❓ Help</button>
+      <button class="nav-btn mobile-nav__btn" id="mobile-theme-toggle">🌙 Toggle Theme</button>
+      <button class="nav-btn mobile-nav__btn" data-nav="settings">⚙️ Settings</button>
+    </div>
+  </nav>
 
   <!-- ============================================================
        SEARCH BAR
