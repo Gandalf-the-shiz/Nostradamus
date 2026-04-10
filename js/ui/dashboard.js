@@ -659,7 +659,7 @@ function _renderPredDateBar(v2Preds) {
 
   const text = document.createElement('span');
   const genDate = v2Preds.generatedAt
-    ? new Date(v2Preds.generatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
+    ? new Date(v2Preds.generatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
     : v2Preds.date;
   text.textContent = `🔮 AI Predictions · ${v2Preds.items.length.toLocaleString()} stocks · Generated ${genDate}`;
 

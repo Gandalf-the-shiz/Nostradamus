@@ -56,7 +56,7 @@ export function renderStockCard(stock, prediction, chartAvailable) {
   const isV2 = !stock.quote.current && stock._v2Prediction;
 
   const card = document.createElement('div');
-  card.className = `stock-card stock-card--${predUp ? 'gainer' : 'loser'}${isV2 ? ' stock-card--v2' : ''}`;
+  card.className = `stock-card stock-card--${isV2 ? (predUp ? 'gainer' : 'loser') : (isUp ? 'gainer' : 'loser')}${isV2 ? ' stock-card--v2' : ''}`;
   card.setAttribute('role', 'article');
   card.setAttribute('aria-label', `${stock.symbol} stock card`);
   card.dataset.symbol = stock.symbol;
