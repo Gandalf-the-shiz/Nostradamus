@@ -1,0 +1,68 @@
+{
+  "version": "2.0.0",
+  "trainedAt": "2026-04-10T05:20:45+00:00",
+  "architecture": "BiLSTM-Dense-DualHead",
+  "inputShape": [
+    30,
+    33
+  ],
+  "featureCount": 33,
+  "featureNames": [
+    "close_norm",
+    "open_norm",
+    "high_norm",
+    "low_norm",
+    "volume_norm",
+    "rsi_14",
+    "macd_line",
+    "macd_signal",
+    "macd_hist",
+    "sma5_rel",
+    "sma20_rel",
+    "sma50_rel",
+    "ema12_rel",
+    "ema26_rel",
+    "bb_upper_rel",
+    "bb_lower_rel",
+    "bb_width",
+    "atr14_norm",
+    "obv_norm",
+    "stoch_k",
+    "stoch_d",
+    "roc10",
+    "momentum5",
+    "volatility30",
+    "volume_ratio",
+    "dow_mon",
+    "dow_tue",
+    "dow_wed",
+    "dow_thu",
+    "dow_fri",
+    "month_sin",
+    "month_cos",
+    "sentiment"
+  ],
+  "lookbackDays": 30,
+  "outputType": "dual_head_classification_regression",
+  "outputInterpretation": "cls_output: P(price_UP_tomorrow) sigmoid [0,1]; reg_output: predicted % return linear",
+  "trainingStats": {
+    "totalSamples": 1174558,
+    "trainSamples": 822190,
+    "valSamples": 176184,
+    "testSamples": 176184,
+    "epochs": 36,
+    "bestEpoch": 26,
+    "finalLR": 0.001
+  },
+  "testMetrics": {
+    "accuracy": 0.0,
+    "auc": 0.0,
+    "f1": 0.0,
+    "reg_mae": 0.023597
+  },
+  "classWeights": {
+    "0": 0.9413,
+    "1": 1.0665
+  },
+  "scalingParams": "See data/features/scaling_params.json"
+}
