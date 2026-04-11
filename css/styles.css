@@ -192,8 +192,6 @@ button {
   position: sticky;
   top: 0;
   z-index: calc(var(--z-overlay) - 5);
-  /* Prevent nav items from ever escaping the viewport */
-  overflow: hidden;
 }
 
 .app-header__inner {
@@ -314,10 +312,12 @@ button {
   z-index: calc(var(--z-overlay) + 1);
   opacity: 0;
   transition: opacity 0.25s ease;
+  pointer-events: none;
 }
 
 .mobile-nav-overlay--visible {
   opacity: 1;
+  pointer-events: auto;
 }
 
 body.mobile-nav-active {

@@ -476,6 +476,31 @@ export async function searchSymbols(query) {
 }
 
 /**
+ * Fetch company news for a symbol.
+ * Uses Finnhub as the primary source; returns an empty array if the key is absent
+ * or the request fails so callers can decide their own fallback.
+ *
+ * @param {string} symbol - Ticker symbol (e.g. "AAPL")
+ * @param {string} from   - Start date YYYY-MM-DD
+ * @param {string} to     - End date YYYY-MM-DD
+ * @returns {Promise<Array>}
+ */
+export async function getNews(symbol, from, to) {
+  if (consumeToken('finnhub')) {
+    try {
+      const articles = await withRetry(() => finnhub.getCompanyNews(symbol, from, to));
+      if (Array.isArray(articles) && articles.length > 0) {
+        return articles.slice(0, 5);
+      }
+    } catch (err) {
+      console.warn(`[APIManager] getNews failed for ${symbol}:`, err.message);
+    }
+  }
+  // No other free-tier providers support company news; return empty array
+  return [];
+}
+
+/**
  * Load the demo data from data/sample.json.
  * Used as the last fallback, and always used in Demo Mode.
  * @returns {Promise<Object>}

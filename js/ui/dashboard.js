@@ -53,6 +53,8 @@ export async function initDashboard(appState) {
     try { tickerMap = await loadTickerRegistry(); } catch (err) { console.warn('[Dashboard] Failed to load ticker registry:', err); }
     stocks = _buildStocksFromV2Predictions(appState.v2Predictions, tickerMap);
     appState._tickerMap = tickerMap;
+    // Enrich V2 stocks with live prices when any API key is available
+    await _enrichV2StocksWithQuotes(stocks, appState.v2Predictions.items);
   } else {
     // True demo fallback: sample.json
     const demoData = await loadDemoData();
@@ -187,6 +189,53 @@ function _buildStocksFromV2Predictions(v2Preds, tickerMap = new Map()) {
       _v2Prediction: pred,
     };
   });
+}
+
+/**
+ * Enrich a stocks array (built from V2 predictions) with live quote data.
+ * Fetches quotes for all symbols in parallel via the API manager fallback chain.
+ * Silently skips symbols for which no quote is available.
+ *
+ * @param {Array} stocks   - Stock objects produced by _buildStocksFromV2Predictions
+ * @param {Array} v2Items  - Original V2 prediction items (for predictedReturn access)
+ * @returns {Promise<void>}
+ */
+async function _enrichV2StocksWithQuotes(stocks, v2Items) {
+  const v2Map = new Map(v2Items.map(item => [item.symbol, item]));
+
+  await Promise.allSettled(stocks.map(async stock => {
+    try {
+      const quote = await getQuote(stock.symbol);
+      if (!quote || !quote.current) return;
+
+      const currentPrice = quote.current;
+
+      // Update the stock's quote object with live data
+      stock.quote.current       = currentPrice;
+      stock.quote.open          = quote.open          || 0;
+      stock.quote.high          = quote.high          || 0;
+      stock.quote.low           = quote.low           || 0;
+      stock.quote.previousClose = quote.previousClose || 0;
+      stock.quote.change        = quote.change        || 0;
+      stock.quote.changePercent = quote.changePercent || 0;
+      stock.quote.volume        = quote.volume        || 0;
+
+      // Enrich the attached V2 prediction with computed price fields
+      const v2Pred = v2Map.get(stock.symbol);
+      if (v2Pred && stock._v2Prediction) {
+        const predictedReturn = v2Pred.predictedReturn
+          ?? (v2Pred.direction === 'UP' ? 0.01 : -0.01);
+        const predictedPrice = parseFloat((currentPrice * (1 + predictedReturn)).toFixed(2));
+        const delta          = parseFloat((predictedPrice - currentPrice).toFixed(2));
+
+        stock._v2Prediction.currentPrice   = currentPrice;
+        stock._v2Prediction.predictedPrice = predictedPrice;
+        stock._v2Prediction.delta          = delta;
+      }
+    } catch (err) {
+      console.warn(`[Dashboard] Could not enrich V2 stock ${stock.symbol} with live price:`, err.message);
+    }
+  }));
 }
 
 /**
