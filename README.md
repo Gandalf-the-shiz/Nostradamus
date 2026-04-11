@@ -6,6 +6,70 @@
 
 ---
 
+## Description
+
+**Nostradamus** is an AI-powered stock prediction platform using a Bidirectional LSTM with Monte Carlo Dropout uncertainty estimation. It analyzes the entire US stock market (~7,000+ tickers) and generates daily directional predictions (UP/DOWN) with calibrated confidence scores.
+
+**Architecture at a glance:**
+- **Dual-head BiLSTM model** — simultaneous classification (P(UP)) + regression (% return) outputs
+- **3-API fallback system** — Finnhub → Twelve Data → Polygon.io, with token-bucket rate limiting
+- **Automated CI/CD pipeline** — 9 GitHub Actions workflows for data, features, training, predictions, and accuracy scoring
+- **Monte Carlo Dropout** — 20 stochastic forward passes for calibrated uncertainty estimates
+- **100% static frontend** — runs on GitHub Pages, no server required
+
+---
+
+## Getting Started
+
+**Run locally:** Just open `index.html` in a browser (or serve with any static file server). No build step needed.
+
+**Demo mode:** The app works without any API keys. It loads pre-generated predictions and historical data from the repo.
+
+**Add API keys:** Open the Settings panel in the app and enter your keys. They are stored in `localStorage` and never sent to any server other than the respective API providers. See `.env.example` for which keys to get and where.
+
+---
+
+## API Keys
+
+All keys are **optional** — the app works in demo mode without any. See `.env.example` for details.
+
+| Provider | Free Tier | Use |
+|---|---|---|
+| [Finnhub](https://finnhub.io/register) | 60 calls/min | Real-time quotes, WebSocket streaming (primary) |
+| [Twelve Data](https://twelvedata.com/pricing) | 800 calls/day, 8 calls/min | Quotes and time series (secondary fallback) |
+| [Polygon.io](https://polygon.io/pricing) | Unlimited (prev-day only) | Previous-close data (tertiary fallback) |
+
+The nightly historical data pipeline (`fetch-history.py`) uses **yfinance** which requires **no API key**.
+
+---
+
+## Automated Data Pipeline
+
+```
+Weekly  (Sun 00:00 UTC):   fetch-tickers.py  → data/tickers/us_tickers.json
+Nightly (Mon-Fri 21:30):   fetch-history.py  → data/historical/*.json
+Nightly (Mon-Fri 22:00):   build-features.py → data/features/*.json
+Nightly (Mon-Fri 22:30):   generate-predictions.py → data/predictions/YYYY-MM-DD.json
+Nightly (Mon-Fri 23:55):   score-accuracy.py → data/accuracy/accuracy-log.json
+Weekly  (Sun 04:00 UTC):   auto-retrain (if accuracy < 53%) → models/v2/
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | Vanilla HTML/CSS/JS (no framework, no build step) |
+| **Charting** | Chart.js (CDN) |
+| **ML (browser)** | TensorFlow.js (CDN) |
+| **ML (training)** | Python + Keras/TensorFlow + tensorflowjs_converter |
+| **Data** | Python + yfinance + pandas + ta (technical indicators) |
+| **CI/CD** | GitHub Actions (9 workflows) |
+| **Hosting** | GitHub Pages |
+
+---
+
 ## Project Overview
 
 **Nostradamus V2** is no longer a 5-stock demo. V2 analyzes the **ENTIRE US stock market** (~7,000+ tickers across NYSE, NASDAQ, AMEX). The goal is to build a money-making machine that uses ML to predict price direction with enough accuracy to generate actionable alpha.
@@ -55,7 +119,7 @@
 | **Tertiary API** | Polygon.io | Same |
 | **NEW: Quaternary API** | Alpha Vantage | **NEW: 25 calls/day free, technical indicators endpoint** |
 | **Data Persistence** | localStorage + IndexedDB | **UPGRADED: IndexedDB for large datasets (model weights, historical data)** |
-| **CI/CD** | GitHub Actions | **UPGRADED: 10 workflows (deploy, fetch-tickers, fetch-history, build-features, train-model, generate-predictions, accuracy, auto-retrain, weekly-report, fetch-data)** |
+| **CI/CD** | GitHub Actions | **UPGRADED: 9 workflows (deploy, fetch-tickers, fetch-history, build-features, train-model, generate-predictions, accuracy, auto-retrain, weekly-report)** |
 
 ### Why These APIs?
 GitHub Pages serves files with no backend proxy. All API calls happen directly from the user's browser, so **CORS support is mandatory**. Finnhub, Twelve Data, and Polygon.io all support CORS from browser clients.
@@ -296,7 +360,6 @@ Nostradamus/
 │       ├── deploy.yml                 # GitHub Pages deployment
 │       ├── fetch-tickers.yml          # Weekly: SEC EDGAR ticker refresh
 │       ├── fetch-history.yml          # Nightly: yfinance OHLCV download
-│       ├── fetch-data.yml             # V1 legacy data fetch
 │       ├── build-features.yml         # After fetch-history: compute features
 │       ├── train-model.yml            # Weekly: full model training
 │       ├── generate-predictions.yml   # Weekdays: daily prediction generation
@@ -346,7 +409,7 @@ Nostradamus/
 │   └── utils/
 │       ├── helpers.js
 │       └── sentiment.js               # NEW: keyword sentiment scorer
-├── scripts/                           # Server-side Python scripts (run in CI)
+│   ├── scripts/                           # Server-side Python scripts (run in CI)
 │   ├── fetch-tickers.py               # SEC EDGAR ticker download
 │   ├── fetch-history.py               # yfinance bulk OHLCV download
 │   ├── build-features.py              # Feature engineering pipeline
@@ -354,8 +417,7 @@ Nostradamus/
 │   ├── generate-predictions.py        # Daily prediction generation
 │   ├── score-accuracy.py              # Compare predictions to actuals
 │   ├── generate-weekly-report.py      # Weekly intelligence report aggregation
-│   ├── requirements.txt               # Python dependencies
-│   └── fetch-historical.js            # V1 legacy (deprecated)
+│   └── requirements.txt               # Python dependencies
 ├── data/
 │   ├── sample.json                    # Demo data (V1 compat)
 │   ├── tickers/
@@ -454,7 +516,6 @@ Nostradamus/
 | `scripts/score-accuracy.py` | ~13KB | Compare predictions to actuals, rolling metrics |
 | `scripts/generate-weekly-report.py` | ~8.7KB | Weekly intelligence report aggregation |
 | `scripts/requirements.txt` | 227B | Python dependencies |
-| `scripts/fetch-historical.js` | ~3.9KB | V1 legacy (deprecated, kept for reference) |
 
 ### Workflows (.github/workflows/)
 | Workflow | Schedule | Purpose |
@@ -462,7 +523,6 @@ Nostradamus/
 | `deploy.yml` | On push to main | GitHub Pages deployment |
 | `fetch-tickers.yml` | Weekly Sunday midnight | SEC EDGAR ticker refresh |
 | `fetch-history.yml` | Nightly Mon-Fri 9:30 PM UTC | yfinance OHLCV download |
-| `fetch-data.yml` | On schedule | V1 legacy data fetch |
 | `build-features.yml` | After fetch-history | Compute 32-feature matrices |
 | `train-model.yml` | Weekly Sunday 3 AM UTC | Full BiLSTM training + TF.js export |
 | `generate-predictions.yml` | Weekdays 10:30 PM UTC | Daily prediction generation |

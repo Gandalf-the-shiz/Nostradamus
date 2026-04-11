@@ -6,11 +6,12 @@
  * Training is triggered when fresh historical data is available and
  * when the user's device is idle (requestIdleCallback).
  *
- * TODO (Phase 4):
- *  - Implement the training loop
- *  - Emit progress events (loss, epoch, ETA)
- *  - Save model after each epoch to avoid losing progress
- *  - Implement early stopping
+ * Features:
+ *  - Full training loop with dual-head output (classification + regression)
+ *  - Progress callbacks (loss, epoch, totalEpochs)
+ *  - Model saved after each epoch (default + best slots)
+ *  - Early stopping based on val_loss patience
+ *  - Background training via requestIdleCallback
  */
 
 import { buildModel, saveModel, loadModel, MODEL_CONFIG } from './model.js';

@@ -90,14 +90,3 @@ export async function searchSymbols(query) {
   return data.data || [];
 }
 
-/**
- * Fetch technical indicators (RSI, MACD, etc.) — used by the ML preprocessing pipeline.
- * @param {string} symbol
- * @param {string} indicator  - e.g. "rsi", "macd"
- * @param {Object} [params={}]  - Additional indicator parameters
- * @returns {Promise<Object>}
- */
-export async function getIndicator(symbol, indicator, params = {}) {
-  // TODO (Phase 4): implement (used by ML preprocessing)
-  throw new Error('TwelveData getIndicator not yet implemented (Phase 4)');
-}
