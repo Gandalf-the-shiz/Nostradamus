@@ -73,6 +73,21 @@ export function renderStockCard(stock, prediction, chartAvailable) {
   const confTier = prediction.confidence >= 0.75 ? 'high' : prediction.confidence >= 0.6 ? 'medium' : 'low';
   const confPct  = Math.round(prediction.confidence * 100);
 
+  // V2 visual block: replaces the chart container to fill the visual gap
+  const v2VisualHTML = `
+    <div class="stock-card__v2-visual">
+      <div class="stock-card__v2-visual__return stock-card__v2-visual__return--${predUp ? 'up' : 'down'}">
+        ${prediction.predictedReturn != null
+          ? `<span class="stock-card__v2-visual__pct">${predUp ? '+' : ''}${(prediction.predictedReturn * 100).toFixed(2)}%</span>`
+          : `<span class="stock-card__v2-visual__pct">${predUp ? '▲' : '▼'}</span>`
+        }
+        <span class="stock-card__v2-visual__label">Predicted Return</span>
+      </div>
+      <div class="stock-card__v2-visual__bar" role="meter" aria-valuenow="${confPct}" aria-valuemin="0" aria-valuemax="100" aria-label="Prediction confidence level: ${confPct} percent">
+        <div class="stock-card__v2-visual__fill stock-card__v2-visual__fill--${confTier}" style="width:${confPct}%;"></div>
+      </div>
+    </div>`;
+
   // Prediction section HTML differs for V2 vs live mode
   const predictionHTML = isV2
     ? `<div class="stock-card__prediction">
@@ -80,14 +95,7 @@ export function renderStockCard(stock, prediction, chartAvailable) {
           <span class="stock-card__pred-dir stock-card__pred-dir--${predUp ? 'up' : 'down'}">
             ${predUp ? '▲' : '▼'} ${predUp ? 'UP' : 'DOWN'}
           </span>
-          ${prediction.predictedReturn != null
-            ? `<span class="stock-card__pred-return stock-card__pred-return--${predUp ? 'up' : 'down'}">${predUp ? '+' : ''}${(prediction.predictedReturn * 100).toFixed(2)}%</span>`
-            : ''
-          }
-          <span class="stock-card__prediction-badge stock-card__prediction-badge--${confTier}" style="margin-left:auto;">${confPct}%</span>
-        </div>
-        <div class="conf-gauge">
-          <div class="conf-gauge__fill conf-gauge__fill--${confTier}" style="width:${confPct}%"></div>
+          <span class="stock-card__prediction-badge stock-card__prediction-badge--${confTier}" style="margin-left:auto;">${confPct}% confidence</span>
         </div>
       </div>`
     : `<div class="stock-card__prediction">
@@ -130,7 +138,7 @@ export function renderStockCard(stock, prediction, chartAvailable) {
       }
     </div>
 
-    ${isV2 ? '' : `<div class="stock-card__chart-container" id="chart-${escapeHtml(stock.symbol)}">
+    ${isV2 ? v2VisualHTML : `<div class="stock-card__chart-container" id="chart-${escapeHtml(stock.symbol)}">
       ${chartAvailable ? '' : '<p style="font-size:11px;color:var(--color-text-faint);text-align:center;padding:8px 0;">Chart unavailable</p>'}
     </div>`}
 

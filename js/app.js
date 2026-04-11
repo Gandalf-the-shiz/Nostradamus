@@ -533,18 +533,33 @@ function initPWAInstallPrompt() {
     return !isNaN(ts) && (Date.now() - ts) < DISMISS_EXPIRY_MS;
   }
 
+  function showBanner() {
+    if (!banner) return;
+    banner.hidden = false;
+    document.body.classList.add('pwa-banner-visible');
+  }
+
+  function hideBanner() {
+    if (!banner) return;
+    banner.hidden = true;
+    document.body.classList.remove('pwa-banner-visible');
+  }
+
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _deferredInstallPrompt = e;
     // Only show the banner if the user hasn't recently dismissed it
     if (banner && !wasDismissed()) {
-      banner.hidden = false;
-      // Auto-dismiss after a short delay so it doesn't permanently block content
+      showBanner();
+      // Auto-dismiss after a short delay so it doesn't permanently block content.
+      // Use a longer delay on mobile so the user has time to interact.
+      const isMobile = window.innerWidth <= 899;
+      const autoDismissMs = isMobile ? 15000 : BANNER_AUTO_DISMISS_MS;
       setTimeout(() => {
         if (banner && !banner.hidden) {
-          banner.hidden = true;
+          hideBanner();
         }
-      }, BANNER_AUTO_DISMISS_MS);
+      }, autoDismissMs);
     }
   });
 
@@ -554,18 +569,18 @@ function initPWAInstallPrompt() {
     const { outcome } = await _deferredInstallPrompt.userChoice;
     console.log('[PWA] Install outcome:', outcome);
     _deferredInstallPrompt = null;
-    if (banner) banner.hidden = true;
+    hideBanner();
   });
 
   dismissBtn?.addEventListener('click', () => {
-    if (banner) banner.hidden = true;
+    hideBanner();
     // Persist dismissal so the banner doesn't reappear on the next page load
     localStorage.setItem(DISMISS_KEY, Date.now().toString());
   });
 
   // Hide the banner once the app is installed
   window.addEventListener('appinstalled', () => {
-    if (banner) banner.hidden = true;
+    hideBanner();
     _deferredInstallPrompt = null;
     showToast('Nostradamus installed! 📱', 'success');
   });
