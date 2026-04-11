@@ -536,7 +536,15 @@ function initPWAInstallPrompt() {
     e.preventDefault();
     _deferredInstallPrompt = e;
     // Only show the banner if the user hasn't recently dismissed it
-    if (banner && !wasDismissed()) banner.hidden = false;
+    if (banner && !wasDismissed()) {
+      banner.hidden = false;
+      // Auto-dismiss after 12 seconds so it doesn't permanently block content
+      setTimeout(() => {
+        if (banner && !banner.hidden) {
+          banner.hidden = true;
+        }
+      }, 12000);
+    }
   });
 
   installBtn?.addEventListener('click', async () => {

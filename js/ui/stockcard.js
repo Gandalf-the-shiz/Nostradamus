@@ -130,9 +130,9 @@ export function renderStockCard(stock, prediction, chartAvailable) {
       }
     </div>
 
-    <div class="stock-card__chart-container" id="chart-${escapeHtml(stock.symbol)}">
-      ${chartAvailable && !isV2 ? '' : '<p style="font-size:11px;color:var(--color-text-faint);text-align:center;padding:8px 0;">Chart unavailable</p>'}
-    </div>
+    ${isV2 ? '' : `<div class="stock-card__chart-container" id="chart-${escapeHtml(stock.symbol)}">
+      ${chartAvailable ? '' : '<p style="font-size:11px;color:var(--color-text-faint);text-align:center;padding:8px 0;">Chart unavailable</p>'}
+    </div>`}
 
     ${isV2 ? '' : `
     <div class="stock-card__ohlcv-row">

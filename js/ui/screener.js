@@ -70,6 +70,9 @@ let _tableBody = null;
 let _paginationEl = null;
 let _countEl = null;
 
+/** @type {boolean} */
+let _isV2Mode = false;
+
 // ─── Public API ───────────────────────────────────────────────
 
 /**
@@ -114,7 +117,13 @@ export function renderScreener(container, predictionsData, appState) {
     predictedPrice: pred.predictedPrice ?? 0,
     currentPrice:   pred.currentPrice ?? 0,
     delta:          pred.delta ?? 0,
+    predictedReturn: pred.predictedReturn ?? null,
   }));
+
+  // Detect V2 mode: predictions have no live prices (predictedPrice === 0 but predictedReturn available)
+  _isV2Mode = _allRows.length > 0 &&
+    _allRows[0].predictedPrice === 0 &&
+    _allRows[0].predictedReturn !== null;
 
   // ── Panel title
   const title = document.createElement('h2');
@@ -151,9 +160,9 @@ export function renderScreener(container, predictionsData, appState) {
         <th scope="col">Sector</th>
         <th scope="col">Direction</th>
         <th scope="col">Confidence</th>
-        <th scope="col">Predicted</th>
-        <th scope="col">Current</th>
-        <th scope="col">Delta</th>
+        <th scope="col">${_isV2Mode ? 'Return' : 'Predicted'}</th>
+        <th scope="col">${_isV2Mode ? 'Probability' : 'Current'}</th>
+        <th scope="col">${_isV2Mode ? 'Confidence' : 'Delta'}</th>
       </tr>
     </thead>
     <tbody id="screener-tbody"></tbody>
@@ -345,7 +354,9 @@ function _sortRows(rows, sortBy) {
       case 'confidence_asc':  return a.confidence - b.confidence;
       case 'symbol_asc':      return a.symbol.localeCompare(b.symbol);
       case 'symbol_desc':     return b.symbol.localeCompare(a.symbol);
-      case 'delta_desc':      return Math.abs(b.delta) - Math.abs(a.delta);
+      case 'delta_desc':      return _isV2Mode
+        ? Math.abs(b.predictedReturn ?? 0) - Math.abs(a.predictedReturn ?? 0)
+        : Math.abs(b.delta) - Math.abs(a.delta);
       case 'sector_asc':      return a.sector.localeCompare(b.sector);
       default:                return 0;
     }
@@ -360,19 +371,43 @@ function _buildRow(row) {
   const isUp     = row.direction === 'UP';
   const dirClass = isUp ? 'screener-badge screener-badge--up' : 'screener-badge screener-badge--down';
   const dirText  = isUp ? '▲ UP' : '▼ DOWN';
-  const deltaStr = row.delta >= 0
-    ? `+${formatCurrency(row.delta)}`
-    : formatCurrency(row.delta);
-  const deltaClass = row.delta >= 0 ? 'screener-delta--up' : 'screener-delta--down';
+
+  // Columns 5–7 differ between V2 (prediction-only) and live mode
+  let col5, col6, col7;
+  if (_isV2Mode) {
+    // Return: predicted return %
+    const retPct = row.predictedReturn != null
+      ? `${isUp ? '+' : ''}${(row.predictedReturn * 100).toFixed(2)}%`
+      : '—';
+    const retClass = isUp ? 'screener-delta--up' : 'screener-delta--down';
+    col5 = `<span class="${retClass}">${_escHtml(retPct)}</span>`;
+
+    // Probability
+    const probPct = Math.round((row.probability ?? 0.5) * 100);
+    col6 = `${probPct}%`;
+
+    // Confidence bar
+    const confPct = Math.round(row.confidence * 100);
+    const confTier = row.confidence >= 0.75 ? 'high' : row.confidence >= 0.6 ? 'medium' : 'low';
+    col7 = `<div class="conf-gauge" style="min-width:60px;"><div class="conf-gauge__fill conf-gauge__fill--${confTier}" style="width:${confPct}%"></div></div>`;
+  } else {
+    const deltaStr = row.delta >= 0
+      ? `+${formatCurrency(row.delta)}`
+      : formatCurrency(row.delta);
+    const deltaClass = row.delta >= 0 ? 'screener-delta--up' : 'screener-delta--down';
+    col5 = formatCurrency(row.predictedPrice);
+    col6 = formatCurrency(row.currentPrice);
+    col7 = `<span class="${deltaClass}">${deltaStr}</span>`;
+  }
 
   tr.innerHTML = `
     <td class="screener-cell screener-cell--symbol"><strong>${_escHtml(row.symbol)}</strong></td>
     <td class="screener-cell screener-cell--sector">${_escHtml(row.sector)}</td>
     <td class="screener-cell"><span class="${dirClass}">${dirText}</span></td>
     <td class="screener-cell">${Math.round(row.confidence * 100)}%</td>
-    <td class="screener-cell">${formatCurrency(row.predictedPrice)}</td>
-    <td class="screener-cell">${formatCurrency(row.currentPrice)}</td>
-    <td class="screener-cell ${deltaClass}">${deltaStr}</td>
+    <td class="screener-cell">${col5}</td>
+    <td class="screener-cell">${col6}</td>
+    <td class="screener-cell">${col7}</td>
   `;
 
   // Click to open detail (dispatch event)

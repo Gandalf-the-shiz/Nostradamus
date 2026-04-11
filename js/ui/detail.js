@@ -149,6 +149,9 @@ function _buildOverlay(symbol, stock, candles, prediction, appState) {
   const isUp    = (q.change || 0) >= 0;
   const predUp  = prediction?.direction === 'UP';
 
+  // V2 mode: no live prices — only pipeline prediction data available
+  const isV2 = !q.current && stock._v2Prediction;
+
   const overlay = document.createElement('div');
   overlay.id        = OVERLAY_ID;
   overlay.className = 'detail-overlay';
@@ -156,6 +159,49 @@ function _buildOverlay(symbol, stock, candles, prediction, appState) {
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-label', `${symbol} stock detail`);
   overlay.hidden    = true;
+
+  // Build prediction details section (for both V2 and live modes)
+  const confPct  = Math.round((prediction?.confidence ?? 0) * 100);
+  const confTier = (prediction?.confidence ?? 0) >= 0.75 ? 'high' : (prediction?.confidence ?? 0) >= 0.6 ? 'medium' : 'low';
+  const predReturnPct = prediction?.predictedReturn != null
+    ? `${predUp ? '+' : ''}${(prediction.predictedReturn * 100).toFixed(2)}%`
+    : null;
+
+  const predictionBlock = prediction ? `
+    <div class="detail-overlay__prediction">
+      <div class="detail-overlay__prediction-header">
+        <span class="detail-overlay__prediction-title">🔮 AI Prediction</span>
+        <span class="detail-overlay__prediction-badge${prediction.isDemo ? '' : ' detail-overlay__prediction-badge--live'}">${prediction.isDemo ? 'Demo' : confPct + '%'}</span>
+      </div>
+      <div class="detail-overlay__prediction-body">
+        <span class="detail-overlay__prediction-direction detail-overlay__prediction-direction--${predUp ? 'up' : 'down'}">
+          ${predUp ? '▲ UP' : '▼ DOWN'}
+        </span>
+        ${isV2 && predReturnPct
+          ? `<span class="detail-overlay__prediction-price">${_esc(predReturnPct)}</span>`
+          : !isV2
+            ? `<span class="detail-overlay__prediction-price">${formatCurrency(prediction.predictedPrice || 0)}</span>
+               <span class="detail-overlay__prediction-delta detail-overlay__prediction-delta--${predUp ? 'up' : 'down'}">
+                 ${formatDollarChange(predUp ? prediction.delta : -(prediction.delta || 0))}
+               </span>`
+            : ''
+        }
+      </div>
+      ${isV2 ? `
+      <div style="margin-top:var(--space-2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-1);font-size:var(--font-size-sm);color:var(--color-text-muted);">
+          <span>Confidence</span><span>${confPct}%</span>
+        </div>
+        <div class="conf-gauge">
+          <div class="conf-gauge__fill conf-gauge__fill--${confTier}" style="width:${confPct}%"></div>
+        </div>
+        ${prediction.probability != null ? `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:var(--space-2);font-size:var(--font-size-sm);color:var(--color-text-muted);">
+          <span>Probability</span><span>${Math.round((prediction.probability ?? 0.5) * 100)}%</span>
+        </div>` : ''}
+      </div>` : ''}
+    </div>
+  ` : '';
 
   overlay.innerHTML = `
     <div class="detail-overlay__backdrop" aria-hidden="true"></div>
@@ -171,7 +217,8 @@ function _buildOverlay(symbol, stock, candles, prediction, appState) {
         <button class="detail-overlay__close" aria-label="Close detail view" id="detail-close-btn">✕</button>
       </div>
 
-      <!-- Price -->
+      ${isV2 ? '' : `
+      <!-- Price (live mode only) -->
       <div class="detail-overlay__price">
         <span class="detail-overlay__price-value">${formatCurrency(q.current || 0)}</span>
         <span class="detail-overlay__price-change detail-overlay__price-change--${isUp ? 'up' : 'down'}">
@@ -179,7 +226,7 @@ function _buildOverlay(symbol, stock, candles, prediction, appState) {
         </span>
       </div>
 
-      <!-- OHLCV Stats -->
+      <!-- OHLCV Stats (live mode only) -->
       <div class="detail-overlay__stats">
         ${_statItem('Open',       formatCurrency(q.open || 0))}
         ${_statItem('High',       formatCurrency(q.high || 0))}
@@ -187,34 +234,15 @@ function _buildOverlay(symbol, stock, candles, prediction, appState) {
         ${_statItem('Prev Close', formatCurrency(q.previousClose || 0))}
         ${_statItem('Volume',     formatLargeNumber(q.volume || 0))}
         ${_statItem('Market Cap', stock.marketCap ? formatLargeNumber(stock.marketCap) : '—')}
-      </div>
+      </div>`}
+
+      <!-- AI Prediction -->
+      ${predictionBlock}
 
       <!-- Chart -->
       <div class="detail-overlay__chart">
-        <div class="detail-overlay__chart-inner" style="height:240px;position:relative;"></div>
+        <div class="detail-overlay__chart-inner" style="height:${isV2 ? '160px' : '240px'};position:relative;"></div>
       </div>
-
-      <!-- AI Prediction -->
-      ${prediction ? `
-      <div class="detail-overlay__prediction">
-        <div class="detail-overlay__prediction-header">
-          <span class="detail-overlay__prediction-title">🔮 AI Prediction</span>
-          <span class="detail-overlay__prediction-badge${prediction.isDemo ? '' : ' detail-overlay__prediction-badge--live'}">${prediction.isDemo ? 'Demo' : Math.round((prediction.confidence ?? 0) * 100) + '%'}</span>
-        </div>
-        <div class="detail-overlay__prediction-body">
-          <span class="detail-overlay__prediction-direction detail-overlay__prediction-direction--${predUp ? 'up' : 'down'}">
-            ${predUp ? '▲ UP' : '▼ DOWN'}
-          </span>
-          ${prediction.isDemo === false && prediction.predictedPrice === 0 && prediction.predictedReturn !== null
-            ? `<span class="detail-overlay__prediction-price">${predUp ? '+' : ''}${(prediction.predictedReturn * 100).toFixed(2)}%</span>`
-            : `<span class="detail-overlay__prediction-price">${formatCurrency(prediction.predictedPrice || 0)}</span>
-               <span class="detail-overlay__prediction-delta detail-overlay__prediction-delta--${predUp ? 'up' : 'down'}">
-                 ${formatDollarChange(predUp ? prediction.delta : -(prediction.delta || 0))}
-               </span>`
-          }
-        </div>
-      </div>
-      ` : ''}
 
       <!-- Sentiment Badge (populated asynchronously) -->
       <div class="detail-overlay__sentiment sentiment-badge" hidden aria-live="polite">

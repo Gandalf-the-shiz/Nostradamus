@@ -308,20 +308,39 @@ function renderMarketOverview(stocks) {
 
   container.innerHTML = '';
 
-  // Calculate simple market stats from the demo stocks
-  const gainers = stocks.filter(s => s.quote.change >= 0).length;
-  const losers  = stocks.length - gainers;
-  const avgChange = stocks.reduce((sum, s) => sum + s.quote.changePercent, 0) / stocks.length;
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  // Detect V2 mode: stocks built from pipeline predictions (no live quotes)
+  const isV2 = stocks.length > 0 && stocks[0]._v2Prediction != null;
 
-  const items = [
-    { label: 'Gainers',    value: String(gainers), positive: true },
-    { label: 'Losers',     value: String(losers),  positive: false },
-    { label: 'Avg Change', value: `${avgChange >= 0 ? '+' : ''}${avgChange.toFixed(2)}%`, positive: avgChange >= 0 },
-    { label: 'Tracked',    value: String(stocks.length), positive: null },
-    { label: 'Updated',    value: timeStr, positive: null },
-  ];
+  let items;
+  if (isV2) {
+    // In V2 mode use prediction direction instead of quote.change
+    const bullish = stocks.filter(s => s._v2Prediction?.direction === 'UP').length;
+    const bearish  = stocks.length - bullish;
+    const avgConf  = stocks.reduce((sum, s) => sum + (s._v2Prediction?.confidence ?? 0), 0) / stocks.length;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    items = [
+      { label: 'Bullish',     value: String(bullish), positive: true  },
+      { label: 'Bearish',     value: String(bearish),  positive: false },
+      { label: 'Avg Confidence', value: `${(avgConf * 100).toFixed(1)}%`, positive: avgConf >= 0.6 },
+      { label: 'Tracked',    value: String(stocks.length), positive: null },
+      { label: 'Updated',    value: timeStr, positive: null },
+    ];
+  } else {
+    // Calculate simple market stats from the live stocks
+    const gainers = stocks.filter(s => s.quote.change >= 0).length;
+    const losers  = stocks.length - gainers;
+    const avgChange = stocks.reduce((sum, s) => sum + s.quote.changePercent, 0) / stocks.length;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    items = [
+      { label: 'Gainers',    value: String(gainers), positive: true },
+      { label: 'Losers',     value: String(losers),  positive: false },
+      { label: 'Avg Change', value: `${avgChange >= 0 ? '+' : ''}${avgChange.toFixed(2)}%`, positive: avgChange >= 0 },
+      { label: 'Tracked',    value: String(stocks.length), positive: null },
+      { label: 'Updated',    value: timeStr, positive: null },
+    ];
+  }
 
   items.forEach(item => {
     const el = document.createElement('div');
