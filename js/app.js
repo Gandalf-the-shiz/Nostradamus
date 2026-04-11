@@ -524,6 +524,7 @@ function initPWAInstallPrompt() {
 
   const DISMISS_KEY        = 'nostradamus_pwa_dismissed';
   const DISMISS_EXPIRY_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
+  const BANNER_AUTO_DISMISS_MS = 12000; // auto-hide after 12 s if not interacted with
 
   function wasDismissed() {
     const raw = localStorage.getItem(DISMISS_KEY);
@@ -536,7 +537,15 @@ function initPWAInstallPrompt() {
     e.preventDefault();
     _deferredInstallPrompt = e;
     // Only show the banner if the user hasn't recently dismissed it
-    if (banner && !wasDismissed()) banner.hidden = false;
+    if (banner && !wasDismissed()) {
+      banner.hidden = false;
+      // Auto-dismiss after a short delay so it doesn't permanently block content
+      setTimeout(() => {
+        if (banner && !banner.hidden) {
+          banner.hidden = true;
+        }
+      }, BANNER_AUTO_DISMISS_MS);
+    }
   });
 
   installBtn?.addEventListener('click', async () => {
