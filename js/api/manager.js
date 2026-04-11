@@ -559,6 +559,35 @@ export async function loadLatestPredictions() {
   return null;
 }
 
+// ─── Ticker Registry ──────────────────────────────────────────
+let _tickerRegistryCache = null;
+
+/**
+ * Load the ticker registry from data/tickers/us_tickers.json.
+ * Returns a Map of symbol → { name, sector, exchange }.
+ * Caches the result after the first successful load.
+ *
+ * @returns {Promise<Map<string, { name: string, sector: string, exchange: string }>>}
+ */
+export async function loadTickerRegistry() {
+  if (_tickerRegistryCache) return _tickerRegistryCache;
+  try {
+    const res = await fetch('./data/tickers/us_tickers.json');
+    if (!res.ok) return new Map();
+    const data = await res.json();
+    const map = new Map();
+    for (const t of (data.tickers || [])) {
+      map.set(t.symbol, { name: t.name, sector: t.sector, exchange: t.exchange });
+    }
+    _tickerRegistryCache = map;
+    console.log(`[APIManager] Ticker registry loaded: ${map.size.toLocaleString()} entries`);
+    return map;
+  } catch (err) {
+    console.warn('[APIManager] Failed to load ticker registry:', err);
+    return new Map();
+  }
+}
+
 /**
  * Start a round-robin quote rotation for a list of symbols.
  * Fetches one quote per second (≤60/min) to respect Finnhub's free-tier rate limit.

@@ -15,7 +15,7 @@
  * Phase 4+: Adds prediction overlays on each card.
  */
 
-import { loadDemoData, getQuote, getCandles } from '../api/manager.js';
+import { loadDemoData, getQuote, getCandles, loadTickerRegistry } from '../api/manager.js';
 import { getItem } from '../storage/cache.js';
 import { runPrediction, demoPrediction } from '../ml/prediction.js';
 import { renderStockCard } from './stockcard.js';
@@ -49,7 +49,10 @@ export async function initDashboard(appState) {
     stocks = await loadLiveStocks(appState, stockGrid);
   } else if (appState.v2Predictions && appState.v2Predictions.items.length > 0) {
     // V2 pipeline predictions are available — surface the most interesting ones.
-    stocks = _buildStocksFromV2Predictions(appState.v2Predictions);
+    let tickerMap = new Map();
+    try { tickerMap = await loadTickerRegistry(); } catch (err) { console.warn('[Dashboard] Failed to load ticker registry:', err); }
+    stocks = _buildStocksFromV2Predictions(appState.v2Predictions, tickerMap);
+    appState._tickerMap = tickerMap;
   } else {
     // True demo fallback: sample.json
     const demoData = await loadDemoData();
@@ -142,9 +145,10 @@ export async function initDashboard(appState) {
  * to display on the dashboard.
  *
  * @param {{ date: string, generatedAt: string, items: Array }} v2Preds
+ * @param {Map<string, { name: string, sector: string, exchange: string }>} tickerMap
  * @returns {Array}
  */
-function _buildStocksFromV2Predictions(v2Preds) {
+function _buildStocksFromV2Predictions(v2Preds, tickerMap = new Map()) {
   const items = v2Preds.items;
 
   const bullish = items
@@ -159,27 +163,30 @@ function _buildStocksFromV2Predictions(v2Preds) {
 
   const selected = [...bullish, ...bearish];
 
-  return selected.map(pred => ({
-    symbol:    pred.symbol,
-    name:      pred.symbol,
-    exchange:  null,
-    industry:  null,
-    marketCap: null,
-    quote: {
-      current:       pred.currentPrice || 0,
-      open:          0,
-      high:          0,
-      low:           0,
-      previousClose: 0,
-      change:        pred.delta || 0,
-      changePercent: 0,
-      volume:  0,
-      history: [],
-    },
-    candles: [],
-    // Attach the pre-computed V2 prediction so the render loop can use it directly
-    _v2Prediction: pred,
-  }));
+  return selected.map(pred => {
+    const info = tickerMap.get(pred.symbol) || {};
+    return {
+      symbol:    pred.symbol,
+      name:      info.name || pred.symbol,
+      exchange:  info.exchange || null,
+      industry:  info.sector  || null,
+      marketCap: null,
+      quote: {
+        current:       pred.currentPrice || 0,
+        open:          0,
+        high:          0,
+        low:           0,
+        previousClose: 0,
+        change:        pred.delta || 0,
+        changePercent: 0,
+        volume:  0,
+        history: [],
+      },
+      candles: [],
+      // Attach the pre-computed V2 prediction so the render loop can use it directly
+      _v2Prediction: pred,
+    };
+  });
 }
 
 /**
@@ -308,8 +315,8 @@ function renderMarketOverview(stocks) {
 
   container.innerHTML = '';
 
-  // Detect V2 mode: stocks built from pipeline predictions have _v2Prediction set on every item
-  const isV2 = stocks.length > 0 && stocks[0]._v2Prediction != null;
+  // Detect V2 mode: stocks built from pipeline predictions have _v2Prediction set
+  const isV2 = stocks.length > 0 && stocks.some(s => s._v2Prediction != null);
 
   let items;
   if (isV2) {
@@ -375,20 +382,10 @@ function renderEmptyState(container) {
 
 // ─── Supplemental dashboard panels ──────────────────────────
 
-const DEMO_SECTORS_DB = {
-  AAPL: 'Technology', GOOGL: 'Technology', MSFT: 'Technology',
-  AMZN: 'Consumer Discretionary', TSLA: 'Consumer Discretionary',
-  META: 'Technology', NVDA: 'Technology', NFLX: 'Communication Services',
-  JPM: 'Financials', V: 'Financials', JNJ: 'Healthcare', PFE: 'Healthcare',
-  XOM: 'Energy', CVX: 'Energy', GS: 'Financials', BAC: 'Financials',
-  WMT: 'Consumer Staples', KO: 'Consumer Staples',
-  DIS: 'Communication Services', BA: 'Industrials',
-};
-
 /**
  * Render Top Predictions, Sector Rotation, and Momentum Scanner panels.
  * @param {Array} stocks
- * @param {{ mode: string, v2Predictions: object|null }} appState
+ * @param {{ mode: string, v2Predictions: object|null, _tickerMap?: Map }} appState
  */
 function _renderDashboardPanels(stocks, appState) {
   const dashView = document.getElementById('view-dashboard');
@@ -414,6 +411,7 @@ function _renderDashboardPanels(stocks, appState) {
 
   if (!predsArr || predsArr.length === 0) return;
 
+  const tickerMap = appState._tickerMap || new Map();
   const panels = document.createElement('div');
   panels.className = 'dashboard-panels';
 
@@ -421,7 +419,7 @@ function _renderDashboardPanels(stocks, appState) {
   panels.appendChild(_buildTopPredictionsPanel(predsArr));
 
   // Sector Rotation
-  panels.appendChild(_buildSectorRotationPanel(predsArr));
+  panels.appendChild(_buildSectorRotationPanel(predsArr, tickerMap));
 
   // Momentum Scanner (confidence > 80%)
   panels.appendChild(_buildMomentumPanel(predsArr));
@@ -498,8 +496,10 @@ function _buildTopList(heading, items, dir) {
 
 /**
  * Build "Sector Rotation" mini-panel.
+ * @param {Array} preds
+ * @param {Map<string, { name: string, sector: string, exchange: string }>} tickerMap
  */
-function _buildSectorRotationPanel(preds) {
+function _buildSectorRotationPanel(preds, tickerMap = new Map()) {
   const section = document.createElement('div');
   section.className = 'dash-panel';
 
@@ -511,7 +511,7 @@ function _buildSectorRotationPanel(preds) {
   // Aggregate avg probability per sector
   const sectorMap = new Map();
   for (const p of preds) {
-    const sector = DEMO_SECTORS_DB[p.symbol] ?? 'Other';
+    const sector = tickerMap.get(p.symbol)?.sector ?? 'Other';
     if (!sectorMap.has(sector)) sectorMap.set(sector, { sum: 0, count: 0 });
     const s = sectorMap.get(sector);
     s.sum   += p.probability ?? 0.5;

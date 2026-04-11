@@ -52,8 +52,8 @@ export function renderStockCard(stock, prediction, chartAvailable) {
   const predUp = prediction.direction === 'UP';
   const inWL   = isInWatchlist(stock.symbol);
 
-  // V2 mode: no live prices available
-  const isV2 = !stock.quote.current && stock._v2Prediction;
+  // V2 mode: stock was built from pipeline predictions (no live prices available)
+  const isV2 = !!stock._v2Prediction;
 
   // Determine the card's gain/loss class
   const gainLossClass = isV2 ? (predUp ? 'gainer' : 'loser') : (isUp ? 'gainer' : 'loser');
