@@ -9,7 +9,7 @@
  * Dependencies: js/api/finnhub.js, js/utils/helpers.js
  */
 
-import { getCompanyNews } from '../api/finnhub.js';
+import { getNews } from '../api/manager.js';
 import { daysAgoISO, todayISO } from '../utils/helpers.js';
 
 // ─── Sentiment keywords ───────────────────────────────────────
@@ -82,18 +82,15 @@ export async function renderNewsPanel(container, symbol, appState) {
 
   let articles = [];
 
-  if (appState.mode === 'live') {
-    try {
-      const from = daysAgoISO(7);
-      const to   = todayISO();
-      articles = await getCompanyNews(symbol, from, to);
-      // API returns an array; take the 5 most recent
-      articles = (articles || []).slice(0, 5);
-    } catch (err) {
-      console.warn('[News] API fetch failed, falling back to demo news:', err.message);
-      articles = _getDemoNews(symbol);
-    }
-  } else {
+  try {
+    const from = daysAgoISO(7);
+    const to   = todayISO();
+    articles = await getNews(symbol, from, to);
+  } catch (err) {
+    console.warn('[News] API fetch failed, falling back to demo news:', err.message);
+  }
+
+  if (!articles || articles.length === 0) {
     articles = _getDemoNews(symbol);
   }
 
@@ -131,16 +128,14 @@ export function scoreSentiment(text) {
  */
 export async function fetchNewsHeadlines(symbol, appState) {
   let articles = [];
-  if (appState.mode === 'live') {
-    try {
-      const from = daysAgoISO(7);
-      const to   = todayISO();
-      articles = await getCompanyNews(symbol, from, to);
-      articles = (articles || []).slice(0, 5);
-    } catch {
-      articles = _getDemoNews(symbol);
-    }
-  } else {
+  try {
+    const from = daysAgoISO(7);
+    const to   = todayISO();
+    articles = await getNews(symbol, from, to);
+  } catch {
+    // ignore — fall through to demo
+  }
+  if (!articles || articles.length === 0) {
     articles = _getDemoNews(symbol);
   }
   return articles.map(a => a.headline || a.summary || '').filter(Boolean);
