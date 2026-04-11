@@ -308,7 +308,7 @@ function renderMarketOverview(stocks) {
 
   container.innerHTML = '';
 
-  // Detect V2 mode: stocks built from pipeline predictions (no live quotes)
+  // Detect V2 mode: stocks built from pipeline predictions have _v2Prediction set on every item
   const isV2 = stocks.length > 0 && stocks[0]._v2Prediction != null;
 
   let items;

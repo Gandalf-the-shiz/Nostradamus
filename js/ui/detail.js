@@ -150,7 +150,7 @@ function _buildOverlay(symbol, stock, candles, prediction, appState) {
   const predUp  = prediction?.direction === 'UP';
 
   // V2 mode: no live prices — only pipeline prediction data available
-  const isV2 = !q.current && stock._v2Prediction;
+  const isV2 = stock._v2Prediction != null;
 
   const overlay = document.createElement('div');
   overlay.id        = OVERLAY_ID;
