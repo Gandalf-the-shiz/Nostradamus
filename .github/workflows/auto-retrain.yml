@@ -120,6 +120,16 @@ jobs:
           )
           echo "needs_retrain=$output" >> "$GITHUB_OUTPUT"
 
+      - name: Back up existing model
+        if: steps.set_flag.outputs.needs_retrain == 'true'
+        run: |
+          if [ -d models/v2 ]; then
+            cp -r models/v2 models/v2_backup
+            echo "Backed up models/v2 to models/v2_backup"
+          else
+            echo "No existing model to back up."
+          fi
+
       - name: Run model training
         if: steps.set_flag.outputs.needs_retrain == 'true'
         run: python scripts/train-model.py
@@ -133,6 +143,7 @@ jobs:
 
           new_meta_path    = Path("models/v2/metadata.json")
           new_model_path   = Path("models/v2/model.json")
+          backup_dir       = Path("models/v2_backup")
 
           if not new_model_path.exists():
               print("No new model found at models/v2/model.json — training may have been skipped.")
@@ -140,6 +151,8 @@ jobs:
 
           if not new_meta_path.exists():
               print("New model has no metadata.json — accepting as first version.")
+              if backup_dir.exists():
+                  shutil.rmtree(backup_dir)
               sys.exit(0)
 
           with open(new_meta_path) as f:
@@ -158,16 +171,27 @@ jobs:
 
               if new_acc > prev_acc:
                   print(f"New model is better ({new_acc:.4f} > {prev_acc:.4f}). Promoting.")
+                  # Save new metadata as the new baseline
                   shutil.copy(new_meta_path, prev_meta_path)
+                  # Delete backup — new model is now live
+                  if backup_dir.exists():
+                      shutil.rmtree(backup_dir)
               else:
                   print(f"New model is not better ({new_acc:.4f} <= {prev_acc:.4f}). Rolling back.")
-                  # Restore previous metadata (model weights were already overwritten by train-model.py)
-                  # In a full implementation we'd restore weights too; here we just flag it.
-                  shutil.copy(prev_meta_path, new_meta_path)
+                  # Restore previous model weights and metadata from backup
+                  if backup_dir.exists():
+                      for f in backup_dir.iterdir():
+                          shutil.copy(f, Path("models/v2") / f.name)
+                      shutil.rmtree(backup_dir)
+                      print("Restored previous model weights and metadata from backup.")
+                  else:
+                      print("No backup found — cannot restore weights.")
           else:
               # First run — save as baseline
               print("No previous model metadata found. Saving current as baseline.")
               shutil.copy(new_meta_path, prev_meta_path)
+              if backup_dir.exists():
+                  shutil.rmtree(backup_dir)
           EOF
 
       - name: Commit updated model

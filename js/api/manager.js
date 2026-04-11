@@ -558,3 +558,45 @@ export async function loadLatestPredictions() {
   console.warn('[APIManager] No V2 prediction files found in the last 7 days.');
   return null;
 }
+
+/**
+ * Start a round-robin quote rotation for a list of symbols.
+ * Fetches one quote per second (≤60/min) to respect Finnhub's free-tier rate limit.
+ * Cycles through all symbols indefinitely until stopped.
+ *
+ * @param {string[]} symbols          - Ticker symbols to rotate through
+ * @param {(symbol: string, quote: Object) => void} onQuoteUpdate  - Called with each fresh quote
+ * @returns {{ stop: () => void }}    - Handle to stop the rotation
+ *
+ * @example
+ * const rotation = startQuoteRotation(['AAPL', 'MSFT', 'TSLA'], (sym, q) => {
+ *   console.log(`${sym}: $${q.current}`);
+ * });
+ * // Later:
+ * rotation.stop();
+ */
+export function startQuoteRotation(symbols, onQuoteUpdate) {
+  if (!Array.isArray(symbols) || symbols.length === 0) {
+    return { stop: () => {} };
+  }
+
+  let index = 0;
+  const intervalId = setInterval(async () => {
+    const symbol = symbols[index % symbols.length];
+    index++;
+    try {
+      const quote = await getQuote(symbol);
+      if (quote) {
+        onQuoteUpdate(symbol, quote);
+      }
+    } catch (err) {
+      console.warn(`[APIManager] startQuoteRotation: failed to fetch ${symbol}:`, err.message);
+    }
+  }, 1000); // one call per second ≈ 60 calls/min
+
+  return {
+    stop() {
+      clearInterval(intervalId);
+    },
+  };
+}
