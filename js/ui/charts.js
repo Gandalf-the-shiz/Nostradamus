@@ -58,44 +58,79 @@ export function destroyContainerChart(container) {
   }
 }
 
+// Gold/orange colour for the AI Prediction overlay line
+const C_AI_PRED = 'rgba(255, 193, 7, 1)';
+
 /**
  * Build prediction overlay datasets appended after the last historical point.
- * @param {number[]} prices   - historical close prices
- * @param {string[]} labels   - corresponding x-axis labels
+ * @param {number[]} prices           - historical close prices
+ * @param {string[]} labels           - corresponding x-axis labels (YYYY-MM-DD or index strings)
  * @param {import('../ml/prediction.js').Prediction|null} prediction
+ * @param {Array<{date: string, predictedPrice: number}>} [pastPredictions]
  * @returns {{ predLabels: string[], predDatasets: object[] }}
  */
-function _predictionDatasets(prices, labels, prediction) {
-  if (!prediction) return { predLabels: [], predDatasets: [] };
+function _predictionDatasets(prices, labels, prediction, pastPredictions = []) {
+  const datasets = [];
+  const extraLabels = [];
 
-  const lastPrice = prices[prices.length - 1];
-  const predColor = prediction.direction === 'UP' ? C_UP : C_DOWN;
-  const predLabel = 'Prediction';
+  // ── Past AI predictions overlay ──────────────────────────────
+  if (pastPredictions.length > 0) {
+    // Align each prediction to its matching label index; null for unmatched dates
+    const aiData = labels.map(lbl => {
+      const match = pastPredictions.find(pp => pp.date === lbl);
+      return match ? match.predictedPrice : null;
+    });
 
-  // A two-point segment: last historical → predicted price
-  const nHistory = prices.length;
-  const predPoint = [
-    { x: nHistory - 1,     y: lastPrice },
-    { x: nHistory,         y: prediction.predictedPrice },
-  ];
+    datasets.push({
+      label: 'AI Prediction',
+      data: aiData,
+      borderColor: C_AI_PRED,
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      borderDash: [6, 4],
+      pointRadius: aiData.map(v => (v !== null ? 4 : 0)),
+      pointHoverRadius: aiData.map(v => (v !== null ? 5 : 0)),
+      pointBackgroundColor: C_AI_PRED,
+      pointBorderColor: '#0f1117',
+      pointBorderWidth: 1,
+      tension: 0,
+      fill: false,
+      spanGaps: true,
+      order: 0,
+    });
+  }
 
-  const dataset = {
-    label: predLabel,
-    data: predPoint,
-    borderColor: predColor,
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderDash: [6, 4],
-    pointRadius: [0, 6],
-    pointBackgroundColor: predColor,
-    pointBorderColor: '#0f1117',
-    pointBorderWidth: 2,
-    tension: 0,
-    fill: false,
-    order: 0,
-  };
+  // ── Future prediction (single dashed extension) ──────────────
+  if (prediction) {
+    const lastPrice = prices[prices.length - 1];
+    const predColor = prediction.direction === 'UP' ? C_UP : C_DOWN;
+    const nHistory  = prices.length;
 
-  return { predLabels: [predLabel], predDatasets: [dataset] };
+    // Two-point segment: last historical → predicted price
+    const predPoint = [
+      { x: nHistory - 1, y: lastPrice },
+      { x: nHistory,     y: prediction.predictedPrice },
+    ];
+
+    extraLabels.push('Future Prediction');
+    datasets.push({
+      label: 'Future Prediction',
+      data: predPoint,
+      borderColor: predColor,
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      borderDash: [6, 4],
+      pointRadius: [0, 6],
+      pointBackgroundColor: predColor,
+      pointBorderColor: '#0f1117',
+      pointBorderWidth: 2,
+      tension: 0,
+      fill: false,
+      order: 0,
+    });
+  }
+
+  return { predLabels: extraLabels, predDatasets: datasets };
 }
 
 // ─── Public API ───────────────────────────────────────────────
@@ -183,8 +218,9 @@ export function renderSparkline(container, prices, isUp = true) {
  * @param {HTMLElement} container
  * @param {Array<{date: string, close: number}>} history    - date strings + close prices
  * @param {import('../ml/prediction.js').Prediction|null} [prediction]
+ * @param {Array<{date: string, predictedPrice: number}>} [pastPredictions]
  */
-export function renderDetailChart(container, history, prediction = null) {
+export function renderDetailChart(container, history, prediction = null, pastPredictions = []) {
   if (typeof Chart === 'undefined') {
     container.innerHTML = '<p style="color:var(--color-text-muted);padding:16px;text-align:center;">Chart.js not loaded.</p>';
     return;
@@ -203,12 +239,12 @@ export function renderDetailChart(container, history, prediction = null) {
   const color     = isUp ? C_UP   : C_DOWN;
   const fillColor = isUp ? C_UP_DIM : C_DOWN_DIM;
 
-  const { predLabels, predDatasets } = _predictionDatasets(prices, labels, prediction);
+  const { predLabels, predDatasets } = _predictionDatasets(prices, labels, prediction, pastPredictions);
   const allLabels = [...labels, ...predLabels];
 
   const datasets = [
     {
-      label: 'Close',
+      label: 'Actual Price',
       data: prices,
       borderColor: color,
       backgroundColor: (ctx) => {
@@ -286,8 +322,9 @@ export function renderDetailChart(container, history, prediction = null) {
  * @param {HTMLElement} container
  * @param {Array<{date:string, open:number, high:number, low:number, close:number, volume:number}>} candles
  * @param {import('../ml/prediction.js').Prediction|null} [prediction]
+ * @param {Array<{date: string, predictedPrice: number}>} [pastPredictions]
  */
-export function renderFullChart(container, candles, prediction = null) {
+export function renderFullChart(container, candles, prediction = null, pastPredictions = []) {
   if (typeof Chart === 'undefined') {
     container.innerHTML = '<p style="color:var(--color-text-muted);padding:16px;text-align:center;">Chart.js not loaded.</p>';
     return;
@@ -334,7 +371,7 @@ export function renderFullChart(container, candles, prediction = null) {
     order: 4,
   };
   const closeDataset = {
-    label: 'Close',
+    label: 'Actual Price',
     data: closes,
     borderColor: lineColor,
     backgroundColor: 'transparent',
@@ -358,7 +395,7 @@ export function renderFullChart(container, candles, prediction = null) {
     order: 5,
   };
 
-  const { predLabels, predDatasets } = _predictionDatasets(closes, labels, prediction);
+  const { predLabels, predDatasets } = _predictionDatasets(closes, labels, prediction, pastPredictions);
   const allLabels = [...labels, ...predLabels];
 
   // Offset prediction datasets to use primary y-axis
