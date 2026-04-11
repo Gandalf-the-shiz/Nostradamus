@@ -123,6 +123,17 @@ export function getPredictions(symbol) {
 }
 
 /**
+ * Return all tracked predictions for a given symbol, sorted by generatedAt ascending.
+ * Useful for rendering historical prediction overlays on charts.
+ *
+ * @param {string} symbol
+ * @returns {TrackedPrediction[]}
+ */
+export function getPredictionsBySymbol(symbol) {
+  return getPredictions(symbol).sort((a, b) => a.generatedAt - b.generatedAt);
+}
+
+/**
  * Return only predictions that have not yet been resolved
  * (i.e., actualPrice is still null).
  * @param {string} [symbol]

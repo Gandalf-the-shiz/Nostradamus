@@ -17,6 +17,7 @@ import { renderNewsPanel } from './news.js';
 import { fetchNewsHeadlines } from './news.js';
 import { buildShareButtons } from './share.js';
 import { aggregateSentiment, classifySentiment } from '../utils/sentiment.js';
+import { getPredictionsBySymbol } from '../ml/tracker.js';
 
 const OVERLAY_ID = 'stock-detail-overlay';
 
@@ -61,11 +62,20 @@ export function openStockDetail(symbol, stock, candles, prediction, appState = {
   // Re-render chart after overlay is in DOM (so dimensions are known)
   const chartContainer = overlay.querySelector('.detail-overlay__chart-inner');
   if (chartContainer) {
+    // Build past-predictions array for this symbol, aligned to candle dates
+    const trackedPreds = getPredictionsBySymbol(symbol);
+    const pastPredictions = trackedPreds
+      .filter(p => p.predictedPrice != null)
+      .map(p => ({
+        date: new Date(p.generatedAt).toISOString().slice(0, 10),
+        predictedPrice: p.predictedPrice,
+      }));
+
     if (candles && candles.length > 0) {
-      renderFullChart(chartContainer, candles, prediction);
+      renderFullChart(chartContainer, candles, prediction, pastPredictions);
     } else if (stock.quote.history && stock.quote.history.length > 0) {
       const history = stock.quote.history.map((close, i) => ({ date: String(i), close }));
-      renderDetailChart(chartContainer, history, prediction);
+      renderDetailChart(chartContainer, history, prediction, pastPredictions);
     } else {
       // V2 prediction-only mode — no live price history available
       chartContainer.innerHTML = `
