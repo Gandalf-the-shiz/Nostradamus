@@ -582,7 +582,8 @@ export async function loadTickerRegistry() {
     _tickerRegistryCache = map;
     console.log(`[APIManager] Ticker registry loaded: ${map.size.toLocaleString()} entries`);
     return map;
-  } catch {
+  } catch (err) {
+    console.warn('[APIManager] Failed to load ticker registry:', err);
     return new Map();
   }
 }

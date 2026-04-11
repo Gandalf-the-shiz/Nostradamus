@@ -50,7 +50,7 @@ export async function initDashboard(appState) {
   } else if (appState.v2Predictions && appState.v2Predictions.items.length > 0) {
     // V2 pipeline predictions are available — surface the most interesting ones.
     let tickerMap = new Map();
-    try { tickerMap = await loadTickerRegistry(); } catch { /* non-fatal */ }
+    try { tickerMap = await loadTickerRegistry(); } catch (err) { console.warn('[Dashboard] Failed to load ticker registry:', err); }
     stocks = _buildStocksFromV2Predictions(appState.v2Predictions, tickerMap);
     appState._tickerMap = tickerMap;
   } else {
