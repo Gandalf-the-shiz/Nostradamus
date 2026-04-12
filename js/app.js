@@ -114,8 +114,10 @@ function checkLibraries() {
  * or live mode (at least a Finnhub key is configured).
  */
 function detectMode() {
-  const finnhubKey = getItem(STORAGE_KEYS.FINNHUB_KEY);
-  appState.mode = finnhubKey ? 'live' : 'demo';
+  const hasAnyKey = getItem(STORAGE_KEYS.FINNHUB_KEY)
+    || getItem(STORAGE_KEYS.TWELVEDATA_KEY)
+    || getItem(STORAGE_KEYS.POLYGON_KEY);
+  appState.mode = hasAnyKey ? 'live' : 'demo';
   console.log(`[Nostradamus] Mode: ${appState.mode}`);
 }
 

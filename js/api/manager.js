@@ -13,7 +13,7 @@
 import * as finnhub   from './finnhub.js';
 import * as twelvedata from './twelvedata.js';
 import * as polygon   from './polygon.js';
-import { getWithTTL, setWithTTL } from '../storage/cache.js';
+import { getItem, getWithTTL, setWithTTL } from '../storage/cache.js';
 import { withRetry }  from '../utils/helpers.js';
 
 // ─── Rate Limit Configuration ─────────────────────────────────
@@ -59,8 +59,22 @@ function consumeToken(provider) {
   return false;
 }
 
-// ─── Cache TTLs ───────────────────────────────────────────────
-const CACHE_TTL = {
+/**
+ * Check whether a given provider's API key is configured in localStorage.
+ * Prevents wasting rate-limit tokens on providers with no key.
+ * @param {string} provider - 'finnhub' | 'twelvedata' | 'polygon'
+ * @returns {boolean}
+ */
+function hasApiKey(provider) {
+  const KEY_MAP = {
+    finnhub:    'finnhub_key',
+    twelvedata: 'twelvedata_key',
+    polygon:    'polygon_key',
+  };
+  return !!getItem(KEY_MAP[provider]);
+}
+
+// ─── Cache TTLs ───────────────────────────────────────────────const CACHE_TTL = {
   QUOTE:    5  * 60 * 1000,  // 5 minutes (real-time quotes)
   CANDLES:  15 * 60 * 1000,  // 15 minutes (historical data)
   PROFILE:  24 * 60 * 60 * 1000,  // 24 hours (company info)
@@ -241,7 +255,7 @@ export async function getQuote(symbol) {
   }
 
   // 1. Try Finnhub
-  if (consumeToken('finnhub')) {
+  if (hasApiKey('finnhub') && consumeToken('finnhub')) {
     try {
       const raw = await withRetry(() => finnhub.getQuote(symbol));
       if (raw && raw.c) {
@@ -252,12 +266,10 @@ export async function getQuote(symbol) {
     } catch (err) {
       console.warn(`[APIManager] Finnhub getQuote failed for ${symbol}:`, err.message);
     }
-  } else {
-    console.warn('[APIManager] Finnhub rate limit reached, skipping.');
   }
 
   // 2. Try Twelve Data
-  if (consumeToken('twelvedata')) {
+  if (hasApiKey('twelvedata') && consumeToken('twelvedata')) {
     try {
       const raw = await withRetry(() => twelvedata.getQuote(symbol));
       if (raw && raw.close) {
@@ -268,12 +280,10 @@ export async function getQuote(symbol) {
     } catch (err) {
       console.warn(`[APIManager] Twelve Data getQuote failed for ${symbol}:`, err.message);
     }
-  } else {
-    console.warn('[APIManager] Twelve Data rate limit reached, skipping.');
   }
 
   // 3. Try Polygon
-  if (consumeToken('polygon')) {
+  if (hasApiKey('polygon') && consumeToken('polygon')) {
     try {
       const raw = await withRetry(() => polygon.getPreviousClose(symbol));
       if (raw && raw.results && raw.results.length > 0) {
@@ -313,7 +323,7 @@ export async function getCandles(symbol, days = 30) {
   const fromSec = nowSec - days * 86400;
 
   // 1. Try Finnhub
-  if (consumeToken('finnhub')) {
+  if (hasApiKey('finnhub') && consumeToken('finnhub')) {
     try {
       const raw = await withRetry(() => finnhub.getCandles(symbol, 'D', fromSec, nowSec));
       const candles = normaliseFinnhubCandles(raw);
@@ -327,7 +337,7 @@ export async function getCandles(symbol, days = 30) {
   }
 
   // 2. Try Twelve Data
-  if (consumeToken('twelvedata')) {
+  if (hasApiKey('twelvedata') && consumeToken('twelvedata')) {
     try {
       const raw = await withRetry(() => twelvedata.getTimeSeries(symbol, '1day', days));
       const candles = normaliseTwelvedataCandles(raw);
@@ -341,7 +351,7 @@ export async function getCandles(symbol, days = 30) {
   }
 
   // 3. Try Polygon
-  if (consumeToken('polygon')) {
+  if (hasApiKey('polygon') && consumeToken('polygon')) {
     try {
       const fromISO = new Date(fromSec * 1000).toISOString().slice(0, 10);
       const toISO   = new Date(nowSec  * 1000).toISOString().slice(0, 10);
@@ -374,7 +384,7 @@ export async function getCompanyProfile(symbol) {
   if (cached) return cached;
 
   // 1. Try Finnhub
-  if (consumeToken('finnhub')) {
+  if (hasApiKey('finnhub') && consumeToken('finnhub')) {
     try {
       const raw = await withRetry(() => finnhub.getCompanyProfile(symbol));
       if (raw && raw.name) {
@@ -388,7 +398,7 @@ export async function getCompanyProfile(symbol) {
   }
 
   // 2. Try Polygon
-  if (consumeToken('polygon')) {
+  if (hasApiKey('polygon') && consumeToken('polygon')) {
     try {
       const raw = await withRetry(() => polygon.getTickerDetails(symbol));
       if (raw && raw.name) {
@@ -430,7 +440,7 @@ export async function searchSymbols(query) {
   if (cached) return cached;
 
   // 1. Try Finnhub
-  if (consumeToken('finnhub')) {
+  if (hasApiKey('finnhub') && consumeToken('finnhub')) {
     try {
       const raw = await withRetry(() => finnhub.searchSymbols(query));
       if (raw && Array.isArray(raw.result) && raw.result.length > 0) {
@@ -444,7 +454,7 @@ export async function searchSymbols(query) {
   }
 
   // 2. Try Twelve Data
-  if (consumeToken('twelvedata')) {
+  if (hasApiKey('twelvedata') && consumeToken('twelvedata')) {
     try {
       const raw = await withRetry(() => twelvedata.searchSymbols(query));
       if (Array.isArray(raw) && raw.length > 0) {
@@ -458,7 +468,7 @@ export async function searchSymbols(query) {
   }
 
   // 3. Try Polygon
-  if (consumeToken('polygon')) {
+  if (hasApiKey('polygon') && consumeToken('polygon')) {
     try {
       const raw = await withRetry(() => polygon.searchTickers(query));
       if (Array.isArray(raw) && raw.length > 0) {
@@ -486,7 +496,7 @@ export async function searchSymbols(query) {
  * @returns {Promise<Array>}
  */
 export async function getNews(symbol, from, to) {
-  if (consumeToken('finnhub')) {
+  if (hasApiKey('finnhub') && consumeToken('finnhub')) {
     try {
       const articles = await withRetry(() => finnhub.getCompanyNews(symbol, from, to));
       if (Array.isArray(articles) && articles.length > 0) {
