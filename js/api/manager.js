@@ -74,7 +74,8 @@ function hasApiKey(provider) {
   return !!getItem(KEY_MAP[provider]);
 }
 
-// ─── Cache TTLs ───────────────────────────────────────────────const CACHE_TTL = {
+// ─── Cache TTLs ───────────────────────────────────────────────
+const CACHE_TTL = {
   QUOTE:    5  * 60 * 1000,  // 5 minutes (real-time quotes)
   CANDLES:  15 * 60 * 1000,  // 15 minutes (historical data)
   PROFILE:  24 * 60 * 60 * 1000,  // 24 hours (company info)
