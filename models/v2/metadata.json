@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "trainedAt": "2026-04-11T03:23:19+00:00",
+  "trainedAt": "2026-04-12T07:29:13+00:00",
   "architecture": "BiLSTM-Dense-DualHead",
   "inputShape": [
     30,
@@ -50,15 +50,15 @@
     "trainSamples": 822190,
     "valSamples": 176184,
     "testSamples": 176184,
-    "epochs": 31,
-    "bestEpoch": 21,
+    "epochs": 34,
+    "bestEpoch": 24,
     "finalLR": 0.001
   },
   "testMetrics": {
-    "accuracy": 0.666,
-    "auc": 0.731,
-    "f1": 0.6453,
-    "reg_mae": 0.023161
+    "accuracy": 0.6632,
+    "auc": 0.7295,
+    "f1": 0.6497,
+    "reg_mae": 0.023134
   },
   "classWeights": {
     "0": 0.9413,
