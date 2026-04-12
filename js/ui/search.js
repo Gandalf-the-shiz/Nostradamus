@@ -112,13 +112,14 @@ async function handleSearch(query, suggestions, appState) {
 
   try {
     let results;
-    if (appState.mode === 'live') {
+    // Always try API search first — manager handles fallback gracefully
+    try {
       results = await searchSymbols(query);
-      // Fall back to demo results if API returned nothing
-      if (!results || results.length === 0) {
-        results = await getDemoSearchResults(query);
-      }
-    } else {
+    } catch (err) {
+      console.warn('[Search] API search failed, using local registry:', err.message);
+    }
+    // Fall back to local ticker registry if API returned nothing
+    if (!results || results.length === 0) {
       results = await getDemoSearchResults(query);
     }
 
@@ -287,11 +288,14 @@ async function addSymbolToDashboard(symbol, appState) {
   try {
     let quote = null;
 
-    if (appState && appState.mode === 'live') {
+    // Always try live APIs — the manager handles fallback gracefully
+    try {
       [quote, candles] = await Promise.all([
         getQuote(symbol),
         getCandles(symbol),
       ]);
+    } catch (err) {
+      console.warn(`[Search] API calls failed for ${symbol}, using demo fallback:`, err.message);
     }
 
     if (!quote) {
