@@ -45,16 +45,16 @@ export async function initDashboard(appState) {
 
   let stocks = [];
 
-  if (appState.mode === 'live') {
-    stocks = await loadLiveStocks(appState, stockGrid);
-  } else if (appState.v2Predictions && appState.v2Predictions.items.length > 0) {
-    // V2 pipeline predictions are available — surface the most interesting ones.
+  if (appState.v2Predictions && appState.v2Predictions.items.length > 0) {
+    // V2 pipeline predictions are the primary data source — always use them when available.
     let tickerMap = new Map();
     try { tickerMap = await loadTickerRegistry(); } catch (err) { console.warn('[Dashboard] Failed to load ticker registry:', err); }
     stocks = _buildStocksFromV2Predictions(appState.v2Predictions, tickerMap);
     appState._tickerMap = tickerMap;
     // Enrich V2 stocks with live prices when any API key is available
     await _enrichV2StocksWithQuotes(stocks, appState.v2Predictions.items);
+  } else if (appState.mode === 'live') {
+    stocks = await loadLiveStocks(appState, stockGrid);
   } else {
     // True demo fallback: sample.json
     const demoData = await loadDemoData();

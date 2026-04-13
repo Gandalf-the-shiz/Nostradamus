@@ -31,20 +31,6 @@
 <body>
 
   <!-- ============================================================
-       DEMO MODE BANNER
-       Shown by default until the user configures API keys.
-       Hidden by app.js once keys are detected in localStorage.
-  ============================================================ -->
-  <div id="demo-banner" class="demo-banner" role="alert">
-    <span class="demo-banner__icon">⚠️</span>
-    <span class="demo-banner__text">
-      <strong>Demo Mode</strong> — No API key configured. Showing sample data.
-      <button id="demo-banner-settings-btn" class="demo-banner__link" aria-label="Open settings to configure API key">Configure API Key</button>
-    </span>
-    <button id="demo-banner-close" class="demo-banner__close" aria-label="Dismiss banner">✕</button>
-  </div>
-
-  <!-- ============================================================
        HEADER
   ============================================================ -->
   <header class="app-header" role="banner">
@@ -292,13 +278,6 @@
   <!-- PWA offline indicator (shown by sw.js message handler in app.js) -->
   <div id="offline-banner" class="offline-banner" role="alert" hidden>
     <span>📡 You are offline. Showing cached data.</span>
-  </div>
-
-  <!-- PWA install prompt (shown when browser fires beforeinstallprompt) -->
-  <div id="pwa-install-banner" class="pwa-install-banner" hidden>
-    <span>📱 Install Nostradamus on your device for offline access.</span>
-    <button id="pwa-install-btn" class="btn btn--primary pwa-install-banner__btn">Install</button>
-    <button id="pwa-install-dismiss" class="pwa-install-banner__dismiss" aria-label="Dismiss install prompt">✕</button>
   </div>
 
   <!-- Stock detail overlay container (populated dynamically) -->

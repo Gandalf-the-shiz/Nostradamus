@@ -147,7 +147,7 @@ export function renderStockCard(stock, prediction, chartAvailable) {
       <div class="stock-card__ohlcv-item"><span class="stock-card__ohlcv-label">O</span><span class="stock-card__ohlcv-value">${formatCurrency(stock.quote.open || 0)}</span></div>
       <div class="stock-card__ohlcv-item"><span class="stock-card__ohlcv-label">H</span><span class="stock-card__ohlcv-value stock-card__ohlcv-value--up">${formatCurrency(stock.quote.high || 0)}</span></div>
       <div class="stock-card__ohlcv-item"><span class="stock-card__ohlcv-label">L</span><span class="stock-card__ohlcv-value stock-card__ohlcv-value--down">${formatCurrency(stock.quote.low || 0)}</span></div>
-      <div class="stock-card__ohlcv-item"><span class="stock-card__ohlcv-label">Vol</span><span class="stock-card__ohlcv-value">${formatLargeNumber(stock.quote.volume || 0)}</span></div>
+      <div class="stock-card__ohlcv-item"><span class="stock-card__ohlcv-label">Vol</span><span class="stock-card__ohlcv-value">${stock.quote.volume ? formatLargeNumber(stock.quote.volume) : '—'}</span></div>
     </div>
 
     <div class="stock-card__range-bar" aria-label="Daily range: low ${formatCurrency(low)} to high ${formatCurrency(high)}">
