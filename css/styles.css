@@ -136,54 +136,6 @@ button {
 }
 
 /* ─── Demo Banner ───────────────────────────────────────────── */
-.demo-banner {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: rgba(240, 180, 41, 0.12);
-  border-bottom: 1px solid rgba(240, 180, 41, 0.3);
-  font-size: var(--font-size-sm);
-  color: var(--color-neutral);
-  position: relative;
-  z-index: 1;
-}
-
-.demo-banner__icon {
-  flex-shrink: 0;
-}
-
-.demo-banner__text {
-  flex: 1;
-}
-
-.demo-banner__link {
-  background: none;
-  border: none;
-  color: var(--color-neutral);
-  text-decoration: underline;
-  cursor: pointer;
-  font-size: inherit;
-  padding: 0;
-  margin-left: var(--space-1);
-}
-
-.demo-banner__close {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-  line-height: 1;
-  transition: color var(--transition-fast);
-  flex-shrink: 0;
-}
-
-.demo-banner__close:hover {
-  color: var(--color-text);
-}
-
 /* ─── Header ────────────────────────────────────────────────── */
 .app-header {
   background: var(--color-bg-surface);
@@ -1747,45 +1699,6 @@ html.theme-transitioning * {
 }
 
 /* ─── PWA Install Banner ─────────────────────────────────────── */
-.pwa-install-banner {
-  position: fixed;
-  bottom: var(--space-4);
-  left: var(--space-4);
-  right: var(--space-4);
-  /* Account for home indicator on notched devices */
-  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
-  max-width: 480px;
-  margin: 0 auto;
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-focus);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--font-size-sm);
-  z-index: 900;
-  box-shadow: var(--shadow-elevated);
-}
-
-.pwa-install-banner__btn {
-  flex-shrink: 0;
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--font-size-sm);
-}
-
-.pwa-install-banner__dismiss {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: var(--space-1);
-  font-size: var(--font-size-base);
-  line-height: 1;
-  margin-left: auto;
-}
-
 /* ─── Sectors Panel ─────────────────────────────────────────── */
 .sectors-panel {
   padding: var(--space-5) var(--space-4);
@@ -3024,18 +2937,6 @@ html.theme-transitioning * {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
-}
-
-/* ─── PWA Install Banner: prevent content from being hidden behind it ─────── */
-
-body.pwa-banner-visible {
-  padding-bottom: 64px;
-}
-
-@media (max-width: 899px) {
-  body.pwa-banner-visible {
-    padding-bottom: 56px;
-  }
 }
 
 /* ─── Safe-area & orientation responsive helpers ─────────────── */

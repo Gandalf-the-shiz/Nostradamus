@@ -73,12 +73,10 @@ async function init() {
     console.warn('[Nostradamus] Could not load V2 predictions:', err.message);
   }
 
-  initDemoBanner();
   initSettingsPanel();
   initThemeToggle();
   registerServiceWorker();
   initOfflineDetection();
-  initPWAInstallPrompt();
 
   // Initialize UI modules
   await initDashboard(appState);
@@ -119,46 +117,6 @@ function detectMode() {
     || getItem(STORAGE_KEYS.POLYGON_KEY);
   appState.mode = hasAnyKey ? 'live' : 'demo';
   console.log(`[Nostradamus] Mode: ${appState.mode}`);
-}
-
-// ─── Demo Banner ──────────────────────────────────────────────
-
-function initDemoBanner() {
-  const banner  = document.getElementById('demo-banner');
-  const closeBtn = document.getElementById('demo-banner-close');
-  const settingsBtn = document.getElementById('demo-banner-settings-btn');
-
-  if (!banner) return;
-
-  // Hide banner if we have API keys
-  if (appState.mode === 'live') {
-    banner.hidden = true;
-    return;
-  }
-
-  // When V2 predictions are loaded the app is fully functional without API keys —
-  // suppress the banner entirely so the user isn't nagged about demo mode.
-  if (appState.v2Predictions) {
-    banner.hidden = true;
-    return;
-  }
-
-  // Check if the user already dismissed the banner in this browser
-  const dismissed = localStorage.getItem('nostradamus_demobanner_dismissed');
-  if (dismissed === 'true') {
-    banner.hidden = true;
-    return;
-  }
-
-  // Persist dismissal so it doesn't reappear on next page load
-  closeBtn?.addEventListener('click', () => {
-    banner.hidden = true;
-    localStorage.setItem('nostradamus_demobanner_dismissed', 'true');
-  });
-
-  settingsBtn?.addEventListener('click', () => {
-    navigateTo('settings');
-  });
 }
 
 // ─── Navigation ───────────────────────────────────────────────
@@ -445,8 +403,6 @@ function saveApiKeys() {
   if (saved > 0) {
     showToast(`${saved} API key(s) saved.`, 'success');
     detectMode();
-    const banner = document.getElementById('demo-banner');
-    if (appState.mode === 'live' && banner) banner.hidden = true;
   } else {
     showToast('No keys entered.', 'info');
   }
@@ -456,12 +412,6 @@ function clearApiKeys() {
   Object.values(STORAGE_KEYS).forEach(key => removeItem(key));
   showToast('API keys cleared. Demo mode active.', 'info');
   detectMode();
-  // Only surface the demo banner if there are no V2 predictions to rely on
-  const banner = document.getElementById('demo-banner');
-  if (banner && !appState.v2Predictions) {
-    localStorage.removeItem('nostradamus_demobanner_dismissed');
-    banner.hidden = false;
-  }
   populateSettingsInputs();
 }
 
@@ -507,85 +457,6 @@ function initOfflineDetection() {
   window.addEventListener('online',  update);
   window.addEventListener('offline', update);
   update(); // Set initial state
-}
-
-// ─── PWA Install prompt ───────────────────────────────────────
-
-/** @type {BeforeInstallPromptEvent|null} */
-let _deferredInstallPrompt = null;
-
-/**
- * Handle the PWA "Add to Home Screen" install prompt.
- * Defers the browser prompt and shows our custom install banner.
- * Dismissal is persisted to localStorage for 30 days.
- */
-function initPWAInstallPrompt() {
-  const banner     = document.getElementById('pwa-install-banner');
-  const installBtn = document.getElementById('pwa-install-btn');
-  const dismissBtn = document.getElementById('pwa-install-dismiss');
-
-  const DISMISS_KEY        = 'nostradamus_pwa_dismissed';
-  const DISMISS_EXPIRY_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
-  const BANNER_AUTO_DISMISS_MS = 12000; // auto-hide after 12 s if not interacted with
-
-  function wasDismissed() {
-    const raw = localStorage.getItem(DISMISS_KEY);
-    if (!raw) return false;
-    const ts = parseInt(raw, 10);
-    return !isNaN(ts) && (Date.now() - ts) < DISMISS_EXPIRY_MS;
-  }
-
-  function showBanner() {
-    if (!banner) return;
-    banner.hidden = false;
-    document.body.classList.add('pwa-banner-visible');
-  }
-
-  function hideBanner() {
-    if (!banner) return;
-    banner.hidden = true;
-    document.body.classList.remove('pwa-banner-visible');
-  }
-
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    _deferredInstallPrompt = e;
-    // Only show the banner if the user hasn't recently dismissed it
-    if (banner && !wasDismissed()) {
-      showBanner();
-      // Auto-dismiss after a short delay so it doesn't permanently block content.
-      // Use a longer delay on mobile so the user has time to interact.
-      const isMobile = window.innerWidth <= 899;
-      const autoDismissMs = isMobile ? 15000 : BANNER_AUTO_DISMISS_MS;
-      setTimeout(() => {
-        if (banner && !banner.hidden) {
-          hideBanner();
-        }
-      }, autoDismissMs);
-    }
-  });
-
-  installBtn?.addEventListener('click', async () => {
-    if (!_deferredInstallPrompt) return;
-    _deferredInstallPrompt.prompt();
-    const { outcome } = await _deferredInstallPrompt.userChoice;
-    console.log('[PWA] Install outcome:', outcome);
-    _deferredInstallPrompt = null;
-    hideBanner();
-  });
-
-  dismissBtn?.addEventListener('click', () => {
-    hideBanner();
-    // Persist dismissal so the banner doesn't reappear on the next page load
-    localStorage.setItem(DISMISS_KEY, Date.now().toString());
-  });
-
-  // Hide the banner once the app is installed
-  window.addEventListener('appinstalled', () => {
-    hideBanner();
-    _deferredInstallPrompt = null;
-    showToast('Nostradamus installed! 📱', 'success');
-  });
 }
 
 // ─── DOM Ready ────────────────────────────────────────────────
