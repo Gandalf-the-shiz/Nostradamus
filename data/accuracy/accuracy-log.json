@@ -1,3 +1,20 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "date": "2026-04-13",
+      "recordedAt": "2026-04-14T01:19:42Z",
+      "modelVersion": "2.0.0",
+      "hitRate": 0.5902,
+      "total": 1508,
+      "correct": 890,
+      "rolling7day": null,
+      "rolling30day": null
+    }
+  ],
+  "rolling": {
+    "7day": 0.5902,
+    "30day": 0.5902,
+    "90day": 0.5902
+  },
+  "updatedAt": "2026-04-14T01:19:42Z"
 }
