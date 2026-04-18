@@ -1,0 +1,2021 @@
+{
+  "date": "2026-04-17",
+  "predictionFor": "2026-04-17",
+  "scoredAt": "2026-04-18T01:19:40Z",
+  "modelVersion": "2.0.0",
+  "metrics": {
+    "hitRate": 0.6655,
+    "confidenceWeightedHitRate": 0.7437,
+    "total": 1465,
+    "correct": 975,
+    "bySector": {
+      "unknown": {
+        "hitRate": 0.6655,
+        "total": 1465,
+        "correct": 975
+      }
+    }
+  },
+  "detail": [
+    {
+      "ticker": "A",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6575,
+      "confidence": 0.3149,
+      "priceActual": 121.87000274658203,
+      "pricePrev": 118.25
+    },
+    {
+      "ticker": "AA",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.585,
+      "confidence": 0.17,
+      "priceActual": 65.62000274658203,
+      "pricePrev": 70.41
+    },
+    {
+      "ticker": "AAP",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7334,
+      "confidence": 0.4667,
+      "priceActual": 57.4900016784668,
+      "pricePrev": 56.66
+    },
+    {
+      "ticker": "AAPL",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9938,
+      "confidence": 0.9876,
+      "priceActual": 270.2300109863281,
+      "pricePrev": 263.4
+    },
+    {
+      "ticker": "AAUC",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.6912,
+      "confidence": 0.3824,
+      "priceActual": 31.8700008392334,
+      "pricePrev": 31.91
+    },
+    {
+      "ticker": "ABAT",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7255,
+      "confidence": 0.451,
+      "priceActual": 3.4000000953674316,
+      "pricePrev": 3.21
+    },
+    {
+      "ticker": "ABBV",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.9653,
+      "confidence": 0.9305,
+      "priceActual": 208.3800048828125,
+      "pricePrev": 208.99
+    },
+    {
+      "ticker": "ABCB",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9828,
+      "confidence": 0.9655,
+      "priceActual": 85.27999877929688,
+      "pricePrev": 82.63
+    },
+    {
+      "ticker": "ABLV",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5444,
+      "confidence": 0.0889,
+      "priceActual": 0.7400000095367432,
+      "pricePrev": 0.58
+    },
+    {
+      "ticker": "ABT",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5112,
+      "confidence": 0.0223,
+      "priceActual": 96.80999755859375,
+      "pricePrev": 95.47
+    },
+    {
+      "ticker": "ABUS",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9323,
+      "confidence": 0.8647,
+      "priceActual": 4.71999979019165,
+      "pricePrev": 4.68
+    },
+    {
+      "ticker": "ABVX",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.676,
+      "confidence": 0.3521,
+      "priceActual": 120.16000366210938,
+      "pricePrev": 122.47
+    },
+    {
+      "ticker": "ABXL",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.9726,
+      "confidence": 0.9453,
+      "priceActual": 25.719999313354492,
+      "pricePrev": 25.73
+    },
+    {
+      "ticker": "ACB",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6883,
+      "confidence": 0.3765,
+      "priceActual": 3.6600000858306885,
+      "pricePrev": 3.61
+    },
+    {
+      "ticker": "ACCO",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5748,
+      "confidence": 0.1495,
+      "priceActual": 3.3499999046325684,
+      "pricePrev": 3.24
+    },
+    {
+      "ticker": "ACGL",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9795,
+      "confidence": 0.959,
+      "priceActual": 97.58999633789062,
+      "pricePrev": 97.1
+    },
+    {
+      "ticker": "ACGLN",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.907,
+      "confidence": 0.814,
+      "priceActual": 17.239999771118164,
+      "pricePrev": 17.27
+    },
+    {
+      "ticker": "ACGLO",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.8824,
+      "confidence": 0.7649,
+      "priceActual": 20.549999237060547,
+      "pricePrev": 20.51
+    },
+    {
+      "ticker": "ACMR",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7956,
+      "confidence": 0.5912,
+      "priceActual": 50.61000061035156,
+      "pricePrev": 47.89
+    },
+    {
+      "ticker": "ACNB",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9766,
+      "confidence": 0.9533,
+      "priceActual": 51.70000076293945,
+      "pricePrev": 50.47
+    },
+    {
+      "ticker": "ACOG",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.39,
+      "confidence": 0.2201,
+      "priceActual": 6.940000057220459,
+      "pricePrev": 6.65
+    },
+    {
+      "ticker": "ACON",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6112,
+      "confidence": 0.2225,
+      "priceActual": 3.390000104904175,
+      "pricePrev": 3.32
+    },
+    {
+      "ticker": "ACRS",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6701,
+      "confidence": 0.3402,
+      "priceActual": 4.25,
+      "pricePrev": 3.98
+    },
+    {
+      "ticker": "ACTU",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5665,
+      "confidence": 0.133,
+      "priceActual": 2.309999942779541,
+      "pricePrev": 2.15
+    },
+    {
+      "ticker": "AD",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9846,
+      "confidence": 0.9692,
+      "priceActual": 50.11000061035156,
+      "pricePrev": 49.46
+    },
+    {
+      "ticker": "ADAG",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6485,
+      "confidence": 0.2969,
+      "priceActual": 3.9700000286102295,
+      "pricePrev": 3.85
+    },
+    {
+      "ticker": "ADAMZ",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9838,
+      "confidence": 0.9676,
+      "priceActual": 18.850000381469727,
+      "pricePrev": 18.615
+    },
+    {
+      "ticker": "ADC",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9935,
+      "confidence": 0.987,
+      "priceActual": 79.45999908447266,
+      "pricePrev": 78.93
+    },
+    {
+      "ticker": "ADEA",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.2204,
+      "confidence": 0.5592,
+      "priceActual": 28.93000030517578,
+      "pricePrev": 27.89
+    },
+    {
+      "ticker": "ADI",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9897,
+      "confidence": 0.9795,
+      "priceActual": 371.45001220703125,
+      "pricePrev": 353.8
+    },
+    {
+      "ticker": "ADMA",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7612,
+      "confidence": 0.5225,
+      "priceActual": 11.010000228881836,
+      "pricePrev": 10.74
+    },
+    {
+      "ticker": "ADTN",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.2751,
+      "confidence": 0.4499,
+      "priceActual": 16.959999084472656,
+      "pricePrev": 16.67
+    },
+    {
+      "ticker": "ADX",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.701,
+      "confidence": 0.402,
+      "priceActual": 23.979999542236328,
+      "pricePrev": 23.79
+    },
+    {
+      "ticker": "AEE",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9462,
+      "confidence": 0.8925,
+      "priceActual": 112.70999908447266,
+      "pricePrev": 112.28
+    },
+    {
+      "ticker": "AEF",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6513,
+      "confidence": 0.3026,
+      "priceActual": 9.039999961853027,
+      "pricePrev": 8.55
+    },
+    {
+      "ticker": "AEHL",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4096,
+      "confidence": 0.1809,
+      "priceActual": 0.7447999715805054,
+      "pricePrev": 0.74
+    },
+    {
+      "ticker": "AEI",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5498,
+      "confidence": 0.0995,
+      "priceActual": 1.7599999904632568,
+      "pricePrev": 1.815
+    },
+    {
+      "ticker": "AEIS",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.489,
+      "confidence": 0.022,
+      "priceActual": 375.6000061035156,
+      "pricePrev": 372.23
+    },
+    {
+      "ticker": "AER",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9902,
+      "confidence": 0.9804,
+      "priceActual": 147.4499969482422,
+      "pricePrev": 142.46
+    },
+    {
+      "ticker": "AES",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.9739,
+      "confidence": 0.9479,
+      "priceActual": 14.470000267028809,
+      "pricePrev": 14.5
+    },
+    {
+      "ticker": "AFB",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9941,
+      "confidence": 0.9882,
+      "priceActual": 10.9399995803833,
+      "pricePrev": 10.89
+    },
+    {
+      "ticker": "AFCG",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4317,
+      "confidence": 0.1366,
+      "priceActual": 2.7799999713897705,
+      "pricePrev": 2.7
+    },
+    {
+      "ticker": "AFG",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9926,
+      "confidence": 0.9851,
+      "priceActual": 131.4600067138672,
+      "pricePrev": 130.53
+    },
+    {
+      "ticker": "AFGC",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9754,
+      "confidence": 0.9507,
+      "priceActual": 18.8799991607666,
+      "pricePrev": 18.75
+    },
+    {
+      "ticker": "AGIG",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5284,
+      "confidence": 0.0567,
+      "priceActual": 1.0399999618530273,
+      "pricePrev": 1.08
+    },
+    {
+      "ticker": "AGNCO",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7045,
+      "confidence": 0.4089,
+      "priceActual": 25.18000030517578,
+      "pricePrev": 25.16
+    },
+    {
+      "ticker": "AGNCP",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9722,
+      "confidence": 0.9444,
+      "priceActual": 24.510000228881836,
+      "pricePrev": 24.48
+    },
+    {
+      "ticker": "AGX",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5893,
+      "confidence": 0.1786,
+      "priceActual": 597.8800048828125,
+      "pricePrev": 601.83
+    },
+    {
+      "ticker": "AGYS",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5154,
+      "confidence": 0.0309,
+      "priceActual": 68.2300033569336,
+      "pricePrev": 67.61
+    },
+    {
+      "ticker": "AHCO",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.2786,
+      "confidence": 0.4429,
+      "priceActual": 12.65999984741211,
+      "pricePrev": 12.58
+    },
+    {
+      "ticker": "AHG",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.6329,
+      "confidence": 0.2658,
+      "priceActual": 2.0,
+      "pricePrev": 2.13
+    },
+    {
+      "ticker": "AHRT",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9038,
+      "confidence": 0.8076,
+      "priceActual": 6.050000190734863,
+      "pricePrev": 5.95
+    },
+    {
+      "ticker": "AI",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.4941,
+      "confidence": 0.0117,
+      "priceActual": 9.239999771118164,
+      "pricePrev": 9.32
+    },
+    {
+      "ticker": "AIIO",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5134,
+      "confidence": 0.0269,
+      "priceActual": 0.6847000122070312,
+      "pricePrev": 0.709
+    },
+    {
+      "ticker": "AIN",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7251,
+      "confidence": 0.4501,
+      "priceActual": 58.2400016784668,
+      "pricePrev": 55.81
+    },
+    {
+      "ticker": "AIO",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.917,
+      "confidence": 0.834,
+      "priceActual": 24.0,
+      "pricePrev": 23.76
+    },
+    {
+      "ticker": "AKAN",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6235,
+      "confidence": 0.247,
+      "priceActual": 3.5399999618530273,
+      "pricePrev": 3.29
+    },
+    {
+      "ticker": "ALAB",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6227,
+      "confidence": 0.2453,
+      "priceActual": 174.0500030517578,
+      "pricePrev": 170.81
+    },
+    {
+      "ticker": "ALEC",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7658,
+      "confidence": 0.5315,
+      "priceActual": 2.569999933242798,
+      "pricePrev": 2.55
+    },
+    {
+      "ticker": "ALF",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.0792,
+      "confidence": 0.8416,
+      "priceActual": 10.8100004196167,
+      "pricePrev": 10.81
+    },
+    {
+      "ticker": "ALGM",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7264,
+      "confidence": 0.4528,
+      "priceActual": 40.0,
+      "pricePrev": 38.22
+    },
+    {
+      "ticker": "ALGN",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9126,
+      "confidence": 0.8252,
+      "priceActual": 190.07000732421875,
+      "pricePrev": 185.02
+    },
+    {
+      "ticker": "ALH",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.621,
+      "confidence": 0.2419,
+      "priceActual": 25.190000534057617,
+      "pricePrev": 24.47
+    },
+    {
+      "ticker": "ALK",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5857,
+      "confidence": 0.1715,
+      "priceActual": 45.400001525878906,
+      "pricePrev": 41.15
+    },
+    {
+      "ticker": "ALKS",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6838,
+      "confidence": 0.3675,
+      "priceActual": 34.529998779296875,
+      "pricePrev": 33.77
+    },
+    {
+      "ticker": "ALL-PI",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5272,
+      "confidence": 0.0544,
+      "priceActual": 19.420000076293945,
+      "pricePrev": 19.43
+    },
+    {
+      "ticker": "ALLO",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5885,
+      "confidence": 0.177,
+      "priceActual": 2.390000104904175,
+      "pricePrev": 2.37
+    },
+    {
+      "ticker": "ALLT",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.8058,
+      "confidence": 0.6116,
+      "priceActual": 7.25,
+      "pricePrev": 7.12
+    },
+    {
+      "ticker": "ALM",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5943,
+      "confidence": 0.1885,
+      "priceActual": 23.420000076293945,
+      "pricePrev": 22.77
+    },
+    {
+      "ticker": "ALRM",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5828,
+      "confidence": 0.1655,
+      "priceActual": 46.5099983215332,
+      "pricePrev": 45.6
+    },
+    {
+      "ticker": "ALTG",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5561,
+      "confidence": 0.1122,
+      "priceActual": 7.0,
+      "pricePrev": 6.37
+    },
+    {
+      "ticker": "ALTI",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7068,
+      "confidence": 0.4136,
+      "priceActual": 3.759999990463257,
+      "pricePrev": 3.69
+    },
+    {
+      "ticker": "AMAL",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6514,
+      "confidence": 0.3029,
+      "priceActual": 43.5,
+      "pricePrev": 42.0
+    },
+    {
+      "ticker": "AMBA",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7952,
+      "confidence": 0.5904,
+      "priceActual": 58.22999954223633,
+      "pricePrev": 57.32
+    },
+    {
+      "ticker": "AMBR",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4614,
+      "confidence": 0.0772,
+      "priceActual": 2.390000104904175,
+      "pricePrev": 2.36
+    },
+    {
+      "ticker": "AMCI",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.3434,
+      "confidence": 0.3131,
+      "priceActual": 6.570000171661377,
+      "pricePrev": 6.73
+    },
+    {
+      "ticker": "AMCR",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9144,
+      "confidence": 0.8288,
+      "priceActual": 41.939998626708984,
+      "pricePrev": 40.18
+    },
+    {
+      "ticker": "AMJB",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.7056,
+      "confidence": 0.4111,
+      "priceActual": 32.79999923706055,
+      "pricePrev": 33.76
+    },
+    {
+      "ticker": "AMLX",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5286,
+      "confidence": 0.0572,
+      "priceActual": 18.360000610351562,
+      "pricePrev": 17.73
+    },
+    {
+      "ticker": "AMPY",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.561,
+      "confidence": 0.122,
+      "priceActual": 5.289999961853027,
+      "pricePrev": 5.49
+    },
+    {
+      "ticker": "AMR",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.3056,
+      "confidence": 0.3889,
+      "priceActual": 191.6999969482422,
+      "pricePrev": 189.56
+    },
+    {
+      "ticker": "AMRX",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9918,
+      "confidence": 0.9835,
+      "priceActual": 13.90999984741211,
+      "pricePrev": 13.09
+    },
+    {
+      "ticker": "AMS",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6184,
+      "confidence": 0.2368,
+      "priceActual": 1.5800000429153442,
+      "pricePrev": 1.5
+    },
+    {
+      "ticker": "AMWD",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4582,
+      "confidence": 0.0835,
+      "priceActual": 43.25,
+      "pricePrev": 41.23
+    },
+    {
+      "ticker": "AMWL",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.7279,
+      "confidence": 0.4559,
+      "priceActual": 6.119999885559082,
+      "pricePrev": 6.19
+    },
+    {
+      "ticker": "ANDE",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.3335,
+      "confidence": 0.333,
+      "priceActual": 72.11000061035156,
+      "pricePrev": 71.01
+    },
+    {
+      "ticker": "ANIP",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.8567,
+      "confidence": 0.7134,
+      "priceActual": 80.91999816894531,
+      "pricePrev": 78.07
+    },
+    {
+      "ticker": "ANNA",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.6621,
+      "confidence": 0.3242,
+      "priceActual": 3.640000104904175,
+      "pricePrev": 4.2
+    },
+    {
+      "ticker": "ANNX",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6446,
+      "confidence": 0.2891,
+      "priceActual": 6.539999961853027,
+      "pricePrev": 6.33
+    },
+    {
+      "ticker": "AON",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5308,
+      "confidence": 0.0616,
+      "priceActual": 331.79998779296875,
+      "pricePrev": 335.34
+    },
+    {
+      "ticker": "AOS",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7088,
+      "confidence": 0.4176,
+      "priceActual": 64.81999969482422,
+      "pricePrev": 63.28
+    },
+    {
+      "ticker": "AOSL",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.3947,
+      "confidence": 0.2106,
+      "priceActual": 33.880001068115234,
+      "pricePrev": 31.21
+    },
+    {
+      "ticker": "APAD",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5215,
+      "confidence": 0.043,
+      "priceActual": 10.279999732971191,
+      "pricePrev": 10.27
+    },
+    {
+      "ticker": "APG",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.8927,
+      "confidence": 0.7854,
+      "priceActual": 46.75,
+      "pricePrev": 44.39
+    },
+    {
+      "ticker": "APH",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7097,
+      "confidence": 0.4195,
+      "priceActual": 151.05999755859375,
+      "pricePrev": 148.96
+    },
+    {
+      "ticker": "API",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9733,
+      "confidence": 0.9466,
+      "priceActual": 4.0,
+      "pricePrev": 3.94
+    },
+    {
+      "ticker": "APLE",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9745,
+      "confidence": 0.949,
+      "priceActual": 13.0,
+      "pricePrev": 12.61
+    },
+    {
+      "ticker": "APM",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.3647,
+      "confidence": 0.2706,
+      "priceActual": 0.8855000138282776,
+      "pricePrev": 0.9
+    },
+    {
+      "ticker": "APOS",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7276,
+      "confidence": 0.4552,
+      "priceActual": 25.850000381469727,
+      "pricePrev": 25.75
+    },
+    {
+      "ticker": "APTV",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6162,
+      "confidence": 0.2324,
+      "priceActual": 59.619998931884766,
+      "pricePrev": 57.52
+    },
+    {
+      "ticker": "AQNB",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5792,
+      "confidence": 0.1585,
+      "priceActual": 25.969999313354492,
+      "pricePrev": 25.95
+    },
+    {
+      "ticker": "ARES",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4743,
+      "confidence": 0.0515,
+      "priceActual": 117.77999877929688,
+      "pricePrev": 116.22
+    },
+    {
+      "ticker": "ARKO",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6489,
+      "confidence": 0.2978,
+      "priceActual": 6.730000019073486,
+      "pricePrev": 6.3
+    },
+    {
+      "ticker": "ARLP",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.4839,
+      "confidence": 0.0323,
+      "priceActual": 24.979999542236328,
+      "pricePrev": 25.55
+    },
+    {
+      "ticker": "ARMP",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.2578,
+      "confidence": 0.4844,
+      "priceActual": 11.5,
+      "pricePrev": 11.38
+    },
+    {
+      "ticker": "ARQ",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.6308,
+      "confidence": 0.2617,
+      "priceActual": 2.2300000190734863,
+      "pricePrev": 2.27
+    },
+    {
+      "ticker": "ARVN",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.892,
+      "confidence": 0.784,
+      "priceActual": 11.0,
+      "pricePrev": 11.0
+    },
+    {
+      "ticker": "ARWR",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7416,
+      "confidence": 0.4833,
+      "priceActual": 69.51000213623047,
+      "pricePrev": 67.98
+    },
+    {
+      "ticker": "ASB",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9852,
+      "confidence": 0.9703,
+      "priceActual": 28.139999389648438,
+      "pricePrev": 27.45
+    },
+    {
+      "ticker": "ASGN",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7546,
+      "confidence": 0.5092,
+      "priceActual": 39.439998626708984,
+      "pricePrev": 39.22
+    },
+    {
+      "ticker": "ASH",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7121,
+      "confidence": 0.4242,
+      "priceActual": 58.52000045776367,
+      "pricePrev": 57.47
+    },
+    {
+      "ticker": "ASML",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.633,
+      "confidence": 0.266,
+      "priceActual": 1459.800048828125,
+      "pricePrev": 1410.83
+    },
+    {
+      "ticker": "ASND",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6206,
+      "confidence": 0.2411,
+      "priceActual": 244.47999572753906,
+      "pricePrev": 242.95
+    },
+    {
+      "ticker": "ASPI",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6411,
+      "confidence": 0.2823,
+      "priceActual": 5.369999885559082,
+      "pricePrev": 5.11
+    },
+    {
+      "ticker": "ASR",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.9583,
+      "confidence": 0.9165,
+      "priceActual": 337.6099853515625,
+      "pricePrev": 339.18
+    },
+    {
+      "ticker": "ASST",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7574,
+      "confidence": 0.5147,
+      "priceActual": 15.609999656677246,
+      "pricePrev": 13.98
+    },
+    {
+      "ticker": "ATAT",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.9332,
+      "confidence": 0.8664,
+      "priceActual": 37.779998779296875,
+      "pricePrev": 38.36
+    },
+    {
+      "ticker": "ATEX",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5727,
+      "confidence": 0.1453,
+      "priceActual": 42.189998626708984,
+      "pricePrev": 40.36
+    },
+    {
+      "ticker": "ATHM",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.3359,
+      "confidence": 0.3283,
+      "priceActual": 18.719999313354492,
+      "pricePrev": 18.7
+    },
+    {
+      "ticker": "ATHS",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.8313,
+      "confidence": 0.6626,
+      "priceActual": 24.899999618530273,
+      "pricePrev": 24.8
+    },
+    {
+      "ticker": "ATLN",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5985,
+      "confidence": 0.1971,
+      "priceActual": 2.049999952316284,
+      "pricePrev": 1.97
+    },
+    {
+      "ticker": "ATLO",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.2104,
+      "confidence": 0.5793,
+      "priceActual": 28.65999984741211,
+      "pricePrev": 28.35
+    },
+    {
+      "ticker": "ATNI",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5632,
+      "confidence": 0.1264,
+      "priceActual": 28.229999542236328,
+      "pricePrev": 28.23
+    },
+    {
+      "ticker": "ATNM",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.548,
+      "confidence": 0.0959,
+      "priceActual": 1.2999999523162842,
+      "pricePrev": 1.25
+    },
+    {
+      "ticker": "ATON",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5136,
+      "confidence": 0.0271,
+      "priceActual": 0.3199999928474426,
+      "pricePrev": 0.321
+    },
+    {
+      "ticker": "ATRA",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5019,
+      "confidence": 0.0039,
+      "priceActual": 5.269999980926514,
+      "pricePrev": 5.24
+    },
+    {
+      "ticker": "AUBN",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7445,
+      "confidence": 0.489,
+      "priceActual": 23.809999465942383,
+      "pricePrev": 23.52
+    },
+    {
+      "ticker": "AURA",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5638,
+      "confidence": 0.1277,
+      "priceActual": 7.289999961853027,
+      "pricePrev": 7.06
+    },
+    {
+      "ticker": "AUST",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.8779,
+      "confidence": 0.7558,
+      "priceActual": 1.5,
+      "pricePrev": 1.47
+    },
+    {
+      "ticker": "AVIR",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6341,
+      "confidence": 0.2683,
+      "priceActual": 5.739999771118164,
+      "pricePrev": 5.7
+    },
+    {
+      "ticker": "AVNS",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.4366,
+      "confidence": 0.1267,
+      "priceActual": 24.6200008392334,
+      "pricePrev": 24.66
+    },
+    {
+      "ticker": "AWI",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9798,
+      "confidence": 0.9596,
+      "priceActual": 179.52000427246094,
+      "pricePrev": 173.57
+    },
+    {
+      "ticker": "AWK",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4323,
+      "confidence": 0.1353,
+      "priceActual": 131.61000061035156,
+      "pricePrev": 130.7
+    },
+    {
+      "ticker": "AWRE",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4798,
+      "confidence": 0.0403,
+      "priceActual": 1.3799999952316284,
+      "pricePrev": 1.25
+    },
+    {
+      "ticker": "AXIA",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.3953,
+      "confidence": 0.2094,
+      "priceActual": 12.8100004196167,
+      "pricePrev": 13.09
+    },
+    {
+      "ticker": "AXIL",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5221,
+      "confidence": 0.0441,
+      "priceActual": 6.994999885559082,
+      "pricePrev": 7.09
+    },
+    {
+      "ticker": "AZI",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.3593,
+      "confidence": 0.2814,
+      "priceActual": 1.5700000524520874,
+      "pricePrev": 1.58
+    },
+    {
+      "ticker": "BANR",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9346,
+      "confidence": 0.8691,
+      "priceActual": 64.58000183105469,
+      "pricePrev": 63.09
+    },
+    {
+      "ticker": "BANX",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.9914,
+      "confidence": 0.9827,
+      "priceActual": 19.68000030517578,
+      "pricePrev": 19.74
+    },
+    {
+      "ticker": "BATL",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.368,
+      "confidence": 0.264,
+      "priceActual": 3.059999942779541,
+      "pricePrev": 3.57
+    },
+    {
+      "ticker": "BATRK",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9926,
+      "confidence": 0.9852,
+      "priceActual": 47.630001068115234,
+      "pricePrev": 45.31
+    },
+    {
+      "ticker": "BBBY",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.698,
+      "confidence": 0.3961,
+      "priceActual": 5.739999771118164,
+      "pricePrev": 5.21
+    },
+    {
+      "ticker": "BBDO",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5448,
+      "confidence": 0.0897,
+      "priceActual": 3.744999885559082,
+      "pricePrev": 3.72
+    },
+    {
+      "ticker": "BBUC",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6552,
+      "confidence": 0.3104,
+      "priceActual": 34.75,
+      "pricePrev": 34.08
+    },
+    {
+      "ticker": "BBVA",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6806,
+      "confidence": 0.3612,
+      "priceActual": 23.850000381469727,
+      "pricePrev": 22.97
+    },
+    {
+      "ticker": "BBW",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4526,
+      "confidence": 0.0947,
+      "priceActual": 39.04999923706055,
+      "pricePrev": 37.43
+    },
+    {
+      "ticker": "BCBP",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6369,
+      "confidence": 0.2739,
+      "priceActual": 9.369999885559082,
+      "pricePrev": 9.19
+    },
+    {
+      "ticker": "BCE",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.8711,
+      "confidence": 0.7421,
+      "priceActual": 24.09000015258789,
+      "pricePrev": 24.16
+    },
+    {
+      "ticker": "BCIC",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.3968,
+      "confidence": 0.2065,
+      "priceActual": 8.119999885559082,
+      "pricePrev": 8.02
+    },
+    {
+      "ticker": "BCO",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9865,
+      "confidence": 0.9729,
+      "priceActual": 114.37999725341797,
+      "pricePrev": 111.67
+    },
+    {
+      "ticker": "BCPC",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9957,
+      "confidence": 0.9913,
+      "priceActual": 177.66000366210938,
+      "pricePrev": 174.45
+    },
+    {
+      "ticker": "BCRX",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.6783,
+      "confidence": 0.3565,
+      "priceActual": 9.5,
+      "pricePrev": 9.52
+    },
+    {
+      "ticker": "BCV",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9029,
+      "confidence": 0.8058,
+      "priceActual": 23.829999923706055,
+      "pricePrev": 23.8
+    },
+    {
+      "ticker": "BDCIU",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.1304,
+      "confidence": 0.7392,
+      "priceActual": 10.130000114440918,
+      "pricePrev": 10.12
+    },
+    {
+      "ticker": "BDMD",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7196,
+      "confidence": 0.4392,
+      "priceActual": 1.7599999904632568,
+      "pricePrev": 1.74
+    },
+    {
+      "ticker": "BE",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.2458,
+      "confidence": 0.5084,
+      "priceActual": 207.86000061035156,
+      "pricePrev": 210.06
+    },
+    {
+      "ticker": "BEAGU",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.0292,
+      "confidence": 0.9415,
+      "priceActual": 10.739999771118164,
+      "pricePrev": 10.77
+    },
+    {
+      "ticker": "BEAM",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6358,
+      "confidence": 0.2716,
+      "priceActual": 31.389999389648438,
+      "pricePrev": 30.33
+    },
+    {
+      "ticker": "BEAT",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5994,
+      "confidence": 0.1987,
+      "priceActual": 0.9200000166893005,
+      "pricePrev": 0.81
+    },
+    {
+      "ticker": "BEKE",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6424,
+      "confidence": 0.2848,
+      "priceActual": 16.239999771118164,
+      "pricePrev": 16.16
+    },
+    {
+      "ticker": "BELFA",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4928,
+      "confidence": 0.0144,
+      "priceActual": 234.6199951171875,
+      "pricePrev": 221.73
+    },
+    {
+      "ticker": "BEP",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.1728,
+      "confidence": 0.6543,
+      "priceActual": 34.59000015258789,
+      "pricePrev": 34.68
+    },
+    {
+      "ticker": "BF-B",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5908,
+      "confidence": 0.1817,
+      "priceActual": 29.149999618530273,
+      "pricePrev": 29.46
+    },
+    {
+      "ticker": "BFLY",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5796,
+      "confidence": 0.1591,
+      "priceActual": 5.449999809265137,
+      "pricePrev": 5.29
+    },
+    {
+      "ticker": "BFRI",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5573,
+      "confidence": 0.1145,
+      "priceActual": 1.100000023841858,
+      "pricePrev": 1.08
+    },
+    {
+      "ticker": "BGB",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5036,
+      "confidence": 0.0072,
+      "priceActual": 11.380000114440918,
+      "pricePrev": 11.29
+    },
+    {
+      "ticker": "BGH",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.687,
+      "confidence": 0.3739,
+      "priceActual": 14.460000038146973,
+      "pricePrev": 14.33
+    },
+    {
+      "ticker": "BGX",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.392,
+      "confidence": 0.216,
+      "priceActual": 11.079999923706055,
+      "pricePrev": 10.99
+    },
+    {
+      "ticker": "BHFAO",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5725,
+      "confidence": 0.1449,
+      "priceActual": 16.739999771118164,
+      "pricePrev": 16.85
+    },
+    {
+      "ticker": "BHP",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9598,
+      "confidence": 0.9196,
+      "priceActual": 80.44999694824219,
+      "pricePrev": 79.47
+    },
+    {
+      "ticker": "BHV",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7208,
+      "confidence": 0.4415,
+      "priceActual": 11.119999885559082,
+      "pricePrev": 10.83
+    },
+    {
+      "ticker": "BHVN",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7055,
+      "confidence": 0.4109,
+      "priceActual": 10.979999542236328,
+      "pricePrev": 10.01
+    },
+    {
+      "ticker": "BIDU",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6986,
+      "confidence": 0.3972,
+      "priceActual": 126.12999725341797,
+      "pricePrev": 125.03
+    },
+    {
+      "ticker": "BILI",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.7188,
+      "confidence": 0.4376,
+      "priceActual": 25.149999618530273,
+      "pricePrev": 25.25
+    },
+    {
+      "ticker": "BIOA",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7455,
+      "confidence": 0.4909,
+      "priceActual": 18.489999771118164,
+      "pricePrev": 16.99
+    },
+    {
+      "ticker": "BIT",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6254,
+      "confidence": 0.2508,
+      "priceActual": 12.75,
+      "pricePrev": 12.69
+    },
+    {
+      "ticker": "BJDX",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.3048,
+      "confidence": 0.3904,
+      "priceActual": 2.0,
+      "pricePrev": 1.965
+    },
+    {
+      "ticker": "BK-PK",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7868,
+      "confidence": 0.5735,
+      "priceActual": 25.479999542236328,
+      "pricePrev": 25.47
+    },
+    {
+      "ticker": "BKE",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.9862,
+      "confidence": 0.9725,
+      "priceActual": 54.619998931884766,
+      "pricePrev": 52.97
+    },
+    {
+      "ticker": "BKR",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.9177,
+      "confidence": 0.8354,
+      "priceActual": 59.779998779296875,
+      "pricePrev": 60.6
+    },
+    {
+      "ticker": "BLIN",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5448,
+      "confidence": 0.0897,
+      "priceActual": 0.8881000280380249,
+      "pricePrev": 0.88
+    },
+    {
+      "ticker": "BLIV",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5545,
+      "confidence": 0.1091,
+      "priceActual": 2.5,
+      "pricePrev": 2.399
+    },
+    {
+      "ticker": "BLNE",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7077,
+      "confidence": 0.4154,
+      "priceActual": 2.380000114440918,
+      "pricePrev": 2.33
+    },
+    {
+      "ticker": "BLW",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.988,
+      "confidence": 0.976,
+      "priceActual": 12.819999694824219,
+      "pricePrev": 12.75
+    },
+    {
+      "ticker": "BLZE",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.3619,
+      "confidence": 0.2762,
+      "priceActual": 4.099999904632568,
+      "pricePrev": 4.0
+    },
+    {
+      "ticker": "BMBL",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5138,
+      "confidence": 0.0275,
+      "priceActual": 4.260000228881836,
+      "pricePrev": 4.31
+    },
+    {
+      "ticker": "BNED",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6755,
+      "confidence": 0.3509,
+      "priceActual": 11.09000015258789,
+      "pricePrev": 10.36
+    },
+    {
+      "ticker": "BNH",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5061,
+      "confidence": 0.0123,
+      "priceActual": 16.030000686645508,
+      "pricePrev": 15.93
+    },
+    {
+      "ticker": "BNKK",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4926,
+      "confidence": 0.0148,
+      "priceActual": 2.9200000762939453,
+      "pricePrev": 2.75
+    },
+    {
+      "ticker": "BNRG",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5467,
+      "confidence": 0.0934,
+      "priceActual": 3.4800000190734863,
+      "pricePrev": 3.57
+    },
+    {
+      "ticker": "BNTC",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7304,
+      "confidence": 0.4607,
+      "priceActual": 14.079999923706055,
+      "pricePrev": 13.46
+    },
+    {
+      "ticker": "BNTX",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7248,
+      "confidence": 0.4496,
+      "priceActual": 102.91999816894531,
+      "pricePrev": 102.12
+    },
+    {
+      "ticker": "BOLT",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5307,
+      "confidence": 0.0615,
+      "priceActual": 4.730000019073486,
+      "pricePrev": 4.81
+    },
+    {
+      "ticker": "BOTJ",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.6118,
+      "confidence": 0.2237,
+      "priceActual": 23.110000610351562,
+      "pricePrev": 22.61
+    },
+    {
+      "ticker": "BOW",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.3551,
+      "confidence": 0.2898,
+      "priceActual": 24.65999984741211,
+      "pricePrev": 24.47
+    },
+    {
+      "ticker": "BPYPM",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.5529,
+      "confidence": 0.1059,
+      "priceActual": 16.469999313354492,
+      "pricePrev": 16.42
+    },
+    {
+      "ticker": "BRBS",
+      "correct": 1,
+      "predicted": "UP",
+      "actual": "UP",
+      "probability": 0.7481,
+      "confidence": 0.4962,
+      "priceActual": 3.569999933242798,
+      "pricePrev": 3.48
+    },
+    {
+      "ticker": "BRFH",
+      "correct": 0,
+      "predicted": "UP",
+      "actual": "DOWN",
+      "probability": 0.5424,
+      "confidence": 0.0848,
+      "priceActual": 2.700000047683716,
+      "pricePrev": 2.74
+    },
+    {
+      "ticker": "BRID",
+      "correct": 1,
+      "predicted": "DOWN",
+      "actual": "DOWN",
+      "probability": 0.4619,
+      "confidence": 0.0763,
+      "priceActual": 7.25,
+      "pricePrev": 7.58
+    },
+    {
+      "ticker": "BRKRP",
+      "correct": 0,
+      "predicted": "DOWN",
+      "actual": "UP",
+      "probability": 0.4633,
+      "confidence": 0.0734,
+      "priceActual": 318.55999755859375,
+      "pricePrev": 306.06
+    }
+  ]
+}
