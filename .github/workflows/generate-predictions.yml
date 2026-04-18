@@ -6,6 +6,10 @@ on:
     - cron: '30 22 * * 1-5'
   workflow_dispatch:   # allow manual trigger
 
+concurrency:
+  group: main-branch-writer
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -90,5 +94,6 @@ jobs:
             echo "No new predictions to commit."
           else
             git commit -m "chore: generate daily predictions $(date -u +%Y-%m-%d)"
+            git pull --rebase --autostash origin main
             git push
           fi

@@ -54,5 +54,6 @@ jobs:
             echo "No walk-forward report changes."
           else
             git commit -m "chore: update walk-forward diagnostics $(date -u +%Y-%m)"
+            git pull --rebase --autostash origin main
             git push
           fi
