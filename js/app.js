@@ -41,7 +41,7 @@ const appState = {
   tfReady: false,
   /** Whether Chart.js loaded successfully */
   chartReady: false,
-  /** @type {'dashboard'|'watchlist'|'settings'} */
+  /** @type {'dashboard'|'watchlist'|'accuracy'|'sectors'|'heatmap'|'screener'|'backtest'|'earnings'|'settings'} */
   activeView: 'dashboard',
   /**
    * V2 pipeline predictions loaded from data/predictions/YYYY-MM-DD.json.
@@ -127,6 +127,7 @@ function initNavigation() {
   const navHeatmap   = document.getElementById('nav-heatmap');
   const navScreener  = document.getElementById('nav-screener');
   const navBacktest  = document.getElementById('nav-backtest');
+  const navEarnings  = document.getElementById('nav-earnings');
   const navAccuracy  = document.getElementById('nav-accuracy');
   const navSectors   = document.getElementById('nav-sectors');
   const navHelp      = document.getElementById('nav-help');
@@ -137,6 +138,7 @@ function initNavigation() {
   navHeatmap?.addEventListener('click',   () => navigateTo('heatmap'));
   navScreener?.addEventListener('click',  () => navigateTo('screener'));
   navBacktest?.addEventListener('click',  () => navigateTo('backtest'));
+  navEarnings?.addEventListener('click',  () => navigateTo('earnings'));
   navAccuracy?.addEventListener('click',  () => navigateTo('accuracy'));
   navSectors?.addEventListener('click',   () => navigateTo('sectors'));
   navHelp?.addEventListener('click',      () => openHelp());
@@ -145,10 +147,10 @@ function initNavigation() {
 
 /**
  * Switch the visible view and update the active nav button.
- * @param {'dashboard'|'watchlist'|'accuracy'|'sectors'|'heatmap'|'screener'|'backtest'|'settings'} viewName
+ * @param {'dashboard'|'watchlist'|'accuracy'|'sectors'|'heatmap'|'screener'|'backtest'|'earnings'|'settings'} viewName
  */
 function navigateTo(viewName) {
-  const views = ['dashboard', 'watchlist', 'accuracy', 'sectors', 'heatmap', 'screener', 'backtest', 'settings'];
+  const views = ['dashboard', 'watchlist', 'accuracy', 'sectors', 'heatmap', 'screener', 'backtest', 'earnings', 'settings'];
   const navBtns = {
     dashboard: document.getElementById('nav-dashboard'),
     watchlist: document.getElementById('nav-watchlist'),
@@ -157,6 +159,7 @@ function navigateTo(viewName) {
     heatmap:   document.getElementById('nav-heatmap'),
     screener:  document.getElementById('nav-screener'),
     backtest:  document.getElementById('nav-backtest'),
+    earnings:  document.getElementById('nav-earnings'),
     settings:  document.getElementById('nav-settings'),
   };
 
@@ -213,6 +216,14 @@ function navigateTo(viewName) {
     }).catch(err => {
       console.error('[App] Failed to load backtest module:', err);
       showToast('Backtest view failed to load. Please refresh.', 'error');
+    });
+  } else if (viewName === 'earnings') {
+    import('./ui/earnings.js').then(({ renderEarningsView }) => {
+      const container = document.getElementById('view-earnings');
+      if (container) renderEarningsView(container, appState);
+    }).catch(err => {
+      console.error('[App] Failed to load earnings module:', err);
+      showToast('Earnings view failed to load. Please refresh.', 'error');
     });
   }
 }

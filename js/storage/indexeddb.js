@@ -19,13 +19,14 @@
  */
 
 const DB_NAME    = 'NostradamusDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 /** All object store names used by the application. */
 export const STORE_NAMES = {
   MODEL_WEIGHTS:  'modelWeights',   // TF.js model artifacts
   HISTORICAL_DATA:'historicalData', // OHLCV candle arrays per ticker
   FEATURE_CACHE:  'featureCache',   // Pre-computed feature matrices
+  QUOTE_CACHE:    'quoteCache',     // Live quotes with short TTL
 };
 
 /** @type {IDBDatabase|null} */

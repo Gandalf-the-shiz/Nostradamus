@@ -96,6 +96,19 @@ export async function getCompanyNews(symbol, from, to) {
 }
 
 /**
+ * Fetch earnings calendar from Finnhub.
+ * @param {string} from - YYYY-MM-DD
+ * @param {string} to - YYYY-MM-DD
+ * @param {string} [symbol] - Optional ticker filter
+ * @returns {Promise<{earningsCalendar?: Array}>}
+ */
+export async function getEarningsCalendar(from, to, symbol) {
+  const params = { from, to };
+  if (symbol) params.symbol = symbol;
+  return apiFetch('/calendar/earnings', params);
+}
+
+/**
  * Open a WebSocket connection for real-time trade data.
  * @param {string[]} symbols  - Array of symbols to subscribe to
  * @param {(trade: Object) => void} onTrade  - Callback for each trade event

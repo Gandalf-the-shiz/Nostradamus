@@ -1,569 +1,261 @@
-/**
- * js/ui/accuracy-dashboard.js
- * Rolling accuracy dashboard — Phase 5.
- *
- * Renders a dedicated "Accuracy" view showing:
- *   - Summary metric cards (hit rate, MAE, total predictions)
- *   - Rolling accuracy chart (hit rate & MAE over time, Chart.js)
- *   - Recent prediction history log
- *   - Model versions table with A/B champion indicator
- *
- * Called from app.js when the user navigates to the Accuracy view.
- * Requires Chart.js loaded via CDN (window.Chart).
- */
-
-import { getPredictions } from '../ml/tracker.js';
-import { getAccuracySummary, getWeeklyMetrics, getSentimentCorrelation } from '../ml/accuracy.js';
-import { getVersions, getChampionVersion } from '../ml/versioning.js';
-import { getLastTrainingInfo } from '../ml/retraining.js';
-import { formatCurrency, showToast } from '../utils/helpers.js';
-import { exportPredictionsCSV } from './export.js';
-
-// Chart instance registry so we can destroy/recreate on refresh
 let _accuracyChart = null;
+let _calibrationChart = null;
 
-// ─── Main initialiser ────────────────────────────────────────
+const BASELINE = 52;
+const RETRAIN_THRESHOLD = 53;
 
-/**
- * Initialise (or refresh) the Accuracy dashboard view.
- * @param {{ mode: 'demo'|'live', chartReady: boolean }} appState
- */
-export function initAccuracyDashboard(appState) {
+export function initAccuracyDashboard() {
   const container = document.getElementById('view-accuracy');
   if (!container) return;
-
-  container.innerHTML = '';
-
-  const panel = document.createElement('div');
-  panel.className = 'accuracy-panel';
-
-  // Title
-  const title = document.createElement('h2');
-  title.className = 'accuracy-panel__title';
-  title.textContent = '📊 Prediction Accuracy';
-  panel.appendChild(title);
-
-  // Export CSV button
-  const exportBtn = document.createElement('button');
-  exportBtn.className = 'btn btn--secondary accuracy-export-btn';
-  exportBtn.textContent = '⬇️ Export CSV';
-  exportBtn.title = 'Download all predictions as a CSV file';
-  exportBtn.addEventListener('click', () => {
-    const result = exportPredictionsCSV();
-    if (result.success) {
-      showToast(`Exported ${result.count} predictions to CSV.`, 'success');
-    } else {
-      showToast(result.message, 'info');
-    }
-  });
-  panel.appendChild(exportBtn);
-
-  // Demo notice
-  if (appState.mode === 'demo') {
-    const notice = document.createElement('p');
-    notice.className = 'accuracy-panel__demo-notice';
-    notice.textContent = 'Demo mode — accuracy data is based on stored predictions. Real accuracy tracking requires live API data.';
-    panel.appendChild(notice);
-  }
-
-  // Summary metrics
-  const metrics = getAccuracySummary();
-  panel.appendChild(_renderMetricCards(metrics));
-
-  // Last training info
-  panel.appendChild(_renderTrainingInfo());
-
-  // Rolling accuracy chart
-  if (appState.chartReady) {
-    const chartSection = document.createElement('div');
-    chartSection.className = 'accuracy-section';
-    const chartTitle = document.createElement('h3');
-    chartTitle.className = 'accuracy-section__title';
-    chartTitle.textContent = 'Hit Rate Over Time';
-    chartSection.appendChild(chartTitle);
-    const chartContainer = document.createElement('div');
-    chartContainer.id   = 'accuracy-chart-container';
-    chartContainer.className = 'accuracy-chart-container';
-    chartSection.appendChild(chartContainer);
-    panel.appendChild(chartSection);
-    // Render chart after the container is added to the live DOM
-    requestAnimationFrame(() => {
-      if (document.contains(chartContainer)) {
-        _renderAccuracyChart(chartContainer);
-      }
-    });
-  }
-
-  // Model versions
-  const versions = getVersions();
-  if (versions.length > 0) {
-    panel.appendChild(_renderVersionsTable(versions));
-  }
-
-  // Sentiment correlation card
-  panel.appendChild(_renderSentimentCorrelation());
-
-  // Recent predictions
-  const predictions = getPredictions();
-  panel.appendChild(_renderPredictionHistory(predictions));
-
-  container.appendChild(panel);
+  container.innerHTML = '<div class="accuracy-panel"><h2 class="accuracy-panel__title">📊 Prediction Accuracy</h2><p class="accuracy-empty-note">Loading server-side accuracy data…</p></div>';
+  void _render(container);
 }
 
-// ─── Metric cards ─────────────────────────────────────────────
-
-/**
- * @param {import('../ml/accuracy.js').AccuracyMetrics} metrics
- * @returns {HTMLElement}
- */
-function _renderMetricCards(metrics) {
-  const grid = document.createElement('div');
-  grid.className = 'accuracy-metrics';
-
-  const hitRatePct = isNaN(metrics.hitRate)
-    ? '—'
-    : `${(metrics.hitRate * 100).toFixed(1)}%`;
-
-  const maeStr = isNaN(metrics.mae)
-    ? '—'
-    : formatCurrency(metrics.mae);
-
-  const cards = [
-    {
-      icon:  '🎯',
-      label: 'Hit Rate',
-      value: hitRatePct,
-      sub:   'Direction accuracy',
-      good:  !isNaN(metrics.hitRate) && metrics.hitRate >= 0.5,
-    },
-    {
-      icon:  '📏',
-      label: 'Avg Price Error',
-      value: maeStr,
-      sub:   'Mean absolute error',
-      good:  null,
-    },
-    {
-      icon:  '✅',
-      label: 'Resolved',
-      value: String(metrics.resolvedCount),
-      sub:   `of ${metrics.totalPredictions} total`,
-      good:  null,
-    },
-    {
-      icon:  '⏳',
-      label: 'Pending',
-      value: String(metrics.pendingCount),
-      sub:   'Awaiting actual price',
-      good:  null,
-    },
-  ];
-
-  cards.forEach(c => {
-    const card = document.createElement('div');
-    card.className = 'accuracy-metric-card';
-    if (c.good === true)  card.classList.add('accuracy-metric-card--good');
-    if (c.good === false) card.classList.add('accuracy-metric-card--bad');
-
-    card.innerHTML = `
-      <span class="accuracy-metric-card__icon">${c.icon}</span>
-      <span class="accuracy-metric-card__label">${c.label}</span>
-      <span class="accuracy-metric-card__value">${c.value}</span>
-      <span class="accuracy-metric-card__sub">${c.sub}</span>
-    `;
-    grid.appendChild(card);
-  });
-
-  return grid;
-}
-
-// ─── Training info ────────────────────────────────────────────
-
-function _renderTrainingInfo() {
-  const info = getLastTrainingInfo();
-  const champion = getChampionVersion();
-
-  const wrap = document.createElement('div');
-  wrap.className = 'accuracy-training-info';
-
-  const lastTrainStr = info.lastTrainedAt
-    ? new Date(info.lastTrainedAt).toLocaleString()
-    : 'Never';
-
-  const championStr = champion
-    ? `v${champion.versionNumber} (hit rate: ${
-        isNaN(champion.accuracy.hitRate)
-          ? '—'
-          : `${(champion.accuracy.hitRate * 100).toFixed(1)}%`
-      })`
-    : 'None';
-
-  wrap.innerHTML = `
-    <div class="accuracy-training-info__row">
-      <span class="accuracy-training-info__label">Last trained</span>
-      <span class="accuracy-training-info__value">${lastTrainStr}</span>
-    </div>
-    <div class="accuracy-training-info__row">
-      <span class="accuracy-training-info__label">Champion model</span>
-      <span class="accuracy-training-info__value">${championStr}</span>
-    </div>
-  `;
-
-  return wrap;
-}
-
-// ─── Rolling accuracy chart ───────────────────────────────────
-
-/**
- * @param {HTMLElement} container
- */
-function _renderAccuracyChart(container) {
-  if (typeof Chart === 'undefined') return;
-
-  const weekly = getWeeklyMetrics(undefined, 12);
-
-  if (weekly.length === 0) {
-    container.innerHTML = '<p class="accuracy-empty-note">No resolved predictions yet. Accuracy trends will appear here after predictions are evaluated.</p>';
+async function _render(container) {
+  const log = await _fetchJSON('./data/accuracy/accuracy-log.json');
+  if (!log || !Array.isArray(log.entries) || log.entries.length === 0) {
+    container.innerHTML = `
+      <div class="accuracy-panel">
+        <h2 class="accuracy-panel__title">📊 Prediction Accuracy</h2>
+        <p class="accuracy-empty-note">Accuracy data will appear after the first \`accuracy.yml\` run completes.</p>
+      </div>`;
     return;
   }
 
-  // Destroy previous instance
-  if (_accuracyChart) {
-    _accuracyChart.destroy();
-    _accuracyChart = null;
+  const entries = log.entries
+    .filter(e => e && e.date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const validEntries = entries.filter(e => typeof e.hitRate === 'number');
+  const roll7 = _rollingWeighted(entries, 7);
+  const roll30 = _rollingWeighted(entries, 30);
+  const roll90 = _rollingWeighted(entries, 90);
+
+  const dailyReports = new Map();
+  await Promise.all(validEntries.map(async e => {
+    const d = await _fetchJSON(`./data/accuracy/${e.date}.json`);
+    if (d) dailyReports.set(e.date, d);
+  }));
+
+  const diagnostics = _computeDiagnostics(entries, dailyReports);
+  const walkForward = await _loadLatestWalkForward();
+
+  const panel = document.createElement('div');
+  panel.className = 'accuracy-panel';
+  panel.innerHTML = `
+    <h2 class="accuracy-panel__title">📊 Prediction Accuracy</h2>
+    <div class="accuracy-metrics">
+      ${_metricCard('7-Day', _fmtPct(roll7), 'Directional accuracy')}
+      ${_metricCard('30-Day', _fmtPct(roll30), 'Auto-retrain threshold: 53%')}
+      ${_metricCard('90-Day', _fmtPct(roll90), 'Long-term directional accuracy')}
+      ${_metricCard('Regression MAE', diagnostics.regressionMAE != null ? `${(diagnostics.regressionMAE * 100).toFixed(2)}%` : '—', 'Predicted return vs realized return')}
+    </div>
+    <div class="accuracy-section">
+      <h3 class="accuracy-section__title">Daily Accuracy vs 52% Baseline</h3>
+      <div id="accuracy-chart-container" class="accuracy-chart-container"></div>
+    </div>
+    <div class="accuracy-metrics">
+      ${_metricCard('TP', String(diagnostics.confusion.tp), 'Predicted UP, actual UP')}
+      ${_metricCard('TN', String(diagnostics.confusion.tn), 'Predicted DOWN, actual DOWN')}
+      ${_metricCard('FP', String(diagnostics.confusion.fp), 'Predicted UP, actual DOWN')}
+      ${_metricCard('FN', String(diagnostics.confusion.fn), 'Predicted DOWN, actual UP')}
+    </div>
+    <div class="accuracy-section">
+      <h3 class="accuracy-section__title">Confidence Calibration (Deciles)</h3>
+      <div id="calibration-chart-container" class="accuracy-chart-container"></div>
+    </div>
+    ${walkForward ? `
+      <div class="accuracy-section">
+        <h3 class="accuracy-section__title">Walk-Forward Validation (Latest)</h3>
+        <p class="accuracy-empty-note">
+          Folds: ${walkForward.aggregated?.folds ?? 0} · Accuracy: ${_fmtPct(walkForward.aggregated?.accuracy)} ·
+          AUC: ${_fmtNum(walkForward.aggregated?.auc)} · Regression MAE: ${walkForward.aggregated?.regressionMAE != null ? `${(walkForward.aggregated.regressionMAE * 100).toFixed(2)}%` : '—'}
+        </p>
+      </div>` : ''}
+  `;
+  container.innerHTML = '';
+  container.appendChild(panel);
+
+  _renderAccuracyChart(entries);
+  _renderCalibrationChart(diagnostics.calibration);
+}
+
+function _metricCard(label, value, sub) {
+  return `
+    <div class="accuracy-metric-card">
+      <span class="accuracy-metric-card__label">${label}</span>
+      <span class="accuracy-metric-card__value">${value}</span>
+      <span class="accuracy-metric-card__sub">${sub}</span>
+    </div>
+  `;
+}
+
+function _rollingWeighted(entries, days) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  let total = 0;
+  let correct = 0;
+  for (const e of entries) {
+    if (typeof e.hitRate !== 'number') continue;
+    if (new Date(`${e.date}T00:00:00Z`) < cutoff) continue;
+    const n = Number(e.total || 0);
+    if (!n) continue;
+    total += n;
+    correct += Number(e.correct || 0);
+  }
+  return total > 0 ? correct / total : null;
+}
+
+function _computeDiagnostics(entries, dailyReports) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+
+  const detail = [];
+  const reg = [];
+  for (const e of entries) {
+    if (new Date(`${e.date}T00:00:00Z`) < cutoff) continue;
+    const daily = dailyReports.get(e.date);
+    if (!daily) continue;
+    if (typeof daily?.metrics?.regressionMAE === 'number') reg.push(daily.metrics.regressionMAE);
+    for (const r of (daily.detail || [])) {
+      detail.push(r);
+      if (typeof r.regressionAbsError === 'number') reg.push(r.regressionAbsError);
+    }
   }
 
+  const confusion = { tp: 0, tn: 0, fp: 0, fn: 0 };
+  const buckets = new Map();
+  for (let lo = 0.5; lo < 1; lo += 0.1) buckets.set(lo.toFixed(1), { total: 0, hit: 0 });
+
+  for (const r of detail) {
+    if (r.predicted === 'UP' && r.actual === 'UP') confusion.tp += 1;
+    else if (r.predicted === 'DOWN' && r.actual === 'DOWN') confusion.tn += 1;
+    else if (r.predicted === 'UP' && r.actual === 'DOWN') confusion.fp += 1;
+    else if (r.predicted === 'DOWN' && r.actual === 'UP') confusion.fn += 1;
+
+    const c = Number(r.confidence);
+    if (!Number.isFinite(c) || c < 0.5) continue;
+    const lo = Math.min(0.9, Math.floor(c * 10) / 10).toFixed(1);
+    const b = buckets.get(lo);
+    if (!b) continue;
+    b.total += 1;
+    if (Number(r.correct) === 1) b.hit += 1;
+  }
+
+  const calibration = Array.from(buckets.entries()).map(([lo, b]) => {
+    const lower = Number(lo);
+    const upper = Number((lower + 0.1).toFixed(1));
+    const mid = (lower + upper) / 2;
+    return {
+      label: `${lo}–${upper.toFixed(1)}`,
+      expected: mid,
+      actual: b.total ? b.hit / b.total : null,
+    };
+  });
+
+  const regressionMAE = reg.length ? reg.reduce((s, v) => s + v, 0) / reg.length : null;
+  return { confusion, calibration, regressionMAE };
+}
+
+function _renderAccuracyChart(entries) {
+  if (typeof Chart === 'undefined') return;
+  const el = document.getElementById('accuracy-chart-container');
+  if (!el) return;
+  if (_accuracyChart) _accuracyChart.destroy();
   const canvas = document.createElement('canvas');
-  canvas.setAttribute('aria-label', 'Weekly prediction accuracy chart');
-  canvas.setAttribute('role', 'img');
-  container.innerHTML = '';
-  container.appendChild(canvas);
+  el.innerHTML = '';
+  el.appendChild(canvas);
 
-  const labels   = weekly.map(w => w.label);
-  const hitRates = weekly.map(w => isNaN(w.hitRate) ? null : parseFloat((w.hitRate * 100).toFixed(1)));
-  const maes     = weekly.map(w => isNaN(w.mae) ? null : parseFloat(w.mae.toFixed(2)));
-
-  const C_ACCENT = 'rgba(124, 111, 239, 1)';
-  const C_ACCENT_FILL = 'rgba(124, 111, 239, 0.15)';
-  const C_DOWN   = 'rgba(240, 92, 110, 0.8)';
-  const C_GRID   = 'rgba(255,255,255,0.06)';
-  const C_TICK   = 'rgba(255,255,255,0.35)';
+  const labels = entries.map(e => e.date);
+  const daily = entries.map(e => typeof e.hitRate === 'number' ? e.hitRate * 100 : null);
+  const rolling30 = entries.map((_, i) => {
+    const slice = entries.slice(Math.max(0, i - 29), i + 1).filter(e => typeof e.hitRate === 'number');
+    if (!slice.length) return null;
+    return (slice.reduce((s, e) => s + e.hitRate, 0) / slice.length) * 100;
+  });
+  const belowThreshold = rolling30.map(v => (v != null && v < RETRAIN_THRESHOLD ? v : null));
 
   _accuracyChart = new Chart(canvas, {
     type: 'line',
     data: {
       labels,
       datasets: [
+        { label: 'Daily accuracy %', data: daily, borderColor: 'rgba(124,111,239,1)', backgroundColor: 'rgba(124,111,239,0.15)', fill: true, tension: 0.25 },
+        { label: '30-day rolling %', data: rolling30, borderColor: 'rgba(38,217,127,1)', backgroundColor: 'transparent', tension: 0.25, borderWidth: 2 },
+        { label: '52% baseline', data: labels.map(() => BASELINE), borderColor: 'rgba(255,255,255,0.45)', borderDash: [6, 4], pointRadius: 0 },
+        { label: 'Below 53% threshold', data: belowThreshold, borderColor: 'rgba(240,92,110,0.9)', backgroundColor: 'rgba(240,92,110,0.18)', fill: { target: { value: RETRAIN_THRESHOLD } }, pointRadius: 0, tension: 0.2 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { min: 0, max: 100, ticks: { callback: v => `${v}%` } } },
+    },
+  });
+}
+
+function _renderCalibrationChart(calibration) {
+  if (typeof Chart === 'undefined') return;
+  const el = document.getElementById('calibration-chart-container');
+  if (!el) return;
+  if (_calibrationChart) _calibrationChart.destroy();
+  const canvas = document.createElement('canvas');
+  el.innerHTML = '';
+  el.appendChild(canvas);
+
+  _calibrationChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: calibration.map(b => b.label),
+      datasets: [
         {
-          label:           'Hit Rate %',
-          data:            hitRates,
-          borderColor:     C_ACCENT,
-          backgroundColor: C_ACCENT_FILL,
-          borderWidth:     2,
-          fill:            true,
-          tension:         0.3,
-          pointRadius:     4,
-          pointBackgroundColor: C_ACCENT,
-          yAxisID:         'yHit',
+          label: 'Actual hit rate',
+          data: calibration.map(b => (b.actual != null ? b.actual * 100 : null)),
+          borderColor: 'rgba(124,111,239,1)',
+          backgroundColor: 'rgba(124,111,239,0.15)',
+          tension: 0.2,
         },
         {
-          label:           'Avg Price Error ($)',
-          data:            maes,
-          borderColor:     C_DOWN,
-          backgroundColor: 'transparent',
-          borderWidth:     2,
-          borderDash:      [5, 4],
-          fill:            false,
-          tension:         0.3,
-          pointRadius:     3,
-          pointBackgroundColor: C_DOWN,
-          yAxisID:         'yMAE',
+          label: 'Perfect calibration',
+          data: calibration.map(b => b.expected * 100),
+          borderColor: 'rgba(255,255,255,0.45)',
+          borderDash: [5, 4],
+          pointRadius: 0,
         },
       ],
     },
     options: {
-      responsive:          true,
+      responsive: true,
       maintainAspectRatio: false,
-      animation:           { duration: 400 },
-      interaction:         { mode: 'index', intersect: false },
-      plugins: {
-        legend: {
-          display: true,
-          labels: { color: C_TICK, font: { size: 11 }, boxWidth: 16 },
-        },
-        tooltip: {
-          backgroundColor: 'rgba(26,29,39,0.95)',
-          titleColor:      'rgba(255,255,255,0.6)',
-          bodyColor:       '#e8eaf0',
-          borderColor:     'rgba(255,255,255,0.1)',
-          borderWidth:     1,
-          padding:         10,
-        },
-      },
-      scales: {
-        x: {
-          ticks:  { color: C_TICK, font: { size: 11 }, maxRotation: 0 },
-          grid:   { color: C_GRID },
-          border: { color: C_GRID },
-        },
-        yHit: {
-          position: 'left',
-          min: 0,
-          max: 100,
-          ticks:  { color: C_TICK, font: { size: 11 }, callback: v => `${v}%` },
-          grid:   { color: C_GRID },
-          border: { color: C_GRID },
-          title:  { display: false },
-        },
-        yMAE: {
-          position: 'right',
-          min: 0,
-          ticks:  { color: C_TICK, font: { size: 11 }, callback: v => `$${v}` },
-          grid:   { display: false },
-          border: { color: C_GRID },
-        },
-      },
+      scales: { y: { min: 0, max: 100, ticks: { callback: v => `${v}%` } } },
     },
   });
 }
 
-// ─── Model versions table ─────────────────────────────────────
-
-/**
- * @param {import('../ml/versioning.js').ModelVersion[]} versions
- * @returns {HTMLElement}
- */
-function _renderVersionsTable(versions) {
-  const section = document.createElement('div');
-  section.className = 'accuracy-section';
-
-  const title = document.createElement('h3');
-  title.className = 'accuracy-section__title';
-  title.textContent = '🏆 Model Versions';
-  section.appendChild(title);
-
-  const table = document.createElement('table');
-  table.className = 'accuracy-table';
-  table.setAttribute('role', 'table');
-
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>Version</th>
-        <th>Trained</th>
-        <th>Val Loss</th>
-        <th>Hit Rate</th>
-        <th>MAE</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-  `;
-
-  const tbody = document.createElement('tbody');
-  // Show at most 10 most recent
-  versions.slice(0, 10).forEach(v => {
-    const tr = document.createElement('tr');
-    if (v.isChampion) tr.classList.add('accuracy-table__row--champion');
-
-    const trainedDate = new Date(v.trainedAt).toLocaleDateString('en-US', {
-      month: 'short',
-      day:   'numeric',
-    });
-
-    const hitRateStr = isNaN(v.accuracy.hitRate)
-      ? '—'
-      : `${(v.accuracy.hitRate * 100).toFixed(1)}%`;
-
-    const maeStr = isNaN(v.accuracy.mae)
-      ? '—'
-      : `$${v.accuracy.mae.toFixed(2)}`;
-
-    tr.innerHTML = `
-      <td><strong>v${v.versionNumber}</strong></td>
-      <td>${trainedDate}</td>
-      <td>${v.valLoss.toFixed(4)}</td>
-      <td>${hitRateStr}</td>
-      <td>${maeStr}</td>
-      <td>${v.isChampion ? '<span class="accuracy-champion-badge">👑 Champion</span>' : '<span class="accuracy-version-badge">—</span>'}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  table.appendChild(tbody);
-  section.appendChild(table);
-  return section;
-}
-
-// ─── Prediction history ───────────────────────────────────────
-
-/**
- * @param {import('../ml/tracker.js').TrackedPrediction[]} predictions
- * @returns {HTMLElement}
- */
-function _renderPredictionHistory(predictions) {
-  const section = document.createElement('div');
-  section.className = 'accuracy-section';
-
-  const header = document.createElement('div');
-  header.className = 'accuracy-section__header';
-  const title = document.createElement('h3');
-  title.className = 'accuracy-section__title';
-  title.textContent = '📋 Recent Predictions';
-  header.appendChild(title);
-  const countBadge = document.createElement('span');
-  countBadge.className = 'accuracy-count-badge';
-  countBadge.textContent = `${predictions.length} stored`;
-  header.appendChild(countBadge);
-  section.appendChild(header);
-
-  if (predictions.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'accuracy-empty-note';
-    empty.textContent = 'No predictions stored yet. Predictions are recorded automatically each time the model runs.';
-    section.appendChild(empty);
-    return section;
+async function _loadLatestWalkForward() {
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const tag = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const report = await _fetchJSON(`./data/accuracy/walk-forward-${tag}.json`);
+    if (report) return report;
   }
-
-  const table = document.createElement('table');
-  table.className = 'accuracy-table';
-
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>Symbol</th>
-        <th>Date</th>
-        <th>Prediction</th>
-        <th>Actual</th>
-        <th>Result</th>
-      </tr>
-    </thead>
-  `;
-
-  const tbody = document.createElement('tbody');
-  // Show most recent 20 predictions
-  const recent = predictions.slice().reverse().slice(0, 20);
-
-  recent.forEach(p => {
-    const tr = document.createElement('tr');
-
-    const date = new Date(p.generatedAt).toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric',
-    });
-
-    const dirIcon = p.direction === 'UP' ? '▲' : '▼';
-    const dirClass = p.direction === 'UP' ? 'accuracy-up' : 'accuracy-down';
-    const predStr = `<span class="${dirClass}">${dirIcon} ${p.direction} ${formatCurrency(p.delta)}</span>`;
-
-    let actualStr = '—';
-    let resultStr = '<span class="accuracy-pending">Pending</span>';
-
-    if (p.resolvedAt !== null) {
-      actualStr = formatCurrency(p.actualPrice ?? 0);
-      if (p.isCorrect) {
-        resultStr = '<span class="accuracy-correct">✓ Correct</span>';
-      } else {
-        resultStr = '<span class="accuracy-incorrect">✗ Wrong</span>';
-      }
-    }
-
-    tr.innerHTML = `
-      <td><strong>${p.symbol}</strong>${p.isDemo ? ' <span class="accuracy-demo-tag">demo</span>' : ''}</td>
-      <td>${date}</td>
-      <td>${predStr}</td>
-      <td>${actualStr}</td>
-      <td>${resultStr}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  table.appendChild(tbody);
-  section.appendChild(table);
-  return section;
+  return null;
 }
 
-// ─── Sentiment correlation ────────────────────────────────────
-
-/**
- * Render the sentiment-prediction correlation card.
- * @returns {HTMLElement}
- */
-function _renderSentimentCorrelation() {
-  const section = document.createElement('div');
-  section.className = 'accuracy-section';
-
-  const title = document.createElement('h3');
-  title.className = 'accuracy-section__title';
-  title.textContent = '💬 Sentiment–Prediction Correlation';
-  section.appendChild(title);
-
-  const note = document.createElement('p');
-  note.className = 'accuracy-panel__demo-notice';
-  note.textContent =
-    'Compares keyword-based news sentiment with model direction calls, measured against resolved outcomes.';
-  section.appendChild(note);
-
-  const corr = getSentimentCorrelation();
-
-  if (corr.sampleSize === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'accuracy-empty-note';
-    empty.textContent = 'No resolved predictions with sentiment data yet. Metrics appear once predictions are evaluated.';
-    section.appendChild(empty);
-    return section;
+async function _fetchJSON(path) {
+  try {
+    const r = await fetch(path, { cache: 'no-store' });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
   }
+}
 
-  const fmt = v => isNaN(v) ? '—' : `${(v * 100).toFixed(1)}%`;
+function _fmtPct(v) {
+  return v == null ? '—' : `${(v * 100).toFixed(1)}%`;
+}
 
-  const grid = document.createElement('div');
-  grid.className = 'accuracy-metrics';
-
-  const cards = [
-    {
-      icon: '🤝', label: 'Agreement Rate',
-      value: fmt(corr.agreementRate),
-      sub:   'Sentiment & model same direction',
-      good:  !isNaN(corr.agreementRate) && corr.agreementRate > 0.5,
-    },
-    {
-      icon: '📰', label: 'Sentiment Accuracy',
-      value: fmt(corr.sentimentAccuracy),
-      sub:   'News sentiment direction correct',
-      good:  !isNaN(corr.sentimentAccuracy) && corr.sentimentAccuracy > 0.5,
-    },
-    {
-      icon: '🔮', label: 'Model Accuracy',
-      value: fmt(corr.predictionAccuracy),
-      sub:   'Model direction correct',
-      good:  !isNaN(corr.predictionAccuracy) && corr.predictionAccuracy > 0.5,
-    },
-    {
-      icon: '⚡', label: 'Combined Accuracy',
-      value: fmt(corr.combinedAccuracy),
-      sub:   'When both agreed — were they right?',
-      good:  !isNaN(corr.combinedAccuracy) && corr.combinedAccuracy > 0.55,
-    },
-  ];
-
-  cards.forEach(c => {
-    const card = document.createElement('div');
-    card.className = 'accuracy-metric-card';
-    if (c.good === true)  card.classList.add('accuracy-metric-card--good');
-    if (c.good === false) card.classList.add('accuracy-metric-card--bad');
-    card.innerHTML = `
-      <span class="accuracy-metric-card__icon">${c.icon}</span>
-      <span class="accuracy-metric-card__label">${c.label}</span>
-      <span class="accuracy-metric-card__value">${c.value}</span>
-      <span class="accuracy-metric-card__sub">${c.sub}</span>
-    `;
-    grid.appendChild(card);
-  });
-
-  section.appendChild(grid);
-
-  const sampleNote = document.createElement('p');
-  sampleNote.className = 'accuracy-empty-note';
-  sampleNote.textContent = `Based on ${corr.sampleSize} resolved prediction${corr.sampleSize !== 1 ? 's' : ''}.`;
-  section.appendChild(sampleNote);
-
-  return section;
+function _fmtNum(v) {
+  return Number.isFinite(v) ? Number(v).toFixed(3) : '—';
 }

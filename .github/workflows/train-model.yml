@@ -42,7 +42,7 @@ jobs:
         run: |
           git config user.name "Nostradamus Bot"
           git config user.email "bot@nostradamus.app"
-          git add models/v2/ data/training-logs/
+          git add models/v2/ models/archive/ data/training-logs/
           git diff --cached --quiet && echo "No changes to commit" && exit 0
           ACCURACY=$(python -c "
           import json, sys

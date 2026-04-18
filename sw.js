@@ -12,7 +12,7 @@
  *   - data/sample.json, models/ → cache-first
  */
 
-const CACHE_VERSION = 'nostradamus-v3';
+const CACHE_VERSION = 'nostradamus-v4';
 const SHELL_CACHE   = `${CACHE_VERSION}-shell`;
 const CDN_CACHE     = `${CACHE_VERSION}-cdn`;
 
@@ -45,11 +45,13 @@ const SHELL_ASSETS = [
   './js/ui/sectors.js',
   './js/ui/news.js',
   './js/ui/help.js',
+  './js/ui/earnings.js',
   './js/ui/share.js',
   './js/ui/export.js',
   './js/storage/cache.js',
   './js/utils/helpers.js',
   './data/sample.json',
+  './data/sample-earnings.json',
   './manifest.json',
   './icons/icon-192.svg',
   './icons/icon-512.svg',

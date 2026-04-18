@@ -182,15 +182,16 @@ export async function runPrediction(symbol, candles, sentimentScores = null) {
   }
 
   // 5. Interpret binary classification output
-  const direction = probability > 0.5 ? 'UP' : 'DOWN';
+  const direction = regMean !== null
+    ? (regMean >= 0 ? 'UP' : 'DOWN')
+    : (probability > 0.5 ? 'UP' : 'DOWN');
 
   // 6. Compute delta: use regression head when available, fall back to ATR estimate
   let delta;
   if (regMean !== null) {
     // regMean is predicted % return (e.g. 0.02 = +2%, -0.02 = -2%).
-    // `delta` is always a non-negative dollar magnitude; the classification
-    // head's `direction` determines whether we add or subtract from currentPrice.
-    // This mirrors how estimateDelta() (ATR) always returns a positive value.
+    // Keep delta as magnitude for compatibility with existing UI formatting.
+    // Direction above is derived from regMean sign when regression output exists.
     delta = parseFloat((currentPrice * Math.abs(regMean)).toFixed(2));
   } else {
     delta = estimateDelta(candles);

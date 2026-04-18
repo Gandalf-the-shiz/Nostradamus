@@ -106,3 +106,38 @@ describe('API fallback chain logic (isolated)', () => {
     assert.equal(called, false);
   });
 });
+
+describe('Prediction payload normalisation (isolated)', () => {
+  function normalisePredictions(data) {
+    const entries = Array.isArray(data.predictions)
+      ? data.predictions.filter(p => p?.symbol).map(p => [p.symbol, p])
+      : Object.entries(data.predictions || {});
+    return entries.map(([symbol, pred]) => ({
+      symbol,
+      probability: pred.probability ?? 0.5,
+      direction: pred.direction ?? ((pred.probability ?? 0.5) > 0.5 ? 'UP' : 'DOWN'),
+      confidence: pred.confidence ?? Math.abs((pred.probability ?? 0.5) - 0.5) * 2,
+    }));
+  }
+
+  it('accepts dict-shaped predictions payload', () => {
+    const out = normalisePredictions({
+      predictions: {
+        AAPL: { probability: 0.7, direction: 'UP', confidence: 0.8 },
+      },
+    });
+    assert.equal(out.length, 1);
+    assert.equal(out[0].symbol, 'AAPL');
+  });
+
+  it('accepts array-shaped predictions payload', () => {
+    const out = normalisePredictions({
+      predictions: [
+        { symbol: 'MSFT', probability: 0.4, direction: 'DOWN', confidence: 0.7 },
+      ],
+    });
+    assert.equal(out.length, 1);
+    assert.equal(out[0].symbol, 'MSFT');
+    assert.equal(out[0].direction, 'DOWN');
+  });
+});
