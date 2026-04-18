@@ -14,6 +14,7 @@ import * as finnhub   from './finnhub.js';
 import * as twelvedata from './twelvedata.js';
 import * as polygon   from './polygon.js';
 import { getItem, getWithTTL, setWithTTL } from '../storage/cache.js';
+import { get as idbGet, set as idbSet, STORE_NAMES } from '../storage/indexeddb.js';
 import { withRetry }  from '../utils/helpers.js';
 
 // ─── Rate Limit Configuration ─────────────────────────────────
@@ -31,6 +32,21 @@ Object.keys(RATE_LIMITS).forEach(provider => {
     lastRefill: Date.now(),
   };
 });
+
+const GLOBAL_QUOTE_LIMIT_PER_MINUTE = 60;
+const _globalQuoteBucket = {
+  tokens: GLOBAL_QUOTE_LIMIT_PER_MINUTE,
+  lastRefill: Date.now(),
+};
+
+const PROVIDER_COOLDOWN_MS = 60_000;
+const _providerState = {
+  finnhub: { cooldownUntil: 0, warnedAt: 0 },
+  twelvedata: { cooldownUntil: 0, warnedAt: 0 },
+  polygon: { cooldownUntil: 0, warnedAt: 0 },
+};
+
+const QUOTE_IDB_TTL_MS = 60_000;
 
 /**
  * Try to consume one token from the provider's bucket.
@@ -59,6 +75,17 @@ function consumeToken(provider) {
   return false;
 }
 
+function consumeGlobalQuoteToken() {
+  const now = Date.now();
+  if (now - _globalQuoteBucket.lastRefill >= 60_000) {
+    _globalQuoteBucket.tokens = GLOBAL_QUOTE_LIMIT_PER_MINUTE;
+    _globalQuoteBucket.lastRefill = now;
+  }
+  if (_globalQuoteBucket.tokens <= 0) return false;
+  _globalQuoteBucket.tokens -= 1;
+  return true;
+}
+
 /**
  * Check whether a given provider's API key is configured in localStorage.
  * Prevents wasting rate-limit tokens on providers with no key.
@@ -72,6 +99,57 @@ function hasApiKey(provider) {
     polygon:    'polygon_key',
   };
   return !!getItem(KEY_MAP[provider]);
+}
+
+function isDebugEnabled() {
+  try {
+    return localStorage.getItem('nostradamus_debug') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function getDiagState() {
+  if (typeof window === 'undefined' || !isDebugEnabled()) return null;
+  if (!window.__nostradamusDiag) {
+    window.__nostradamusDiag = {
+      quoteCache: { hits: 0, misses: 0, stale: 0 },
+    };
+  } else if (!window.__nostradamusDiag.quoteCache) {
+    window.__nostradamusDiag.quoteCache = { hits: 0, misses: 0, stale: 0 };
+  }
+  return window.__nostradamusDiag;
+}
+
+function providerInCooldown(provider) {
+  return Date.now() < (_providerState[provider]?.cooldownUntil || 0);
+}
+
+function markProviderCooldown(provider, reason = 'HTTP 429') {
+  const state = _providerState[provider];
+  if (!state) return;
+  const now = Date.now();
+  state.cooldownUntil = now + PROVIDER_COOLDOWN_MS;
+  if (!state.warnedAt || now - state.warnedAt > PROVIDER_COOLDOWN_MS) {
+    console.warn(`[APIManager] ${provider} cooling down for 60s after ${reason}.`);
+    state.warnedAt = now;
+  }
+}
+
+function shouldForceRateLimit(provider) {
+  if (typeof window === 'undefined') return false;
+  const flag = window.__forceRateLimit;
+  return flag === true || flag === 1 || flag === '1' || flag === provider;
+}
+
+function isRateLimitError(err) {
+  if (!err) return false;
+  const msg = String(err.message || err);
+  return msg.includes('HTTP 429') || msg.includes('429');
+}
+
+function canUseProvider(provider) {
+  return hasApiKey(provider) && !providerInCooldown(provider);
 }
 
 // ─── Cache TTLs ───────────────────────────────────────────────
@@ -255,44 +333,76 @@ export async function getQuote(symbol) {
     return cached;
   }
 
+  const diag = getDiagState();
+  const idbKey = symbol.toUpperCase();
+  try {
+    const idbCached = await idbGet(STORE_NAMES.QUOTE_CACHE, idbKey);
+    if (idbCached && idbCached.storedAt && Date.now() - idbCached.storedAt <= QUOTE_IDB_TTL_MS) {
+      if (diag) diag.quoteCache.hits += 1;
+      return idbCached.quote;
+    }
+    if (idbCached && idbCached.storedAt) {
+      if (diag) diag.quoteCache.stale += 1;
+    } else if (diag) {
+      diag.quoteCache.misses += 1;
+    }
+  } catch {
+    // IndexedDB is best-effort cache only
+  }
+
   // 1. Try Finnhub
-  if (hasApiKey('finnhub') && consumeToken('finnhub')) {
+  if (canUseProvider('finnhub') && consumeToken('finnhub') && consumeGlobalQuoteToken()) {
     try {
+      if (shouldForceRateLimit('finnhub')) {
+        throw new Error('Finnhub API error: HTTP 429 for /quote');
+      }
       const raw = await withRetry(() => finnhub.getQuote(symbol));
       if (raw && raw.c) {
         const result = normaliseFinnhubQuote(symbol, raw);
         setWithTTL(cacheKey, result, CACHE_TTL.QUOTE);
+        idbSet(STORE_NAMES.QUOTE_CACHE, idbKey, { quote: result, storedAt: Date.now() }).catch(() => {});
         return result;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('finnhub');
       console.warn(`[APIManager] Finnhub getQuote failed for ${symbol}:`, err.message);
     }
   }
 
   // 2. Try Twelve Data
-  if (hasApiKey('twelvedata') && consumeToken('twelvedata')) {
+  if (canUseProvider('twelvedata') && consumeToken('twelvedata') && consumeGlobalQuoteToken()) {
     try {
+      if (shouldForceRateLimit('twelvedata')) {
+        throw new Error('Twelve Data API error: HTTP 429 for /quote');
+      }
       const raw = await withRetry(() => twelvedata.getQuote(symbol));
       if (raw && raw.close) {
         const result = normaliseTwelvedataQuote(raw);
         setWithTTL(cacheKey, result, CACHE_TTL.QUOTE);
+        idbSet(STORE_NAMES.QUOTE_CACHE, idbKey, { quote: result, storedAt: Date.now() }).catch(() => {});
         return result;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('twelvedata');
       console.warn(`[APIManager] Twelve Data getQuote failed for ${symbol}:`, err.message);
     }
   }
 
   // 3. Try Polygon
-  if (hasApiKey('polygon') && consumeToken('polygon')) {
+  if (canUseProvider('polygon') && consumeToken('polygon') && consumeGlobalQuoteToken()) {
     try {
+      if (shouldForceRateLimit('polygon')) {
+        throw new Error('Polygon API error: HTTP 429 for /v2/aggs');
+      }
       const raw = await withRetry(() => polygon.getPreviousClose(symbol));
       if (raw && raw.results && raw.results.length > 0) {
         const result = normalisePolygonPrevClose(symbol, raw);
         setWithTTL(cacheKey, result, CACHE_TTL.QUOTE);
+        idbSet(STORE_NAMES.QUOTE_CACHE, idbKey, { quote: result, storedAt: Date.now() }).catch(() => {});
         return result;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('polygon');
       console.warn(`[APIManager] Polygon getPreviousClose failed for ${symbol}:`, err.message);
     }
   }
@@ -324,7 +434,7 @@ export async function getCandles(symbol, days = 30) {
   const fromSec = nowSec - days * 86400;
 
   // 1. Try Finnhub
-  if (hasApiKey('finnhub') && consumeToken('finnhub')) {
+  if (canUseProvider('finnhub') && consumeToken('finnhub')) {
     try {
       const raw = await withRetry(() => finnhub.getCandles(symbol, 'D', fromSec, nowSec));
       const candles = normaliseFinnhubCandles(raw);
@@ -333,12 +443,13 @@ export async function getCandles(symbol, days = 30) {
         return candles;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('finnhub');
       console.warn(`[APIManager] Finnhub getCandles failed for ${symbol}:`, err.message);
     }
   }
 
   // 2. Try Twelve Data
-  if (hasApiKey('twelvedata') && consumeToken('twelvedata')) {
+  if (canUseProvider('twelvedata') && consumeToken('twelvedata')) {
     try {
       const raw = await withRetry(() => twelvedata.getTimeSeries(symbol, '1day', days));
       const candles = normaliseTwelvedataCandles(raw);
@@ -347,12 +458,13 @@ export async function getCandles(symbol, days = 30) {
         return candles;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('twelvedata');
       console.warn(`[APIManager] Twelve Data getTimeSeries failed for ${symbol}:`, err.message);
     }
   }
 
   // 3. Try Polygon
-  if (hasApiKey('polygon') && consumeToken('polygon')) {
+  if (canUseProvider('polygon') && consumeToken('polygon')) {
     try {
       const fromISO = new Date(fromSec * 1000).toISOString().slice(0, 10);
       const toISO   = new Date(nowSec  * 1000).toISOString().slice(0, 10);
@@ -363,6 +475,7 @@ export async function getCandles(symbol, days = 30) {
         return candles;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('polygon');
       console.warn(`[APIManager] Polygon getAggregates failed for ${symbol}:`, err.message);
     }
   }
@@ -385,7 +498,7 @@ export async function getCompanyProfile(symbol) {
   if (cached) return cached;
 
   // 1. Try Finnhub
-  if (hasApiKey('finnhub') && consumeToken('finnhub')) {
+  if (canUseProvider('finnhub') && consumeToken('finnhub')) {
     try {
       const raw = await withRetry(() => finnhub.getCompanyProfile(symbol));
       if (raw && raw.name) {
@@ -394,12 +507,13 @@ export async function getCompanyProfile(symbol) {
         return result;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('finnhub');
       console.warn(`[APIManager] Finnhub getCompanyProfile failed for ${symbol}:`, err.message);
     }
   }
 
   // 2. Try Polygon
-  if (hasApiKey('polygon') && consumeToken('polygon')) {
+  if (canUseProvider('polygon') && consumeToken('polygon')) {
     try {
       const raw = await withRetry(() => polygon.getTickerDetails(symbol));
       if (raw && raw.name) {
@@ -408,6 +522,7 @@ export async function getCompanyProfile(symbol) {
         return result;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('polygon');
       console.warn(`[APIManager] Polygon getTickerDetails failed for ${symbol}:`, err.message);
     }
   }
@@ -441,7 +556,7 @@ export async function searchSymbols(query) {
   if (cached) return cached;
 
   // 1. Try Finnhub
-  if (hasApiKey('finnhub') && consumeToken('finnhub')) {
+  if (canUseProvider('finnhub') && consumeToken('finnhub')) {
     try {
       const raw = await withRetry(() => finnhub.searchSymbols(query));
       if (raw && Array.isArray(raw.result) && raw.result.length > 0) {
@@ -450,12 +565,13 @@ export async function searchSymbols(query) {
         return results;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('finnhub');
       console.warn(`[APIManager] Finnhub searchSymbols failed for "${query}":`, err.message);
     }
   }
 
   // 2. Try Twelve Data
-  if (hasApiKey('twelvedata') && consumeToken('twelvedata')) {
+  if (canUseProvider('twelvedata') && consumeToken('twelvedata')) {
     try {
       const raw = await withRetry(() => twelvedata.searchSymbols(query));
       if (Array.isArray(raw) && raw.length > 0) {
@@ -464,12 +580,13 @@ export async function searchSymbols(query) {
         return results;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('twelvedata');
       console.warn(`[APIManager] Twelve Data searchSymbols failed for "${query}":`, err.message);
     }
   }
 
   // 3. Try Polygon
-  if (hasApiKey('polygon') && consumeToken('polygon')) {
+  if (canUseProvider('polygon') && consumeToken('polygon')) {
     try {
       const raw = await withRetry(() => polygon.searchTickers(query));
       if (Array.isArray(raw) && raw.length > 0) {
@@ -478,6 +595,7 @@ export async function searchSymbols(query) {
         return results;
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('polygon');
       console.warn(`[APIManager] Polygon searchTickers failed for "${query}":`, err.message);
     }
   }
@@ -497,18 +615,39 @@ export async function searchSymbols(query) {
  * @returns {Promise<Array>}
  */
 export async function getNews(symbol, from, to) {
-  if (hasApiKey('finnhub') && consumeToken('finnhub')) {
+  if (canUseProvider('finnhub') && consumeToken('finnhub')) {
     try {
       const articles = await withRetry(() => finnhub.getCompanyNews(symbol, from, to));
       if (Array.isArray(articles) && articles.length > 0) {
         return articles.slice(0, 5);
       }
     } catch (err) {
+      if (isRateLimitError(err)) markProviderCooldown('finnhub');
       console.warn(`[APIManager] getNews failed for ${symbol}:`, err.message);
     }
   }
   // No other free-tier providers support company news; return empty array
   return [];
+}
+
+/**
+ * Fetch upcoming earnings for watchlist symbols from Finnhub.
+ * Returns [] when no Finnhub key is configured.
+ * @param {string} from - YYYY-MM-DD
+ * @param {string} to - YYYY-MM-DD
+ * @param {string} [symbol]
+ * @returns {Promise<Array>}
+ */
+export async function getEarningsCalendar(from, to, symbol) {
+  if (!canUseProvider('finnhub') || !consumeToken('finnhub')) return [];
+  try {
+    const raw = await withRetry(() => finnhub.getEarningsCalendar(from, to, symbol));
+    return Array.isArray(raw?.earningsCalendar) ? raw.earningsCalendar : [];
+  } catch (err) {
+    if (isRateLimitError(err)) markProviderCooldown('finnhub');
+    console.warn('[APIManager] getEarningsCalendar failed:', err.message);
+    return [];
+  }
 }
 
 /**
@@ -557,10 +696,15 @@ export async function loadLatestPredictions() {
       const data = await res.json();
       if (!data || typeof data.predictions !== 'object') continue;
 
-      // Convert dict { SYMBOL: { probability, direction, confidence, predictedReturn? } }
-      // into a flat array of Prediction objects.
+      // Accept both historical array-shaped and current dict-shaped formats.
       const generatedAt = data.generatedAt || new Date().toISOString();
-      const items = Object.entries(data.predictions).map(([symbol, pred]) => {
+      const normalisedEntries = Array.isArray(data.predictions)
+        ? data.predictions
+            .filter(p => p && p.symbol)
+            .map(p => [p.symbol, p])
+        : Object.entries(data.predictions);
+
+      const items = normalisedEntries.map(([symbol, pred]) => {
         const probability     = pred.probability ?? 0.5;
         const direction       = pred.direction   ?? (probability > 0.5 ? 'UP' : 'DOWN');
         const confidence      = pred.confidence  ?? Math.abs(probability - 0.5) * 2;
@@ -663,5 +807,24 @@ export function startQuoteRotation(symbols, onQuoteUpdate) {
     stop() {
       clearInterval(intervalId);
     },
+  };
+}
+
+export function hasAnyQuoteProviderConfigured() {
+  return hasApiKey('finnhub') || hasApiKey('twelvedata') || hasApiKey('polygon');
+}
+
+export function getProviderHealthStatus() {
+  const now = Date.now();
+  return {
+    finnhub: hasApiKey('finnhub')
+      ? (now < _providerState.finnhub.cooldownUntil ? 'cooldown' : 'ok')
+      : 'no-key',
+    twelvedata: hasApiKey('twelvedata')
+      ? (now < _providerState.twelvedata.cooldownUntil ? 'cooldown' : 'ok')
+      : 'no-key',
+    polygon: hasApiKey('polygon')
+      ? (now < _providerState.polygon.cooldownUntil ? 'cooldown' : 'ok')
+      : 'no-key',
   };
 }

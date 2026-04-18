@@ -46,6 +46,7 @@
         <button id="nav-heatmap"   class="nav-btn" aria-label="Market heatmap">🌡️</button>
         <button id="nav-screener"  class="nav-btn" aria-label="Stock screener">🔍</button>
         <button id="nav-backtest"  class="nav-btn" aria-label="Backtesting">📈</button>
+        <button id="nav-earnings"  class="nav-btn" aria-label="Earnings calendar">📅</button>
         <button id="nav-accuracy"  class="nav-btn" aria-label="Prediction accuracy">📊</button>
         <button id="nav-sectors"   class="nav-btn" aria-label="Sector analysis">🏭</button>
         <button id="nav-help"      class="nav-btn" aria-label="Help and user guide">❓</button>
@@ -76,6 +77,7 @@
       <button class="nav-btn mobile-nav__btn" data-nav="heatmap">🌡️ Heatmap</button>
       <button class="nav-btn mobile-nav__btn" data-nav="screener">🔍 Screener</button>
       <button class="nav-btn mobile-nav__btn" data-nav="backtest">📈 Backtesting</button>
+      <button class="nav-btn mobile-nav__btn" data-nav="earnings">📅 Earnings</button>
       <button class="nav-btn mobile-nav__btn" data-nav="accuracy">📊 Accuracy</button>
       <button class="nav-btn mobile-nav__btn" data-nav="sectors">🏭 Sectors</button>
       <button class="nav-btn mobile-nav__btn" id="mobile-nav-help">❓ Help</button>
@@ -178,6 +180,11 @@
     <!-- Backtest View (hidden until nav click) -->
     <section id="view-backtest" class="view" aria-label="Backtesting engine" hidden>
       <!-- Populated by js/ui/backtest-ui.js -->
+    </section>
+
+    <!-- Earnings View (hidden until nav click) -->
+    <section id="view-earnings" class="view" aria-label="Earnings calendar" hidden>
+      <!-- Populated by js/ui/earnings.js -->
     </section>
 
     <!-- Settings View (hidden until nav click) -->

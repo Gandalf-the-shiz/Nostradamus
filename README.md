@@ -640,8 +640,14 @@ To activate the full pipeline for the first time, manually trigger these workflo
 | **Remove/replace V1 starter model** | 🟡 Medium | `models/starter/weights.bin` is 0 bytes. Either delete or generate a small working model. |
 | **Fundamental data features (P/E, EPS)** | 🟠 Low | V1 Autopsy Issue #13. Model only sees technicals. Add from yfinance `info` dict in `build-features.py`. |
 | **Transfer Learning (browser fine-tune)** | 🟠 Low | Phase 6 stretch goal. Let users fine-tune on their watchlist stocks. |
-| **Earnings Calendar** | 🟠 Low | Phase 7 stretch. Add earnings dates from Finnhub to dashboard. |
+| **Earnings Calendar** | ✅ Complete | `📅 Earnings` view reads Finnhub `/calendar/earnings` for watchlist symbols, with demo fallback in `data/sample-earnings.json`. |
 | **Market cap filter in screener** | 🟠 Low | Screener exists but market cap data requires API enrichment. |
+
+---
+
+## Accuracy, Improvement, and Live Prices
+
+Nostradamus now uses committed server-side accuracy logs for honest 7/30/90-day directional performance (plus confusion matrix, calibration, regression MAE, and walk-forward diagnostics), archives every trained model snapshot with richer metadata for promotion/rollback traceability, and hardens free-tier live quotes with rotation wiring, provider cooldown health, and short-lived IndexedDB caching. To observe this: open **📊 Accuracy** for the new analytics panels, open **Dashboard** with API keys configured to watch card prices update live, enable `localStorage.nostradamus_debug='1'` to view provider health/cache diagnostics, and open **📅 Earnings** for watchlist earnings dates.
 
 ---
 

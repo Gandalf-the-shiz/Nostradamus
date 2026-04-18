@@ -15,7 +15,15 @@
  * Phase 4+: Adds prediction overlays on each card.
  */
 
-import { loadDemoData, getQuote, getCandles, loadTickerRegistry } from '../api/manager.js';
+import {
+  loadDemoData,
+  getQuote,
+  getCandles,
+  loadTickerRegistry,
+  startQuoteRotation,
+  hasAnyQuoteProviderConfigured,
+  getProviderHealthStatus,
+} from '../api/manager.js';
 import { getItem } from '../storage/cache.js';
 import { runPrediction, demoPrediction } from '../ml/prediction.js';
 import { renderStockCard } from './stockcard.js';
@@ -28,7 +36,10 @@ import { aggregateSentiment } from '../utils/sentiment.js';
 const DEFAULT_WATCHLIST = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA'];
 
 /** Number of top bullish + top bearish cards to show from V2 predictions */
-const V2_TOP_N = 10;
+const V2_TOP_N = 20;
+let _quoteRotation = null;
+let _healthTimer = null;
+let _dashboardNavHooked = false;
 
 /**
  * Initialize the dashboard with the given app state.
@@ -39,6 +50,8 @@ export async function initDashboard(appState) {
 
   const stockGrid = document.getElementById('stock-grid');
   if (!stockGrid) return;
+
+  _stopDashboardQuoteRotation();
 
   // Show loading skeletons
   showLoadingSkeletons(stockGrid);
@@ -120,6 +133,12 @@ export async function initDashboard(appState) {
     stockGrid.appendChild(card);
   }
 
+  if (appState.v2Predictions && hasAnyQuoteProviderConfigured()) {
+    _startDashboardQuoteRotation(stocks, stockGrid);
+  }
+  _renderProviderHealthBadge();
+  _bindDashboardNavigationLifecycle();
+
   // Trigger background retraining if needed (after rendering, non-blocking)
   if (appState.tfReady && allCandles.length >= 40) {
     try { autoRetrain(allCandles); } catch (e) { console.warn('[Dashboard] autoRetrain failed:', e); }
@@ -139,6 +158,81 @@ export async function initDashboard(appState) {
   _renderMarketMood(stocks, appState);
 
   console.log(`[Dashboard] Rendered ${stocks.length} stock cards.`);
+}
+
+function _startDashboardQuoteRotation(stocks, stockGrid) {
+  const symbols = stocks.map(s => s.symbol).filter(Boolean);
+  if (!symbols.length) return;
+  _quoteRotation = startQuoteRotation(symbols, (symbol, quote) => {
+    const stock = stocks.find(s => s.symbol === symbol);
+    if (!stock || !quote?.current) return;
+    stock.quote.current = quote.current;
+    stock.quote.change = quote.change ?? 0;
+    stock.quote.changePercent = quote.changePercent ?? 0;
+    stock.quote.previousClose = quote.previousClose ?? stock.quote.previousClose ?? 0;
+    stock.quote.open = quote.open ?? stock.quote.open ?? 0;
+    stock.quote.high = quote.high ?? stock.quote.high ?? 0;
+    stock.quote.low = quote.low ?? stock.quote.low ?? 0;
+    stock.quote.volume = quote.volume ?? stock.quote.volume ?? 0;
+
+    const card = stockGrid.querySelector(`.stock-card[data-symbol="${symbol}"]`);
+    if (!card) return;
+    const priceEl = card.querySelector('.stock-card__price');
+    if (priceEl) priceEl.textContent = `$${Number(quote.current).toFixed(2)}`;
+    const changeEl = card.querySelector('.stock-card__change');
+    if (changeEl) {
+      const delta = quote.change ?? 0;
+      const pct = quote.changePercent ?? 0;
+      changeEl.textContent = `${delta >= 0 ? '+' : ''}$${Math.abs(delta).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
+      changeEl.classList.toggle('stock-card__change--up', delta >= 0);
+      changeEl.classList.toggle('stock-card__change--down', delta < 0);
+    }
+  });
+}
+
+function _stopDashboardQuoteRotation() {
+  if (_quoteRotation) {
+    _quoteRotation.stop();
+    _quoteRotation = null;
+  }
+  if (_healthTimer) {
+    clearInterval(_healthTimer);
+    _healthTimer = null;
+  }
+}
+
+function _bindDashboardNavigationLifecycle() {
+  if (_dashboardNavHooked) return;
+  _dashboardNavHooked = true;
+  document.addEventListener('navigated', e => {
+    const view = e.detail?.view;
+    if (view && view !== 'dashboard') {
+      _stopDashboardQuoteRotation();
+    }
+  });
+}
+
+function _renderProviderHealthBadge() {
+  const dashView = document.getElementById('view-dashboard');
+  if (!dashView) return;
+
+  const debugEnabled = (() => {
+    try { return localStorage.getItem('nostradamus_debug') === '1'; } catch { return false; }
+  })();
+
+  dashView.querySelectorAll('.provider-health-badge').forEach(el => el.remove());
+  if (!debugEnabled) return;
+
+  const badge = document.createElement('div');
+  badge.className = 'provider-health-badge';
+  dashView.prepend(badge);
+
+  const render = () => {
+    const h = getProviderHealthStatus();
+    badge.textContent = `API health • Finnhub: ${h.finnhub} • TwelveData: ${h.twelvedata} • Polygon: ${h.polygon}`;
+  };
+  render();
+  _healthTimer = setInterval(render, 1000);
 }
 
 /**

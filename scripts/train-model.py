@@ -18,6 +18,7 @@ import sys
 import math
 import random
 import time
+import shutil
 from datetime import datetime, timezone
 
 import numpy as np
@@ -31,6 +32,7 @@ REPO_ROOT = os.path.join(SCRIPT_DIR, "..")
 FEATURES_DIR = os.path.join(REPO_ROOT, "data", "features")
 SCALING_PARAMS_PATH = os.path.join(FEATURES_DIR, "scaling_params.json")
 MODELS_V2_DIR = os.path.join(REPO_ROOT, "models", "v2")
+MODELS_ARCHIVE_DIR = os.path.join(REPO_ROOT, "models", "archive")
 TRAINING_LOGS_DIR = os.path.join(REPO_ROOT, "data", "training-logs")
 
 # ---------------------------------------------------------------------------
@@ -45,6 +47,8 @@ VAL_FRAC = 0.15
 
 MAX_TRAIN_SAMPLES = 2_000_000   # subsample training set if RAM is tight
 MIN_SAMPLES = 10_000             # warn if dataset is very small
+ARCHIVE_MAX_MB = 500
+ARCHIVE_MIN_KEEP = 4
 
 # ---------------------------------------------------------------------------
 # Data loading
@@ -459,6 +463,8 @@ def write_metadata(
     history,
     test_metrics: dict,
     class_weights: dict,
+    training_data_range: dict,
+    parent_model_sha: str | None,
 ):
     """Write models/v2/metadata.json with training stats."""
     import tensorflow as tf
@@ -481,6 +487,9 @@ def write_metadata(
         "featureCount": FEATURES,
         "featureNames": feature_names,
         "lookbackDays": TIMESTEPS,
+        "gitSha": os.getenv("GITHUB_SHA"),
+        "parentModelSha": parent_model_sha,
+        "trainingDataRange": training_data_range,
         "outputType": "dual_head_classification_regression",
         "outputInterpretation": "cls_output: P(price_UP_tomorrow) sigmoid [0,1]; reg_output: predicted % return linear",
         "trainingStats": {
@@ -509,6 +518,45 @@ def write_metadata(
         json.dump(metadata, fh, indent=2)
     print(f"Wrote {path}")
     return metadata
+
+
+def _dir_size_bytes(path: str) -> int:
+    total = 0
+    for root, _, files in os.walk(path):
+        for f in files:
+            fp = os.path.join(root, f)
+            if os.path.isfile(fp):
+                total += os.path.getsize(fp)
+    return total
+
+
+def archive_current_model(models_v2_dir: str):
+    os.makedirs(MODELS_ARCHIVE_DIR, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    target = os.path.join(MODELS_ARCHIVE_DIR, f"v2-{stamp}")
+    if os.path.exists(target):
+        # Keep snapshots immutable by adding time suffix when same-day rerun happens
+        suffix = datetime.now(timezone.utc).strftime("%H%M%S")
+        target = f"{target}-{suffix}"
+    shutil.copytree(models_v2_dir, target, dirs_exist_ok=False)
+    print(f"Archived model snapshot to {target}")
+    prune_model_archive(MODELS_ARCHIVE_DIR)
+
+
+def prune_model_archive(archive_dir: str):
+    snapshots = []
+    for name in os.listdir(archive_dir):
+        p = os.path.join(archive_dir, name)
+        if os.path.isdir(p) and name.startswith("v2-"):
+            snapshots.append((os.path.getmtime(p), p))
+    snapshots.sort()
+    total_mb = _dir_size_bytes(archive_dir) / (1024 * 1024)
+    print(f"Archive size: {total_mb:.1f} MB")
+    while total_mb > ARCHIVE_MAX_MB and len(snapshots) > ARCHIVE_MIN_KEEP:
+        _, oldest = snapshots.pop(0)
+        shutil.rmtree(oldest, ignore_errors=True)
+        print(f"Pruned old snapshot: {oldest}")
+        total_mb = _dir_size_bytes(archive_dir) / (1024 * 1024)
 
 
 def write_training_log(
@@ -579,6 +627,29 @@ def main():
     print(f"  Tickers used   : {tickers_used:,}")
     print(f"  Regression targets available: {y_reg is not None}")
 
+    # Training data range metadata
+    all_dates = []
+    for sec in sectors:
+        for td in sec.get("tickers", {}).values():
+            all_dates.extend(td.get("dates", []))
+    all_dates.sort()
+    training_data_range = {
+        "start": all_dates[0] if all_dates else None,
+        "end": all_dates[-1] if all_dates else None,
+        "tickerCount": tickers_used,
+        "sampleCount": int(total_samples),
+    }
+
+    parent_model_sha = None
+    prev_meta_path = os.path.join(MODELS_V2_DIR, "metadata.json")
+    if os.path.exists(prev_meta_path):
+        try:
+            with open(prev_meta_path, "r") as f:
+                prev_meta = json.load(f)
+            parent_model_sha = prev_meta.get("gitSha")
+        except Exception:
+            parent_model_sha = None
+
     if total_samples < MIN_SAMPLES:
         print(f"\nWARN: Only {total_samples:,} samples (< {MIN_SAMPLES:,}). "
               "Training on a small dataset — accuracy may be low.")
@@ -637,7 +708,11 @@ def main():
         history=history,
         test_metrics=test_metrics,
         class_weights=class_weights,
+        training_data_range=training_data_range,
+        parent_model_sha=parent_model_sha,
     )
+
+    archive_current_model(MODELS_V2_DIR)
 
     write_training_log(
         TRAINING_LOGS_DIR,

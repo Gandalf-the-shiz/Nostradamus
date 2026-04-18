@@ -150,9 +150,17 @@ def compute_metrics(scored: list[dict]) -> dict:
         for sec, v in sectors.items() if v["total"] > 0
     }
 
+    reg_abs_errors = [
+        abs(float(s.get("predictedReturn", 0.0)) - float(s.get("actualReturn", 0.0)))
+        for s in scored
+        if s.get("predictedReturn") is not None and s.get("actualReturn") is not None
+    ]
+    regression_mae = round(sum(reg_abs_errors) / len(reg_abs_errors), 6) if reg_abs_errors else None
+
     return {
         "hitRate":               hit_rate,
         "confidenceWeightedHitRate": round(conf_weighted, 4) if conf_weighted is not None else None,
+        "regressionMAE":         regression_mae,
         "total":                 total,
         "correct":               correct,
         "bySector":              sector_metrics,
@@ -266,6 +274,7 @@ def main():
         predicted_dir  = pred.get("direction", "UP")
         probability    = pred.get("probability", 0.5)
         confidence     = pred.get("confidence", 0.5)
+        predicted_return = pred.get("predictedReturn")
 
         # We need the close price on pred_date to determine actual direction
         # Load from historical data:
@@ -291,6 +300,12 @@ def main():
 
         actual_dir = "UP" if actual > pred_date_close else "DOWN"
         correct    = predicted_dir == actual_dir
+        actual_return = (actual - pred_date_close) / pred_date_close if pred_date_close else None
+        regression_abs_error = (
+            abs(float(predicted_return) - float(actual_return))
+            if predicted_return is not None and actual_return is not None
+            else None
+        )
 
         scored.append({
             "ticker":      ticker,
@@ -299,6 +314,9 @@ def main():
             "actual":      actual_dir,
             "probability": probability,
             "confidence":  confidence,
+            "predictedReturn": predicted_return,
+            "actualReturn": actual_return,
+            "regressionAbsError": regression_abs_error,
             "priceActual": actual,
             "pricePrev":   pred_date_close,
         })
@@ -331,6 +349,7 @@ def main():
         "recordedAt":   now_utc,
         "modelVersion": pred_data.get("modelVersion", "unknown"),
         "hitRate":      metrics["hitRate"],
+        "regressionMAE": metrics.get("regressionMAE"),
         "total":        metrics["total"],
         "correct":      metrics["correct"],
         "rolling7day":  None,   # computed by update_accuracy_log
