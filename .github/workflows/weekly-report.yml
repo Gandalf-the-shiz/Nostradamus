@@ -46,5 +46,6 @@ jobs:
           else
             WEEK=$(python -c "from datetime import datetime; d=datetime.utcnow(); y,w,_=d.isocalendar(); print(f'{y}-W{w:02d}')")
             git commit -m "chore: generate weekly intelligence report ${WEEK}"
+            git pull --rebase --autostash origin main
             git push
           fi

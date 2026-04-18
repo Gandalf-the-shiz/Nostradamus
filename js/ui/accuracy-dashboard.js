@@ -29,6 +29,9 @@ async function _render(container) {
   const roll7 = _rollingWeighted(entries, 7);
   const roll30 = _rollingWeighted(entries, 30);
   const roll90 = _rollingWeighted(entries, 90);
+  const roll7Days = _windowDataDays(entries, 7);
+  const roll30Days = _windowDataDays(entries, 30);
+  const roll90Days = _windowDataDays(entries, 90);
 
   const dailyReports = new Map();
   await Promise.all(validEntries.map(async e => {
@@ -44,13 +47,14 @@ async function _render(container) {
   panel.innerHTML = `
     <h2 class="accuracy-panel__title">📊 Prediction Accuracy</h2>
     <div class="accuracy-metrics">
-      ${_metricCard('7-Day', _fmtPct(roll7), 'Directional accuracy')}
-      ${_metricCard('30-Day', _fmtPct(roll30), 'Auto-retrain threshold: 53%')}
-      ${_metricCard('90-Day', _fmtPct(roll90), 'Long-term directional accuracy')}
+      ${_metricCard('7-Day', _fmtPct(roll7), _rollingWindowSubtext(roll7Days, 7, 'Directional accuracy'))}
+      ${_metricCard('30-Day', _fmtPct(roll30), _rollingWindowSubtext(roll30Days, 30, 'Auto-retrain threshold: 53%'))}
+      ${_metricCard('90-Day', _fmtPct(roll90), _rollingWindowSubtext(roll90Days, 90, 'Long-term directional accuracy'))}
       ${_metricCard('Regression MAE', diagnostics.regressionMAE != null ? `${(diagnostics.regressionMAE * 100).toFixed(2)}%` : '—', 'Predicted return vs realized return')}
     </div>
     <div class="accuracy-section">
       <h3 class="accuracy-section__title">Daily Accuracy vs 52% Baseline</h3>
+      ${validEntries.length < 30 ? `<p class="accuracy-empty-note">Only ${validEntries.length} days of accuracy data so far. Chart will fill in over the coming weeks as the daily \`accuracy.yml\` workflow runs.</p>` : ''}
       <div id="accuracy-chart-container" class="accuracy-chart-container"></div>
     </div>
     <div class="accuracy-metrics">
@@ -103,6 +107,18 @@ function _rollingWeighted(entries, days) {
     correct += Number(e.correct || 0);
   }
   return total > 0 ? correct / total : null;
+}
+
+function _windowDataDays(entries, days) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return entries.filter(e => typeof e.hitRate === 'number' && new Date(`${e.date}T00:00:00Z`) >= cutoff).length;
+}
+
+function _rollingWindowSubtext(actualDays, expectedDays, fallback) {
+  if (actualDays >= expectedDays) return fallback;
+  const missing = expectedDays - actualDays;
+  return `based on ${actualDays} of ${expectedDays} days — needs ~${missing} more days for a stable estimate`;
 }
 
 function _computeDiagnostics(entries, dailyReports) {

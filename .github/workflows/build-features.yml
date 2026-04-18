@@ -44,4 +44,5 @@ jobs:
           TICKER_COUNT=$(python -c "import json; d=json.load(open('data/features/scaling_params.json')); print(d['globalStats']['tickersProcessed'])")
           TODAY=$(date -u +%Y-%m-%d)
           git commit -m "🧮 Feature engineering update [${TODAY}] — ${TICKER_COUNT} tickers, 33 features"
+          git pull --rebase --autostash origin main
           git push

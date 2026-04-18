@@ -6,6 +6,10 @@ on:
     - cron: '55 23 * * *'
   workflow_dispatch:   # allow manual trigger
 
+concurrency:
+  group: main-branch-writer
+  cancel-in-progress: false
+
 permissions:
   contents: write
   actions: write    # required to trigger auto-retrain.yml via the API
@@ -47,6 +51,7 @@ jobs:
             echo "No changes to accuracy data."
           else
             git commit -m "chore: update accuracy metrics $(date -u +%Y-%m-%d)"
+            git pull --rebase --autostash origin main
             git push
           fi
 
@@ -74,11 +79,11 @@ jobs:
               ]
               if not recent:
                   print("true"); sys.exit(0)
-               sample_size = sum(int(e.get("total", 0) or 0) for e in recent if e.get("hitRate") is not None)
-               correct = sum(int(e.get("correct", 0) or 0) for e in recent if e.get("hitRate") is not None)
-               hit_rate = (correct / sample_size) if sample_size > 0 else 0.0
-               import sys as _sys
-               print(f"Rolling 30-day accuracy: {hit_rate:.4f} ({correct}/{sample_size})", file=_sys.stderr)
+              sample_size = sum(int(e.get("total", 0) or 0) for e in recent if e.get("hitRate") is not None)
+              correct = sum(int(e.get("correct", 0) or 0) for e in recent if e.get("hitRate") is not None)
+              hit_rate = (correct / sample_size) if sample_size > 0 else 0.0
+              import sys as _sys
+              print(f"Rolling 30-day accuracy: {hit_rate:.4f} ({correct}/{sample_size})", file=_sys.stderr)
               print("true" if hit_rate < threshold else "false")
           except Exception as exc:
               import sys as _sys

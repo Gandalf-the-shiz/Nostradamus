@@ -6,6 +6,10 @@ on:
     - cron: '0 4 * * 0'
   workflow_dispatch:   # allow manual trigger
 
+concurrency:
+  group: main-branch-writer
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -63,11 +67,11 @@ jobs:
                   print("NEEDS_RETRAIN=true")
                   sys.exit(0)
 
-               sample_size = sum(int(e.get("total", 0) or 0) for e in recent if e.get("hitRate") is not None)
-               correct = sum(int(e.get("correct", 0) or 0) for e in recent if e.get("hitRate") is not None)
-               hit_rate = (correct / sample_size) if sample_size > 0 else 0.0
+              sample_size = sum(int(e.get("total", 0) or 0) for e in recent if e.get("hitRate") is not None)
+              correct = sum(int(e.get("correct", 0) or 0) for e in recent if e.get("hitRate") is not None)
+              hit_rate = (correct / sample_size) if sample_size > 0 else 0.0
 
-               print(f"Rolling 30-day hit rate: {hit_rate:.4f} ({correct}/{sample_size})")
+              print(f"Rolling 30-day hit rate: {hit_rate:.4f} ({correct}/{sample_size})")
               print(f"Threshold: {threshold}")
 
               if hit_rate < threshold:
@@ -112,10 +116,10 @@ jobs:
               if not recent:
                   print("true")
                   sys.exit(0)
-               sample_size = sum(int(e.get("total", 0) or 0) for e in recent if e.get("hitRate") is not None)
-               correct = sum(int(e.get("correct", 0) or 0) for e in recent if e.get("hitRate") is not None)
-               hit_rate = (correct / sample_size) if sample_size > 0 else 0.0
-               print("true" if hit_rate < threshold else "false")
+              sample_size = sum(int(e.get("total", 0) or 0) for e in recent if e.get("hitRate") is not None)
+              correct = sum(int(e.get("correct", 0) or 0) for e in recent if e.get("hitRate") is not None)
+              hit_rate = (correct / sample_size) if sample_size > 0 else 0.0
+              print("true" if hit_rate < threshold else "false")
           except Exception:
               print("true")
           EOF
@@ -174,21 +178,21 @@ jobs:
           if prev_meta_path.exists():
               with open(prev_meta_path) as f:
                   prev_meta = json.load(f)
-               prev_acc = float(prev_meta.get("testMetrics", {}).get("accuracy", 0.0) or 0.0)
-               print(f"Previous model test accuracy: {prev_acc:.4f}")
+              prev_acc = float(prev_meta.get("testMetrics", {}).get("accuracy", 0.0) or 0.0)
+              print(f"Previous model test accuracy: {prev_acc:.4f}")
 
-               if new_acc > prev_acc:
-                   print(f"New model is better ({new_acc:.4f} > {prev_acc:.4f}). Promoting.")
-                   decision = "promoted"
-                   # Save new metadata as the new baseline
-                   shutil.copy(new_meta_path, prev_meta_path)
+              if new_acc > prev_acc:
+                  print(f"New model is better ({new_acc:.4f} > {prev_acc:.4f}). Promoting.")
+                  decision = "promoted"
+                  # Save new metadata as the new baseline
+                  shutil.copy(new_meta_path, prev_meta_path)
                   # Delete backup — new model is now live
                   if backup_dir.exists():
                       shutil.rmtree(backup_dir)
-               else:
-                   print(f"New model is not better ({new_acc:.4f} <= {prev_acc:.4f}). Rolling back.")
-                   decision = "rolled_back"
-                   # Restore previous model weights and metadata from backup
+              else:
+                  print(f"New model is not better ({new_acc:.4f} <= {prev_acc:.4f}). Rolling back.")
+                  decision = "rolled_back"
+                  # Restore previous model weights and metadata from backup
                   if backup_dir.exists():
                       for f in backup_dir.iterdir():
                           shutil.copy(f, Path("models/v2") / f.name)
@@ -196,30 +200,30 @@ jobs:
                       print("Restored previous model weights and metadata from backup.")
                   else:
                       print("No backup found — cannot restore weights.")
-           else:
-               # First run — save as baseline
-               print("No previous model metadata found. Saving current as baseline.")
-               decision = "promoted"
-               shutil.copy(new_meta_path, prev_meta_path)
-               if backup_dir.exists():
-                   shutil.rmtree(backup_dir)
+          else:
+              # First run — save as baseline
+              print("No previous model metadata found. Saving current as baseline.")
+              decision = "promoted"
+              shutil.copy(new_meta_path, prev_meta_path)
+              if backup_dir.exists():
+                  shutil.rmtree(backup_dir)
 
-           history_path = Path("data/accuracy/retrain-history.json")
-           history_path.parent.mkdir(parents=True, exist_ok=True)
-           if history_path.exists():
-               with open(history_path) as f:
-                   hist = json.load(f)
-           else:
-               hist = {"entries": []}
-           hist.setdefault("entries", []).append({
-               "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-               "decision": decision,
-               "previousAccuracy": prev_acc,
-               "newAccuracy": new_acc,
-               "sampleSize": sample_size,
-           })
-           with open(history_path, "w") as f:
-               json.dump(hist, f, indent=2)
+          history_path = Path("data/accuracy/retrain-history.json")
+          history_path.parent.mkdir(parents=True, exist_ok=True)
+          if history_path.exists():
+              with open(history_path) as f:
+                  hist = json.load(f)
+          else:
+              hist = {"entries": []}
+          hist.setdefault("entries", []).append({
+              "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "decision": decision,
+              "previousAccuracy": prev_acc,
+              "newAccuracy": new_acc,
+              "sampleSize": sample_size,
+          })
+          with open(history_path, "w") as f:
+              json.dump(hist, f, indent=2)
           EOF
 
       - name: Commit updated model
@@ -234,5 +238,6 @@ jobs:
             echo "No model changes to commit."
           else
             git commit -m "chore: auto-retrain model $(date -u +%Y-%m-%d)"
+            git pull --rebase --autostash origin main
             git push
           fi
