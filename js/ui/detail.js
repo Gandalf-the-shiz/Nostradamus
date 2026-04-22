@@ -10,7 +10,7 @@
  *   - Removes the overlay from DOM and destroys its Chart.js instance.
  */
 
-import { formatCurrency, formatPercent, formatDollarChange, formatLargeNumber } from '../utils/helpers.js';
+import { formatCurrency, formatPercent, formatDollarChange, formatLargeNumber, escapeHtml as _esc } from '../utils/helpers.js';
 import { renderDetailChart, renderFullChart, destroyContainerChart } from './charts.js';
 import { isInWatchlist, addToWatchlist, removeFromWatchlist } from './watchlist.js';
 import { renderNewsPanel } from './news.js';
@@ -62,12 +62,14 @@ export function openStockDetail(symbol, stock, candles, prediction, appState = {
   // Re-render chart after overlay is in DOM (so dimensions are known)
   const chartContainer = overlay.querySelector('.detail-overlay__chart-inner');
   if (chartContainer) {
-    // Build past-predictions array for this symbol, aligned to candle dates
+    // Build past-predictions array for this symbol, aligned to candle dates.
+    // Use predictionDate (the T+1 trading day the prediction targets) so
+    // the overlay dot lands on the correct candle, not the day it was generated.
     const trackedPreds = getPredictionsBySymbol(symbol);
     const pastPredictions = trackedPreds
       .filter(p => p.predictedPrice != null)
       .map(p => ({
-        date: new Date(p.generatedAt).toISOString().slice(0, 10),
+        date: p.predictionDate || new Date(p.generatedAt).toISOString().slice(0, 10),
         predictedPrice: p.predictedPrice,
       }));
 
@@ -328,15 +330,4 @@ function _trapFocus(e, modal) {
     e.preventDefault();
     first.focus();
   }
-}
-
-// ─── Escape helper ────────────────────────────────────────────
-
-function _esc(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

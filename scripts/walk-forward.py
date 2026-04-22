@@ -9,6 +9,7 @@ the following month across the last 18 months of feature data. Writes:
 import argparse
 import json
 import os
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -138,12 +139,17 @@ def main():
 
     tickers = load_tickers(args.max_tickers)
     if not tickers:
-        raise SystemExit("No ticker feature data found for walk-forward.")
+        print("[walk-forward] No ticker feature data found. Skipping — no output written.")
+        sys.exit(0)
 
     samples = build_samples(tickers)
     months = sorted({m for m, *_ in samples})
     if len(months) < 13:
-        raise SystemExit("Need at least 13 months of data for walk-forward.")
+        print(
+            f"[walk-forward] Only {len(months)} month(s) of data available; "
+            "need at least 13 for a single fold. Skipping — no output written."
+        )
+        sys.exit(0)
 
     months = months[-18:]
     folds = []
@@ -165,7 +171,8 @@ def main():
         })
 
     if not folds:
-        raise SystemExit("No eligible folds produced.")
+        print("[walk-forward] No eligible folds produced (insufficient sample sizes). Skipping — no output written.")
+        sys.exit(0)
 
     weighted_n = sum(f["sampleSize"] for f in folds)
     agg = {

@@ -16,7 +16,7 @@
  * Phase 4+: Real ML predictions replace demo predictions.
  */
 
-import { formatCurrency, formatPercent, formatDollarChange, formatLargeNumber } from '../utils/helpers.js';
+import { formatCurrency, formatPercent, formatDollarChange, formatLargeNumber, escapeHtml } from '../utils/helpers.js';
 import { renderSparkline } from './charts.js';
 import { isInWatchlist, addToWatchlist, removeFromWatchlist } from './watchlist.js';
 
@@ -233,16 +233,4 @@ function _observeSparkline(container, history, isUp) {
   observer.observe(container);
 }
 
-/**
- * Escape HTML special characters to prevent XSS.
- * @param {string} str
- * @returns {string}
- */
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+

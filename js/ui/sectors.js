@@ -11,7 +11,7 @@
  */
 
 import { getPredictions } from '../ml/tracker.js';
-import { formatPercent } from '../utils/helpers.js';
+import { formatPercent, escapeHtml as _escapeHtml } from '../utils/helpers.js';
 
 // ─── Sector definitions ───────────────────────────────────────
 
@@ -210,16 +210,3 @@ function _buildSectorCard(sector, items) {
   return card;
 }
 
-/**
- * Escape HTML special characters to prevent XSS.
- * @param {string} str
- * @returns {string}
- */
-function _escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}

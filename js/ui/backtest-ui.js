@@ -18,7 +18,7 @@
 import { runBacktest }     from '../backtest/engine.js';
 import { getPredictions }  from '../ml/tracker.js';
 import { loadDemoData }    from '../api/manager.js';
-import { formatCurrency }  from '../utils/helpers.js';
+import { formatCurrency, escapeHtml as _escHtml } from '../utils/helpers.js';
 import { demoPrediction }  from '../ml/prediction.js';
 
 // ─── Chart registry ───────────────────────────────────────────
@@ -633,13 +633,4 @@ function _exportCSV(result) {
 
 function _todayStr() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function _escHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

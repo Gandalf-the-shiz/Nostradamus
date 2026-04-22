@@ -198,6 +198,23 @@ export function showToast(message, type = 'info', durationMs = 3000) {
   }, durationMs);
 }
 
+// ─── HTML Sanitisation ────────────────────────────────────────
+
+/**
+ * Escape HTML special characters to prevent XSS when injecting
+ * untrusted strings into innerHTML.
+ * @param {string} str
+ * @returns {string}
+ */
+export function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ─── Async Utilities ──────────────────────────────────────────
 
 /**

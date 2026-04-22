@@ -25,6 +25,7 @@ import { trainModel } from './ml/training.js';
 import { loadDemoData, loadLatestPredictions } from './api/manager.js';
 import { clearPredictions } from './ml/tracker.js';
 import { openHelp } from './ui/help.js';
+import { openStockDetail } from './ui/detail.js';
 
 // ─── Constants ────────────────────────────────────────────────
 const STORAGE_KEYS = {
@@ -81,6 +82,9 @@ async function init() {
   // Initialize UI modules
   await initDashboard(appState);
   initSearch(appState);
+
+  // Wire global "open detail" events from lazy-loaded views (heatmap, screener)
+  _initDetailEventBridge(appState);
 
   console.log(`[Nostradamus] App ready in ${appState.mode} mode.`);
 }
@@ -468,6 +472,79 @@ function initOfflineDetection() {
   window.addEventListener('online',  update);
   window.addEventListener('offline', update);
   update(); // Set initial state
+}
+
+// ─── Global detail overlay event bridge ───────────────────────
+
+/**
+ * Listen for "open detail" events bubbled up from lazy-loaded views
+ * (heatmap canvas clicks, screener row clicks) and open the stock detail
+ * overlay with whatever data is available at that point.
+ *
+ * Both events must be wired once, at app startup, not inside navigateTo()
+ * to avoid registering duplicate listeners on repeated navigation.
+ *
+ * @param {{ mode: string, v2Predictions: object|null, _tickerMap: Map|undefined }} appState
+ */
+function _initDetailEventBridge(appState) {
+  /**
+   * Build a minimal stock object suitable for openStockDetail from a
+   * prediction-only payload (no live quote data yet).
+   */
+  function _buildMinimalStock(symbol, pred) {
+    const tickerMap = appState._tickerMap || new Map();
+    const info = tickerMap.get(symbol) || {};
+    return {
+      symbol,
+      name:     info.name || symbol,
+      exchange: info.exchange || null,
+      industry: info.sector || null,
+      marketCap: null,
+      quote: {
+        current:       pred?.currentPrice   || 0,
+        open:          0,
+        high:          0,
+        low:           0,
+        previousClose: 0,
+        change:        pred?.delta          || 0,
+        changePercent: 0,
+        volume:        0,
+        history:       [],
+      },
+      candles: [],
+      _v2Prediction: pred || null,
+    };
+  }
+
+  // Heatmap cell click — detail: { symbol, pred }
+  document.addEventListener('heatmap-cell-click', e => {
+    const { symbol, pred } = e.detail || {};
+    if (!symbol) return;
+    const stock = _buildMinimalStock(symbol, pred);
+    openStockDetail(symbol, stock, [], pred || null, appState);
+  });
+
+  // Screener row click — detail: { symbol, direction, confidence, … }
+  document.addEventListener('screener-row-click', e => {
+    const d = e.detail || {};
+    const symbol = d.symbol;
+    if (!symbol) return;
+    // Reconstruct a prediction object from the row data passed in the event
+    const pred = {
+      symbol,
+      direction:      d.direction      || 'UP',
+      confidence:     d.confidence     ?? 0,
+      probability:    d.probability    ?? 0.5,
+      predictedReturn: d.predictedReturn ?? null,
+      delta:          d.delta          || 0,
+      currentPrice:   d.currentPrice   || 0,
+      predictedPrice: d.predictedPrice || 0,
+      isDemo:         false,
+      generatedAt:    Date.now(),
+    };
+    const stock = _buildMinimalStock(symbol, pred);
+    openStockDetail(symbol, stock, [], pred, appState);
+  });
 }
 
 // ─── DOM Ready ────────────────────────────────────────────────

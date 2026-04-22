@@ -1,5 +1,6 @@
 import { getEarningsCalendar } from '../api/manager.js';
 import { getWatchlist } from './watchlist.js';
+import { escapeHtml as _esc } from '../utils/helpers.js';
 
 export async function renderEarningsView(container, appState) {
   container.innerHTML = '';
@@ -66,11 +67,3 @@ export async function renderEarningsView(container, appState) {
   container.appendChild(table);
 }
 
-function _esc(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
