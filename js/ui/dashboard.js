@@ -25,6 +25,7 @@ import {
   getProviderHealthStatus,
 } from '../api/manager.js';
 import { getItem } from '../storage/cache.js';
+import { escapeHtml as _escapeHtml } from '../utils/helpers.js';
 import { runPrediction, demoPrediction } from '../ml/prediction.js';
 import { renderStockCard } from './stockcard.js';
 import { openStockDetail } from './detail.js';
@@ -434,19 +435,6 @@ function renderErrorCard(container, symbol, message) {
   container.appendChild(card);
 }
 
-/**
- * Escape HTML special characters to prevent injection via innerHTML.
- * @param {string} str
- * @returns {string}
- */
-function _escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 /**
  * Render the horizontal market overview strip (index values, etc.).
@@ -626,7 +614,7 @@ function _buildTopList(heading, items, dir) {
     const li = document.createElement('li');
     li.className = 'top-preds-item';
     li.innerHTML = `
-      <span class="top-preds-item__symbol">${_esc(p.symbol)}</span>
+      <span class="top-preds-item__symbol">${_escapeHtml(p.symbol)}</span>
       <span class="top-preds-item__badge top-preds-item__badge--${dir}">${dir === 'up' ? '▲' : '▼'} ${dir.toUpperCase()}</span>
       <span class="top-preds-item__conf">${Math.round((p.confidence ?? 0) * 100)}%</span>
     `;
@@ -683,7 +671,7 @@ function _buildSectorRotationPanel(preds, tickerMap = new Map()) {
     const li = document.createElement('li');
     li.className = `sector-rotation-item sector-rotation-item--${sentiment}`;
     li.innerHTML = `
-      <span class="sector-rotation-item__name">${_esc(name)}</span>
+      <span class="sector-rotation-item__name">${_escapeHtml(name)}</span>
       <div class="sector-rotation-item__bar-wrap">
         <div class="sector-rotation-item__bar" style="width:${pct}%"></div>
       </div>
@@ -733,7 +721,7 @@ function _buildMomentumPanel(preds) {
     const li  = document.createElement('li');
     li.className = `momentum-item momentum-item--${dir}`;
     li.innerHTML = `
-      <span class="momentum-item__symbol">${_esc(p.symbol)}</span>
+      <span class="momentum-item__symbol">${_escapeHtml(p.symbol)}</span>
       <span class="momentum-item__dir">${p.direction === 'UP' ? '▲' : '▼'}</span>
       <span class="momentum-item__conf">${Math.round((p.confidence ?? 0) * 100)}%</span>
     `;
@@ -789,15 +777,6 @@ function _renderMarketMood(stocks, appState) {
     <span class="market-mood__score">${score}%</span>
   `;
   moodEl.setAttribute('title', `Market Mood: ${label} (${score}% avg bullish probability)`);
-}
-
-function _esc(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 

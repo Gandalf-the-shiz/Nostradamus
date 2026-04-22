@@ -16,6 +16,7 @@
 
 import { getPredictions } from '../ml/tracker.js';
 import { demoPrediction }  from '../ml/prediction.js';
+import { escapeHtml as _escHtml } from '../utils/helpers.js';
 
 // ─── Sector palette ───────────────────────────────────────────
 
@@ -385,13 +386,4 @@ function _hitTest(canvas, e) {
     }
   }
   return null;
-}
-
-function _escHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

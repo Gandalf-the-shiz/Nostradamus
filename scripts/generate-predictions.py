@@ -58,8 +58,8 @@ assert len(FEATURE_NAMES) == FEATURE_COUNT
 
 def _build_features_for_candles(candles: list) -> list[list[float]] | None:
     """
-    Compute the 32-feature matrix for a list of OHLCV candle dicts.
-    Returns a list of feature rows (each a list of 32 floats), or None if
+    Compute the 33-feature matrix for a list of OHLCV candle dicts.
+    Returns a list of feature rows (each a list of 33 floats), or None if
     there isn't enough data.
 
     This function mirrors the logic in build-features.py so that
@@ -227,7 +227,7 @@ def predict_ticker(model, features: list[list[float]]) -> dict:
     """
     import numpy as np
 
-    window = np.array([features[-TIMESTEPS:]], dtype=np.float32)  # shape (1, 30, 32)
+    window = np.array([features[-TIMESTEPS:]], dtype=np.float32)  # shape (1, 30, 33)
     outputs = model.predict(window, verbose=0)
 
     # Handle dual-head vs single-head output
@@ -339,7 +339,9 @@ def main():
     if os.path.exists(metadata_path):
         with open(metadata_path) as f:
             meta = json.load(f)
-        model_version = meta.get("modelVersion", model_version)
+        # metadata.json uses "version" (written by train-model.py); fall back to
+        # legacy "modelVersion" key for backwards compatibility.
+        model_version = meta.get("version", meta.get("modelVersion", model_version))
 
     now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     output = {

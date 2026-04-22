@@ -20,7 +20,7 @@
 
 import { getPredictions }  from '../ml/tracker.js';
 import { demoPrediction }  from '../ml/prediction.js';
-import { formatCurrency }  from '../utils/helpers.js';
+import { formatCurrency, escapeHtml as _escHtml } from '../utils/helpers.js';
 
 // ─── Constants ───────────────────────────────────────────────
 
@@ -415,7 +415,16 @@ function _buildRow(row) {
     tr.dispatchEvent(new CustomEvent('screener-row-click', {
       bubbles:  true,
       composed: true,
-      detail:   { symbol: row.symbol },
+      detail:   {
+        symbol:    row.symbol,
+        direction: row.direction,
+        confidence: row.confidence,
+        probability: row.probability,
+        predictedReturn: row.predictedReturn,
+        delta:     row.delta,
+        currentPrice: row.currentPrice,
+        predictedPrice: row.predictedPrice,
+      },
     }));
   });
   tr.style.cursor = 'pointer';
@@ -453,13 +462,4 @@ function _renderPagination(totalPages, allFilteredRows) {
   _paginationEl.appendChild(nextBtn);
 }
 
-// ─── Escape HTML ──────────────────────────────────────────────
 
-function _escHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}

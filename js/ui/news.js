@@ -10,7 +10,7 @@
  */
 
 import { getNews } from '../api/manager.js';
-import { daysAgoISO, todayISO } from '../utils/helpers.js';
+import { daysAgoISO, todayISO, escapeHtml } from '../utils/helpers.js';
 
 // ─── Sentiment keywords ───────────────────────────────────────
 
@@ -201,16 +201,3 @@ function _renderArticles(container, articles, symbol) {
   }
 }
 
-/**
- * Escape HTML special characters.
- * @param {string} str
- * @returns {string}
- */
-function _escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}

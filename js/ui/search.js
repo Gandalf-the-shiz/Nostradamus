@@ -12,6 +12,7 @@ import { demoPrediction } from '../ml/prediction.js';
 import { renderStockCard } from './stockcard.js';
 import { openStockDetail } from './detail.js';
 import { isInWatchlist, addToWatchlist, removeFromWatchlist } from './watchlist.js';
+import { escapeHtml } from '../utils/helpers.js';
 
 /** Minimum characters before triggering a search. */
 const MIN_QUERY_LENGTH = 2;
@@ -361,16 +362,5 @@ function hideSuggestions(el) {
   el.innerHTML = '';
 }
 
-/**
- * Escape HTML special characters.
- * @param {string} str
- * @returns {string}
- */
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+
+

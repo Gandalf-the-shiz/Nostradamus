@@ -110,7 +110,7 @@ Weekly  (Sun 04:00 UTC):   auto-retrain (if accuracy < 53%) → models/v2/
 | **Hosting** | GitHub Pages | Same |
 | **Frontend** | Vanilla HTML/CSS/JS | Same |
 | **Charting** | Chart.js (CDN) | Same |
-| **ML Engine** | TensorFlow.js (CDN) | **Upgraded model: Bidirectional LSTM (128→64), 30-day sliding window, 32 features, binary classification** |
+| **ML Engine** | TensorFlow.js (CDN) | **Upgraded model: Bidirectional LSTM (128→64), 30-day sliding window, 33 features, binary classification** |
 | **Ticker Registry** | SEC EDGAR `company_tickers_exchange.json` | **NEW: ~7,000+ US exchange tickers auto-updated weekly** |
 | **Historical Data Pipeline** | GitHub Actions + Python (`yfinance`) | **NEW: Bulk download all tickers, compress to JSON, commit to repo** |
 | **Pre-trained Model** | GitHub Actions + Python (`tensorflow/keras`) | **NEW: Server-side training on full market, export TF.js model to `models/`** |
@@ -236,7 +236,7 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 ### Phase 5: Server-Side Model Training (The Real Brain)
 - [x] Create `scripts/train-model.py` — full TensorFlow/Keras training pipeline
 - [x] Model architecture: **Bidirectional LSTM** (TF.js-compatible)
-  - Input: (batch, 30 timesteps, 32 features)
+  - Input: (batch, 30 timesteps, 33 features)
   - Layer 1: Bidirectional LSTM (128 units, return_sequences=True)
   - Layer 2: Dropout (0.3)
   - Layer 3: LSTM (64 units, return_sequences=False)
@@ -264,7 +264,7 @@ GitHub Pages serves files with no backend proxy. All API calls happen directly f
 - [x] Update `js/ml/model.js` to load new V2 model architecture
 - [x] Update `js/ml/preprocessing.js`:
   - Replace `Math.min(...spread)` with iterative `reduce()` min/max
-  - Support all 32 features matching the server-side pipeline
+  - Support all 33 features matching the server-side pipeline
   - Load scaling params from `models/v2/metadata.json`
 - [x] Update `js/ml/prediction.js`:
   - Implement Monte Carlo dropout (run prediction N=20 times with dropout enabled, average results)
