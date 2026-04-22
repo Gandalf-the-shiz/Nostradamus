@@ -68,10 +68,15 @@ export function openStockDetail(symbol, stock, candles, prediction, appState = {
     const trackedPreds = getPredictionsBySymbol(symbol);
     const pastPredictions = trackedPreds
       .filter(p => p.predictedPrice != null)
-      .map(p => ({
-        date: p.predictionDate || new Date(p.generatedAt).toISOString().slice(0, 10),
-        predictedPrice: p.predictedPrice,
-      }));
+      .map(p => {
+        if (!p.predictionDate) {
+          console.warn(`[Detail] TrackedPrediction for ${symbol} is missing predictionDate; falling back to generatedAt for chart alignment.`);
+        }
+        return {
+          date: p.predictionDate || new Date(p.generatedAt).toISOString().slice(0, 10),
+          predictedPrice: p.predictedPrice,
+        };
+      });
 
     if (candles && candles.length > 0) {
       renderFullChart(chartContainer, candles, prediction, pastPredictions);

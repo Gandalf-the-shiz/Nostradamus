@@ -529,18 +529,19 @@ function _initDetailEventBridge(appState) {
     const d = e.detail || {};
     const symbol = d.symbol;
     if (!symbol) return;
-    // Reconstruct a prediction object from the row data passed in the event
+    // Reconstruct a prediction object from the row data passed in the event.
+    // generatedAt is intentionally omitted — the screener row only carries
+    // the latest model output, not the original timestamp.
     const pred = {
       symbol,
-      direction:      d.direction      || 'UP',
-      confidence:     d.confidence     ?? 0,
-      probability:    d.probability    ?? 0.5,
+      direction:       d.direction       || 'UP',
+      confidence:      d.confidence      ?? 0,
+      probability:     d.probability     ?? 0.5,
       predictedReturn: d.predictedReturn ?? null,
-      delta:          d.delta          || 0,
-      currentPrice:   d.currentPrice   || 0,
-      predictedPrice: d.predictedPrice || 0,
-      isDemo:         false,
-      generatedAt:    Date.now(),
+      delta:           d.delta           || 0,
+      currentPrice:    d.currentPrice    || 0,
+      predictedPrice:  d.predictedPrice  || 0,
+      isDemo:          false,
     };
     const stock = _buildMinimalStock(symbol, pred);
     openStockDetail(symbol, stock, [], pred, appState);
