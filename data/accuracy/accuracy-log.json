@@ -75,20 +75,20 @@
     },
     {
       "date": "2026-04-24",
-      "recordedAt": "2026-04-25T02:53:05Z",
+      "recordedAt": "2026-04-26T01:11:28Z",
       "modelVersion": "2.0.0",
-      "hitRate": 0.4657,
-      "regressionMAE": 0.057844,
-      "total": 1383,
-      "correct": 644,
+      "hitRate": 0.4868,
+      "regressionMAE": 0.030865,
+      "total": 1362,
+      "correct": 663,
       "rolling7day": null,
       "rolling30day": null
     }
   ],
   "rolling": {
-    "7day": 0.5135,
-    "30day": 0.5459,
-    "90day": 0.5459
+    "7day": 0.5205,
+    "30day": 0.5494,
+    "90day": 0.5494
   },
-  "updatedAt": "2026-04-25T02:53:05Z"
+  "updatedAt": "2026-04-26T01:11:28Z"
 }
