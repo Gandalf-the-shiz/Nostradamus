@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "trainedAt": "2026-04-28T01:52:01+00:00",
+  "trainedAt": "2026-04-11T03:23:19+00:00",
   "architecture": "BiLSTM-Dense-DualHead",
   "inputShape": [
     30,
@@ -43,34 +43,26 @@
     "sentiment"
   ],
   "lookbackDays": 30,
-  "gitSha": "71f01d1e1eb8497d6b0623ce87303dfe72bb6c98",
-  "parentModelSha": "4205d8b20e91fddc0c15deb996e34ae5953dff1f",
-  "trainingDataRange": {
-    "start": "2025-06-10",
-    "end": "2026-04-23",
-    "tickerCount": 6370,
-    "sampleCount": 1173247
-  },
   "outputType": "dual_head_classification_regression",
   "outputInterpretation": "cls_output: P(price_UP_tomorrow) sigmoid [0,1]; reg_output: predicted % return linear",
   "trainingStats": {
-    "totalSamples": 1173247,
-    "trainSamples": 821272,
-    "valSamples": 175987,
-    "testSamples": 175988,
-    "epochs": 34,
-    "bestEpoch": 24,
+    "totalSamples": 1174558,
+    "trainSamples": 822190,
+    "valSamples": 176184,
+    "testSamples": 176184,
+    "epochs": 31,
+    "bestEpoch": 21,
     "finalLR": 0.001
   },
   "testMetrics": {
-    "accuracy": 0.6658,
-    "auc": 0.7322,
-    "f1": 0.6478,
-    "reg_mae": 0.024554
+    "accuracy": 0.666,
+    "auc": 0.731,
+    "f1": 0.6453,
+    "reg_mae": 0.023161
   },
   "classWeights": {
-    "0": 0.9409,
-    "1": 1.067
+    "0": 0.9413,
+    "1": 1.0665
   },
   "scalingParams": "See data/features/scaling_params.json"
 }
