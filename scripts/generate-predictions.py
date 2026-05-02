@@ -337,9 +337,9 @@ def _build_features_for_candles(
         # Phase C
         "macro_vix_norm":      macro_vix_col,
         # Legacy alias: old models (pre Phase A/B/C) used a single "sentiment" feature
-        # which was this same technical proxy.  Include it so old 33-feature models
-        # still receive a meaningful value for that column.
-        "sentiment":           news_sentiment_col,
+        # which was this same technical proxy. Include it unchanged so old 33-feature
+        # models still receive the proxy distribution they were trained on.
+        "sentiment":           sentiment_proxy,
     })
 
     import numpy as _np
