@@ -540,7 +540,7 @@ function _wireCanvasEvents(canvas, tooltip, latestMap) {
     const wrapW = wrap.clientWidth;
     const tipW  = tooltip.offsetWidth  || 160;
     const tipH  = tooltip.offsetHeight || 80;
-    tooltip.style.left = `${Math.min(tx + 12, wrapW - tipW - 8)}px`;
+    tooltip.style.left = `${Math.max(8, Math.min(tx + 12, wrapW - tipW - 8))}px`;
     tooltip.style.top  = `${Math.max(ty - tipH - 8, 8)}px`;
   });
 
