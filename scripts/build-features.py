@@ -2,7 +2,10 @@
 build-features.py — Phase 4: Server-Side Feature Engineering Pipeline
 
 Reads raw OHLCV data from data/historical/*.json (Phase 3 output) and computes a
-32-feature matrix per trading day per ticker using the `ta` library.
+feature matrix per trading day per ticker using the `ta` library.
+
+Phase A/B/C additions join sentiment, fundamental, and macro signals onto the
+technical feature matrix, expanding FEATURE_COUNT from 33 to 40.
 
 IMPORTANT — Feature Parity (Technical Note #11):
 The browser-side preprocessing in js/ml/preprocessing.js must compute features
@@ -18,7 +21,7 @@ import json
 import os
 import sys
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date, timedelta
 
 import numpy as np
 import pandas as pd
@@ -30,14 +33,21 @@ import ta
 # Constants
 # ---------------------------------------------------------------------------
 
-HISTORICAL_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "historical")
-FEATURES_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "features")
-MIN_CANDLES = 50          # skip tickers with fewer valid rows after NaN warmup
-LOOKBACK_DAYS = 30        # window size (used in metadata; windowing done by Phase 5)
-FEATURE_COUNT = 33
-DECIMALS = 4              # round all floats to 4 decimal places
+HISTORICAL_DIR   = os.path.join(os.path.dirname(__file__), "..", "data", "historical")
+FEATURES_DIR     = os.path.join(os.path.dirname(__file__), "..", "data", "features")
+SENTIMENT_DIR    = os.path.join(os.path.dirname(__file__), "..", "data", "sentiment")
+FUNDAMENTALS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "fundamentals")
+MACRO_DIR        = os.path.join(os.path.dirname(__file__), "..", "data", "macro")
 
-FEATURE_NAMES = [
+MIN_CANDLES  = 50          # skip tickers with fewer valid rows after indicator warmup
+LOOKBACK_DAYS = 30        # window size (used in metadata; windowing done by Phase 5)
+DECIMALS     = 4          # round all floats to 4 decimal places
+
+# ---------------------------------------------------------------------------
+# Feature schema — MUST stay in sync with generate-predictions.py
+# ---------------------------------------------------------------------------
+
+TECHNICAL_FEATURES = [
     "close_norm",       # 0
     "open_norm",        # 1
     "high_norm",        # 2
@@ -70,10 +80,22 @@ FEATURE_NAMES = [
     "dow_fri",          # 29
     "month_sin",        # 30
     "month_cos",        # 31
-    "sentiment",        # 32 — sentiment proxy (technical composite)
+    # Phase A: real NLP sentiment (replaces technical proxy)
+    "news_sentiment",   # 32 — VADER compound score from NewsAPI headlines [-1,1]
+    "reddit_sentiment", # 33 — VADER compound score from Reddit mentions [-1,1]
+    "sec_filings_norm", # 34 — normalised 8-K filing count (past 7 days)
+    # Phase B: fundamental signals
+    "insider_buy_ratio",  # 35 — insider buy ratio past 30d [0,1], 0.5=neutral
+    "earnings_days_norm", # 36 — days to next earnings normalised [0,1]
+    "earnings_surprise",  # 37 — prior quarter EPS surprise, clipped [-0.5,0.5]
+    "put_call_ratio_norm",# 38 — normalised put/call ratio [0,1]
+    # Phase C: macro regime features
+    "macro_vix_norm",     # 39 — normalised VIX [0,1]
 ]
 
-assert len(FEATURE_NAMES) == FEATURE_COUNT, "FEATURE_NAMES length mismatch"
+FEATURE_NAMES = TECHNICAL_FEATURES
+FEATURE_COUNT = len(FEATURE_NAMES)
+assert FEATURE_COUNT == 40, f"FEATURE_NAMES length mismatch: {FEATURE_COUNT}"
 
 
 # ---------------------------------------------------------------------------
@@ -96,12 +118,102 @@ def safe_div(a: pd.Series, b: pd.Series) -> pd.Series:
 
 
 # ---------------------------------------------------------------------------
+# Supplementary data loaders (Phase A/B/C)
+# ---------------------------------------------------------------------------
+
+def _load_latest_json(directory: str, file_pattern: str = "*.json") -> dict | None:
+    """
+    Load the most recent JSON file matching file_pattern from directory.
+    Returns the parsed dict or None if no file found or on error.
+    """
+    import glob
+    files = sorted(glob.glob(os.path.join(directory, file_pattern)))
+    if not files:
+        return None
+    try:
+        with open(files[-1]) as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[build-features] WARN: could not load {files[-1]}: {e}")
+        return None
+
+
+def load_sentiment_data() -> dict[str, dict]:
+    """
+    Load the latest sentiment snapshot.
+    Returns {ticker: {news_sentiment, reddit_sentiment, sec_filings_7d}} or {}.
+    """
+    data = _load_latest_json(SENTIMENT_DIR, "[0-9][0-9][0-9][0-9]-*.json")
+    if data is None:
+        print("[build-features] No sentiment data found — using zeros.")
+        return {}
+    tickers = data.get("tickers", {})
+    print(f"[build-features] Loaded sentiment for {len(tickers)} tickers from {data.get('date')}")
+    return tickers
+
+
+def load_fundamentals_data() -> dict[str, dict]:
+    """
+    Load the latest fundamentals snapshot.
+    Returns {ticker: {insider_buy_ratio_30d, earnings_days_to, earnings_surprise_prev,
+                      put_call_ratio}} or {}.
+    """
+    data = _load_latest_json(FUNDAMENTALS_DIR, "[0-9][0-9][0-9][0-9]-*.json")
+    if data is None:
+        print("[build-features] No fundamentals data found — using defaults.")
+        return {}
+    tickers = data.get("tickers", {})
+    print(f"[build-features] Loaded fundamentals for {len(tickers)} tickers from {data.get('date')}")
+    return tickers
+
+
+def load_macro_data() -> dict:
+    """
+    Load the latest macro snapshot (current-regime.json preferred, then latest dated file).
+    Returns the macro dict or defaults.
+    """
+    # Try current-regime.json first
+    regime_path = os.path.join(MACRO_DIR, "current-regime.json")
+    if os.path.exists(regime_path):
+        try:
+            with open(regime_path) as f:
+                data = json.load(f)
+            print(f"[build-features] Loaded macro regime: {data.get('regime')} from {data.get('date')}")
+            return data
+        except Exception as e:
+            print(f"[build-features] WARN: could not load current-regime.json: {e}")
+
+    data = _load_latest_json(MACRO_DIR, "[0-9][0-9][0-9][0-9]-*.json")
+    if data is None:
+        print("[build-features] No macro data found — using defaults.")
+        return {}
+    return data
+
+
+# ---------------------------------------------------------------------------
 # Per-ticker feature computation
 # ---------------------------------------------------------------------------
 
-def compute_features(ticker: str, candles: list) -> dict | None:
+def compute_features(
+    ticker: str,
+    candles: list,
+    sentiment_data: dict | None = None,
+    fundamentals_data: dict | None = None,
+    macro_features: dict | None = None,
+) -> dict | None:
     """
-    Given a list of OHLCV candle dicts, compute the full 32-feature matrix.
+    Given a list of OHLCV candle dicts, compute the full 40-feature matrix.
+
+    Phases A/B/C signals are joined from the supplementary data dicts:
+      sentiment_data    — {ticker: {news_sentiment, reddit_sentiment, sec_filings_7d}}
+      fundamentals_data — {ticker: {insider_buy_ratio_30d, earnings_days_to,
+                                    earnings_surprise_prev, put_call_ratio}}
+      macro_features    — {macro_vix_norm, macro_spread_norm, ...}
+
+    These external signals are applied to the *most recent* rows of the feature
+    matrix only (since they represent today's snapshot). Historical rows use the
+    technical proxy for the sentiment slot to maintain training continuity.
+
     Returns a dict with keys: dates, features, labels, scaling_params
     or None if the ticker has insufficient data.
     """
@@ -153,9 +265,6 @@ def compute_features(ticker: str, candles: list) -> dict | None:
     bb = ta.volatility.BollingerBands(close=close, window=20, window_dev=2)
     bb_upper = bb.bollinger_hband()
     bb_lower = bb.bollinger_lband()
-    # bb_upper_rel: positive when price is below the upper band (room to grow).
-    # bb_lower_rel: positive when price is above the lower band (room to fall).
-    # Asymmetric signs are intentional — both values are positive in the normal range.
     bb_upper_rel = safe_div(bb_upper - close, close)
     bb_lower_rel = safe_div(close - bb_lower, close)
     bb_width = safe_div(bb_upper - bb_lower, close)
@@ -200,50 +309,120 @@ def compute_features(ticker: str, candles: list) -> dict | None:
     month_sin = np.sin(2 * math.pi * month / 12)
     month_cos = np.cos(2 * math.pi * month / 12)
 
-    # --- Sentiment proxy (technical composite) ---
-    # In server-side training we don't have real news headlines, so we construct
-    # a sentiment proxy from existing technical signals that correlate with
-    # market sentiment: RSI deviation from neutral, short-term momentum, and
-    # MACD histogram direction. The result is clipped to [-1, +1] to match
-    # the range of the browser-side keyword sentiment scorer.
-    rsi_deviation = (rsi_14 - 0.5) * 2  # RSI centered at 0, range ~ [-1, +1]
+    # -------------------------------------------------------------------------
+    # Phase A: Real sentiment features
+    # For historical rows we use a technical proxy (same formula as before).
+    # The most recent row (today's snapshot) is overwritten with real NLP scores
+    # when sentiment_data is available.
+    # -------------------------------------------------------------------------
+
+    n_rows = len(df)
+
+    # Technical proxy (used for all rows as fallback)
+    rsi_deviation  = (rsi_14 - 0.5) * 2
     sentiment_proxy = (rsi_deviation * 0.5 + momentum5 * 2 + macd_hist * 10).apply(math.tanh)
+
+    news_sentiment_series   = pd.Series(0.0, index=df.index)
+    reddit_sentiment_series = pd.Series(0.0, index=df.index)
+    sec_filings_series      = pd.Series(0.0, index=df.index)
+
+    # Override the last row with real sentiment when available
+    if sentiment_data and ticker in sentiment_data:
+        sd = sentiment_data[ticker]
+        last_idx = n_rows - 1
+        news_sentiment_series.iloc[last_idx]   = float(sd.get("news_sentiment",   0.0) or 0.0)
+        reddit_sentiment_series.iloc[last_idx] = float(sd.get("reddit_sentiment", 0.0) or 0.0)
+        # Normalise sec_filings_7d: clamp [0, 10] → [0, 1]
+        raw_filings = float(sd.get("sec_filings_7d", 0) or 0)
+        sec_filings_series.iloc[last_idx] = min(1.0, raw_filings / 10.0)
+
+    # For older rows, fill news_sentiment with the technical proxy so the model
+    # sees a smooth signal throughout training.
+    news_sentiment_series = news_sentiment_series.where(
+        news_sentiment_series != 0.0, other=sentiment_proxy
+    )
+
+    # -------------------------------------------------------------------------
+    # Phase B: Fundamental features (static snapshot applied to all rows)
+    # -------------------------------------------------------------------------
+
+    insider_buy_ratio   = pd.Series(0.5,  index=df.index)  # neutral default
+    earnings_days_norm  = pd.Series(1.0,  index=df.index)  # far from earnings
+    earnings_surprise   = pd.Series(0.0,  index=df.index)  # no surprise
+    put_call_ratio_norm = pd.Series(0.5,  index=df.index)  # neutral
+
+    if fundamentals_data and ticker in fundamentals_data:
+        fd = fundamentals_data[ticker]
+        # insider_buy_ratio_30d is already [0,1]
+        ibr = float(fd.get("insider_buy_ratio_30d", 0.5) or 0.5)
+        insider_buy_ratio.iloc[:] = max(0.0, min(1.0, ibr))
+
+        # earnings_days_to: normalise [0,60] → [0,1], inverted (0 = earnings very soon)
+        edd = float(fd.get("earnings_days_to", 60) or 60)
+        earnings_days_norm.iloc[:] = max(0.0, min(1.0, 1.0 - edd / 60.0))
+
+        # earnings_surprise_prev: already clipped to [-0.5, 0.5]
+        esp = float(fd.get("earnings_surprise_prev", 0.0) or 0.0)
+        earnings_surprise.iloc[:] = max(-0.5, min(0.5, esp))
+
+        # put_call_ratio: normalise [0, 5] → [0, 1]
+        pcr = float(fd.get("put_call_ratio", 1.0) or 1.0)
+        put_call_ratio_norm.iloc[:] = max(0.0, min(1.0, pcr / 5.0))
+
+    # -------------------------------------------------------------------------
+    # Phase C: Macro regime features (scalar from current-regime.json)
+    # -------------------------------------------------------------------------
+
+    macro_vix_norm_val = 0.3  # moderate VIX default
+    if macro_features:
+        macro_vix_norm_val = float(macro_features.get("macro_vix_norm", 0.3) or 0.3)
+    macro_vix_norm_series = pd.Series(macro_vix_norm_val, index=df.index)
 
     # --- Assemble feature matrix ---
     feature_df = pd.DataFrame({
-        "close_norm":   close_norm,
-        "open_norm":    open_norm,
-        "high_norm":    high_norm,
-        "low_norm":     low_norm,
-        "volume_norm":  volume_norm,
-        "rsi_14":       rsi_14,
-        "macd_line":    macd_line,
-        "macd_signal":  macd_signal,
-        "macd_hist":    macd_hist,
-        "sma5_rel":     sma5_rel,
-        "sma20_rel":    sma20_rel,
-        "sma50_rel":    sma50_rel,
-        "ema12_rel":    ema12_rel,
-        "ema26_rel":    ema26_rel,
-        "bb_upper_rel": bb_upper_rel,
-        "bb_lower_rel": bb_lower_rel,
-        "bb_width":     bb_width,
-        "atr14_norm":   atr14_norm,
-        "obv_norm":     obv_norm,
-        "stoch_k":      stoch_k,
-        "stoch_d":      stoch_d,
-        "roc10":        roc10,
-        "momentum5":    momentum5,
-        "volatility30": volatility30,
-        "volume_ratio": volume_ratio,
-        "dow_mon":      dow_mon,
-        "dow_tue":      dow_tue,
-        "dow_wed":      dow_wed,
-        "dow_thu":      dow_thu,
-        "dow_fri":      dow_fri,
-        "month_sin":    month_sin,
-        "month_cos":    month_cos,
-        "sentiment":    sentiment_proxy,
+        "close_norm":         close_norm,
+        "open_norm":          open_norm,
+        "high_norm":          high_norm,
+        "low_norm":           low_norm,
+        "volume_norm":        volume_norm,
+        "rsi_14":             rsi_14,
+        "macd_line":          macd_line,
+        "macd_signal":        macd_signal,
+        "macd_hist":          macd_hist,
+        "sma5_rel":           sma5_rel,
+        "sma20_rel":          sma20_rel,
+        "sma50_rel":          sma50_rel,
+        "ema12_rel":          ema12_rel,
+        "ema26_rel":          ema26_rel,
+        "bb_upper_rel":       bb_upper_rel,
+        "bb_lower_rel":       bb_lower_rel,
+        "bb_width":           bb_width,
+        "atr14_norm":         atr14_norm,
+        "obv_norm":           obv_norm,
+        "stoch_k":            stoch_k,
+        "stoch_d":            stoch_d,
+        "roc10":              roc10,
+        "momentum5":          momentum5,
+        "volatility30":       volatility30,
+        "volume_ratio":       volume_ratio,
+        "dow_mon":            dow_mon,
+        "dow_tue":            dow_tue,
+        "dow_wed":            dow_wed,
+        "dow_thu":            dow_thu,
+        "dow_fri":            dow_fri,
+        "month_sin":          month_sin,
+        "month_cos":          month_cos,
+        # Phase A
+        "news_sentiment":     news_sentiment_series,
+        "reddit_sentiment":   reddit_sentiment_series,
+        "sec_filings_norm":   sec_filings_series,
+        # Phase B
+        "insider_buy_ratio":  insider_buy_ratio,
+        "earnings_days_norm": earnings_days_norm,
+        "earnings_surprise":  earnings_surprise,
+        "put_call_ratio_norm": put_call_ratio_norm,
+        # Phase C
+        "macro_vix_norm":     macro_vix_norm_series,
     })
 
     # --- Labels: did price go UP the next day? ---
@@ -293,7 +472,10 @@ def compute_features(ticker: str, candles: list) -> dict | None:
 # Main pipeline
 # ---------------------------------------------------------------------------
 
-def process_sector(sector_file: str, sector_name: str) -> dict:
+def process_sector(sector_file: str, sector_name: str,
+                   sentiment_data: dict | None = None,
+                   fundamentals_data: dict | None = None,
+                   macro_features: dict | None = None) -> dict:
     """Process one sector JSON file. Returns sector output dict + stats."""
     print(f"[build-features] Loading {sector_name}...")
 
@@ -316,7 +498,10 @@ def process_sector(sector_file: str, sector_name: str) -> dict:
             print(f"[build-features] Processing {sector_name}: {i}/{total_tickers} tickers...")
 
         candles = stock_info.get("candles", [])
-        result = compute_features(ticker, candles)
+        result = compute_features(ticker, candles,
+                                   sentiment_data=sentiment_data,
+                                   fundamentals_data=fundamentals_data,
+                                   macro_features=macro_features)
 
         if result is None:
             skipped += 1
@@ -382,6 +567,14 @@ def main():
     sectors_in_manifest = manifest.get("sectorFiles", {})
     print(f"[build-features] Found {len(sectors_in_manifest)} sectors in manifest.")
 
+    # --- Load supplementary data (Phase A/B/C) ---
+    sentiment_data    = load_sentiment_data()
+    fundamentals_data = load_fundamentals_data()
+    macro_data        = load_macro_data()
+    macro_features    = macro_data.get("normalisedFeatures") if macro_data else None
+    if macro_features:
+        print(f"[build-features] Macro regime: {macro_data.get('regime')} | VIX norm: {macro_features.get('macro_vix_norm')}")
+
     # Discover sector files
     sector_files = []
     for entry in os.listdir(HISTORICAL_DIR):
@@ -405,7 +598,12 @@ def main():
 
     for sector_file in sorted(sector_files):
         sector_name = os.path.basename(sector_file).replace(".json", "")
-        result = process_sector(sector_file, sector_name)
+        result = process_sector(
+            sector_file, sector_name,
+            sentiment_data=sentiment_data,
+            fundamentals_data=fundamentals_data,
+            macro_features=macro_features,
+        )
 
         # Write compact sector feature file
         out_path = os.path.join(FEATURES_DIR, os.path.basename(sector_file))
@@ -455,6 +653,7 @@ def main():
     print(f"  Total feature-days: {global_days}")
     print(f"  Total samples     : {total_samples}")
     print(f"  UP / DOWN ratio   : {global_up} / {global_down} ({up_ratio:.1%} up)")
+    print(f"  Feature count     : {FEATURE_COUNT}")
     print("=" * 60)
 
 
