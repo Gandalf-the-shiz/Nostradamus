@@ -29,6 +29,7 @@ HISTORICAL_DIR  = os.path.join(REPO_ROOT, "data", "historical")
 PREDICTIONS_DIR = os.path.join(REPO_ROOT, "data", "predictions")
 ACCURACY_DIR    = os.path.join(REPO_ROOT, "data", "accuracy")
 ACCURACY_LOG    = os.path.join(ACCURACY_DIR, "accuracy-log.json")
+TICKERS_PATH    = os.path.join(REPO_ROOT, "data", "tickers", "us_tickers.json")
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -40,6 +41,22 @@ def prev_trading_day(from_date: date) -> date:
     while d.weekday() >= 5:   # 5=Sat, 6=Sun
         d -= timedelta(days=1)
     return d
+
+
+def load_ticker_sectors() -> dict[str, str]:
+    """
+    Build a ticker → sector map from data/tickers/us_tickers.json.
+    Falls back to an empty dict if the file is missing or malformed.
+    """
+    if not os.path.exists(TICKERS_PATH):
+        return {}
+    try:
+        with open(TICKERS_PATH) as f:
+            data = json.load(f)
+        return {t["symbol"]: t.get("sector", "Other") for t in data.get("tickers", [])}
+    except Exception as e:
+        print(f"[score-accuracy] Could not load ticker sectors: {e}")
+        return {}
 
 
 def load_predictions(pred_date_str: str) -> dict | None:
@@ -273,6 +290,10 @@ def main():
 
     print(f"[score-accuracy] Loaded {len(predictions)} predictions (for {prediction_for})")
 
+    # 1b. Load ticker → sector map
+    ticker_sectors = load_ticker_sectors()
+    print(f"[score-accuracy] Loaded {len(ticker_sectors)} ticker sector mappings")
+
     # 2. Load actual close prices for prediction_for date
     actual_prices = load_actual_prices(prediction_for)
     print(f"[score-accuracy] Found {len(actual_prices)} actual prices in historical data")
@@ -336,6 +357,7 @@ def main():
 
         scored.append({
             "ticker":      ticker,
+            "sector":      ticker_sectors.get(ticker, "Other"),
             "correct":     int(correct),
             "predicted":   predicted_dir,
             "actual":      actual_dir,

@@ -21,7 +21,6 @@ FEATURES_DIR = os.path.join(REPO_ROOT, "data", "features")
 OUT_DIR = os.path.join(REPO_ROOT, "data", "accuracy")
 
 LOOKBACK = 30
-FEATURES = 33
 
 
 @dataclass
@@ -33,8 +32,14 @@ class TickerSeries:
     pct_returns: list[float]
 
 
-def load_tickers(max_tickers: int | None) -> list[TickerSeries]:
+def load_tickers(max_tickers: int | None) -> tuple[list[TickerSeries], int]:
+    """
+    Load ticker feature data from data/features/.
+    Returns (tickers, feature_count) where feature_count is resolved from
+    the first valid ticker found (typically 33 or 40 depending on the pipeline).
+    """
     out = []
+    resolved_features: int | None = None
     for fname in sorted(os.listdir(FEATURES_DIR)):
         if not fname.endswith(".json") or fname == "scaling_params.json":
             continue
@@ -47,14 +52,18 @@ def load_tickers(max_tickers: int | None) -> list[TickerSeries]:
             pct = td.get("pct_returns", [])
             if len(dates) < LOOKBACK + 5 or not feats or not labels:
                 continue
-            if len(feats[0]) != FEATURES:
+            n_features = len(feats[0])
+            if resolved_features is None:
+                resolved_features = n_features
+            elif n_features != resolved_features:
+                # Skip tickers whose feature count doesn't match the resolved count
                 continue
             if not pct or len(pct) != len(labels):
                 pct = [0.0] * len(labels)
             out.append(TickerSeries(symbol, dates, feats, labels, pct))
             if max_tickers and len(out) >= max_tickers:
-                return out
-    return out
+                return out, (resolved_features or 33)
+    return out, (resolved_features or 33)
 
 
 def month_key(date_str: str) -> str:
@@ -74,11 +83,11 @@ def build_samples(tickers: list[TickerSeries]):
     return samples
 
 
-def build_model():
+def build_model(feature_count: int):
     import tensorflow as tf
     from tensorflow.keras import layers
 
-    inp = layers.Input(shape=(LOOKBACK, FEATURES))
+    inp = layers.Input(shape=(LOOKBACK, feature_count))
     x = layers.Bidirectional(layers.LSTM(32, return_sequences=True))(inp)
     x = layers.Dropout(0.2)(x)
     x = layers.LSTM(16)(x)
@@ -95,7 +104,7 @@ def build_model():
     return model
 
 
-def run_fold(train_set, test_set, epochs: int, batch_size: int):
+def run_fold(train_set, test_set, epochs: int, batch_size: int, feature_count: int):
     import tensorflow as tf
 
     X_train = np.stack([x for _, x, _, _ in train_set])
@@ -106,7 +115,7 @@ def run_fold(train_set, test_set, epochs: int, batch_size: int):
     y_test_cls = np.array([y for _, _, y, _ in test_set], dtype=np.float32)
     y_test_reg = np.array([r for _, _, _, r in test_set], dtype=np.float32)
 
-    model = build_model()
+    model = build_model(feature_count)
     model.fit(
         X_train,
         [y_train_cls, y_train_reg],
@@ -137,10 +146,12 @@ def main():
     ap.add_argument("--batch-size", type=int, default=256)
     args = ap.parse_args()
 
-    tickers = load_tickers(args.max_tickers)
+    tickers, feature_count = load_tickers(args.max_tickers)
     if not tickers:
         print("[walk-forward] No ticker feature data found. Skipping — no output written.")
         sys.exit(0)
+
+    print(f"[walk-forward] Resolved feature count: {feature_count}")
 
     samples = build_samples(tickers)
     months = sorted({m for m, *_ in samples})
@@ -160,7 +171,7 @@ def main():
         test_set = [s for s in samples if s[0] == test_month]
         if len(train_set) < 2000 or len(test_set) < 200:
             continue
-        acc, auc, mae, n = run_fold(train_set, test_set, args.epochs, args.batch_size)
+        acc, auc, mae, n = run_fold(train_set, test_set, args.epochs, args.batch_size, feature_count)
         folds.append({
             "trainMonths": sorted(train_months),
             "testMonth": test_month,

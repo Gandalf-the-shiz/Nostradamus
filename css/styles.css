@@ -2447,7 +2447,8 @@ html.theme-transitioning * {
   position: absolute;
   pointer-events: none;
   background: rgba(26,29,39,0.97);
-  border: 1px solid var(--color-border);
+  color: #e8eaf0;
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
   font-size: var(--font-size-sm);
@@ -2455,6 +2456,7 @@ html.theme-transitioning * {
   flex-direction: column;
   gap: 3px;
   min-width: 140px;
+  white-space: nowrap;
   z-index: 10;
   box-shadow: var(--shadow-elevated);
 }

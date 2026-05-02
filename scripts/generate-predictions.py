@@ -68,6 +68,44 @@ FEATURE_NAMES = [
 ]
 assert len(FEATURE_NAMES) == FEATURE_COUNT
 
+# Cache of the feature names the current model was trained on.
+# Loaded lazily from models/v2/metadata.json on first call to _get_model_feature_names().
+_MODEL_FEATURE_NAMES: list[str] | None = None
+
+
+def _get_model_feature_names() -> list[str]:
+    """
+    Return the feature names (in order) that the current saved model expects.
+    Reads models/v2/metadata.json once and caches the result.
+
+    Falls back to the 40-feature FEATURE_NAMES list when no metadata is found,
+    so the function is safe to call even before a model has been trained.
+
+    Old models (pre Phase A/B/C) used a single "sentiment" feature (a technical
+    proxy).  New 40-feature models use "news_sentiment", "reddit_sentiment", etc.
+    Both naming schemes are handled in _build_features_for_candles via an alias.
+    """
+    global _MODEL_FEATURE_NAMES
+    if _MODEL_FEATURE_NAMES is not None:
+        return _MODEL_FEATURE_NAMES
+    metadata_path = os.path.join(MODELS_V2_DIR, "metadata.json")
+    if os.path.exists(metadata_path):
+        try:
+            with open(metadata_path) as f:
+                meta = json.load(f)
+            fn = meta.get("featureNames", [])
+            if fn:
+                _MODEL_FEATURE_NAMES = fn
+                print(
+                    f"[generate-predictions] Model expects {len(fn)} features "
+                    f"(e.g. {fn[:2]}…{fn[-2:]})"
+                )
+                return _MODEL_FEATURE_NAMES
+        except Exception as e:
+            print(f"[generate-predictions] WARN: could not read model metadata: {e}")
+    _MODEL_FEATURE_NAMES = FEATURE_NAMES
+    return _MODEL_FEATURE_NAMES
+
 # ---------------------------------------------------------------------------
 # Re-use feature computation from build-features.py
 # ---------------------------------------------------------------------------
@@ -298,6 +336,10 @@ def _build_features_for_candles(
         "put_call_ratio_norm": pcr_col,
         # Phase C
         "macro_vix_norm":      macro_vix_col,
+        # Legacy alias: old models (pre Phase A/B/C) used a single "sentiment" feature
+        # which was this same technical proxy.  Include it so old 33-feature models
+        # still receive a meaningful value for that column.
+        "sentiment":           news_sentiment_col,
     })
 
     import numpy as _np
@@ -307,7 +349,19 @@ def _build_features_for_candles(
     if len(feature_df) < TIMESTEPS:
         return None
 
-    return feature_df[FEATURE_NAMES].values.tolist()
+    # Select and order columns to exactly match what the trained model expects.
+    # For any feature the model needs that isn't in our DataFrame, use 0.0.
+    model_features = _get_model_feature_names()
+    result_cols = []
+    for name in model_features:
+        if name in feature_df.columns:
+            result_cols.append(feature_df[name])
+        else:
+            result_cols.append(pd.Series(0.0, index=feature_df.index, name=name))
+    result_df = pd.concat(result_cols, axis=1)
+    result_df.columns = model_features
+
+    return result_df.values.tolist()
 
 
 # ---------------------------------------------------------------------------
