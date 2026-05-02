@@ -354,7 +354,7 @@ export function renderHeatmap(container, predictionsData, appState) {
   const subtitleEl = document.createElement('p');
   subtitleEl.className = 'heatmap-subtitle';
   subtitleEl.textContent =
-    'Colour = predicted direction (green ▲ / red ▼). Size = signal strength. Click a cell to view details.';
+    'Colour = predicted direction (green ▲ / red ▼); stronger colour indicates higher confidence. Size = signal strength. Click a cell to view details.';
   container.appendChild(subtitleEl);
 
   // ── Legend
