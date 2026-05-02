@@ -70,6 +70,7 @@ FRED_SERIES = {
 
 # Regime thresholds (tuned to empirical historical distributions)
 VIX_HIGH_THRESHOLD  = 25.0    # VIX > 25 → HIGH_VOL
+VIX_BEAR_THRESHOLD  = 18.0    # VIX > this while yield curve inverted → BEAR
 SPREAD_BEAR_THRESH  = -0.30   # Inverted yield curve below -0.30% → BEAR signal
 SPREAD_BULL_THRESH  =  0.50   # Positive spread > 0.50% → BULL signal
 
@@ -169,7 +170,7 @@ def classify_regime(series: dict[str, float]) -> str:
         return "HIGH_VOL"
 
     # BEAR regime: inverted yield curve + elevated stress
-    if spread < SPREAD_BEAR_THRESH and vix > 18.0:
+    if spread < SPREAD_BEAR_THRESH and vix > VIX_BEAR_THRESHOLD:
         return "BEAR"
 
     # BULL regime: positive yield curve + low volatility

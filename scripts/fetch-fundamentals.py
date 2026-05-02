@@ -168,7 +168,10 @@ def fetch_insider_ratios(tickers: list[str]) -> dict[str, float]:
             # A better implementation would fetch individual Form 4 XML files.
             # For now just track whether Form 4s were filed (≥1 = insider activity)
             insider_active = (buys + sells) > 0
-            results[ticker] = 0.5 if not insider_active else 0.5  # neutral placeholder
+            # TODO: Fetching actual buy/sell direction requires parsing individual
+            # Form 4 XML files (expensive). The EFTS refinement below handles this
+            # for the first 50 tickers. For the remainder, default to 0.5 (neutral).
+            results[ticker] = 0.5
             fetched += 1
             time.sleep(0.15)
 

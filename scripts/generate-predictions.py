@@ -269,8 +269,7 @@ def _build_features_for_candles(
         macro_vix = float(macro_features.get("macro_vix_norm", 0.3) or 0.3)
     macro_vix_col = pd.Series(macro_vix, index=df.index)
 
-    import pandas as _pd
-    feature_df = _pd.DataFrame({
+    feature_df = pd.DataFrame({
         "close_norm":          close_norm,    "open_norm":       open_norm,
         "high_norm":           high_norm,     "low_norm":        low_norm,
         "volume_norm":         volume_norm,   "rsi_14":          rsi_14,

@@ -674,7 +674,7 @@ def train_ensemble(
     class_weights = compute_class_weights(y_cls_train)
 
     for i in range(ENSEMBLE_SIZE):
-        seed = 42 + i * 17
+        seed = 42 + i * 17   # 17 is a prime offset to ensure seed diversity across ensemble members
         print(f"\n  ── Ensemble member {i+1}/{ENSEMBLE_SIZE} (seed={seed}) ──")
 
         # Set random seeds
@@ -846,10 +846,31 @@ def main():
         feature_count=feature_count,
     )
 
-    # --- 5. Platt calibration (on validation set, using ensemble mean) ---
-    print("\n[5/7] Fitting Platt calibration …")
-    # Use the first model for calibration (or the full ensemble)
-    platt_a, platt_b = fit_platt_scaling(ensemble_models[0], X_val, y_cls_val)
+    # --- 5. Platt calibration (fitted on ensemble mean predictions over the validation set) ---
+    print("\n[5/7] Fitting Platt calibration on ensemble-averaged validation outputs …")
+    # Compute ensemble-averaged validation probabilities first
+    val_probs_all = []
+    for m_i in ensemble_models:
+        raw_v = m_i.predict(X_val, verbose=0)
+        vp = raw_v[0].flatten() if isinstance(raw_v, list) else raw_v.flatten()
+        val_probs_all.append(vp)
+    ensemble_val_probs = np.stack(val_probs_all, axis=0).mean(axis=0)
+
+    # Fit Platt scaling using a temporary wrapper so we can pass pre-computed probs
+    try:
+        from sklearn.linear_model import LogisticRegression
+        lr = LogisticRegression(C=1.0, solver="lbfgs", max_iter=1000)
+        lr.fit(ensemble_val_probs.reshape(-1, 1), y_cls_val.astype(int))
+        platt_a = float(lr.coef_[0][0])
+        platt_b = float(lr.intercept_[0])
+        platt_params = {"a": round(platt_a, 6), "b": round(platt_b, 6)}
+        platt_path = os.path.join(MODELS_V2_DIR, "platt_params.json")
+        with open(platt_path, "w") as f:
+            json.dump(platt_params, f, indent=2)
+        print(f"  Platt calibration: a={platt_a:.4f}, b={platt_b:.4f} → {platt_path}")
+    except ImportError:
+        print("  WARN: scikit-learn not available — skipping Platt calibration.")
+        platt_a, platt_b = 1.0, 0.0
 
     # --- 6. Export primary model (first member; ensemble used at inference) ---
     print("\n[6/7] Exporting primary model …")

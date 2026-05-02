@@ -49,7 +49,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No new macro data to commit."
           else
-            REGIME=$(python -c "import json; d=json.load(open('data/macro/current-regime.json')); print(d.get('regime','UNKNOWN'))" 2>/dev/null || echo "UNKNOWN")
+            REGIME=$(jq -r '.regime // "UNKNOWN"' data/macro/current-regime.json 2>/dev/null || echo "UNKNOWN")
             TODAY=$(date -u +%Y-%m-%d)
             git commit -m "📈 Macro update [${TODAY}] — regime: ${REGIME}"
             git pull --rebase --autostash origin main

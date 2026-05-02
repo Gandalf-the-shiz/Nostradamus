@@ -155,7 +155,7 @@ def fetch_news_sentiment(tickers: list[str], analyzer) -> dict[str, dict]:
     # Process in batches to conserve quota
     processed = 0
     for i in range(0, min(len(tickers), NEWS_MAX_TICKERS), NEWS_BATCH_SIZE):
-        batch = tickers[i : i + NEWS_BATCH_SIZE]
+        batch = tickers[i : min(i + NEWS_BATCH_SIZE, NEWS_MAX_TICKERS)]
         query = " OR ".join(f'"{t}"' for t in batch)
 
         try:

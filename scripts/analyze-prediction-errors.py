@@ -89,9 +89,7 @@ def load_recent_accuracy_reports(window_days: int) -> list[dict]:
     cutoff  = date.today() - timedelta(days=window_days)
 
     for fpath in sorted(ACCURACY_DIR.glob("*.json")):
-        if fpath.stem in ("accuracy-log", ) or "-" not in fpath.stem:
-            continue
-        if fpath.name.startswith("miss-analysis"):
+        if fpath.stem == "accuracy-log" or fpath.name.startswith("miss-analysis"):
             continue
         try:
             report_date = date.fromisoformat(fpath.stem)

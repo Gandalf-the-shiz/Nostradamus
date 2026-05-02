@@ -337,7 +337,9 @@ def compute_features(
         sec_filings_series.iloc[last_idx] = min(1.0, raw_filings / 10.0)
 
     # For older rows, fill news_sentiment with the technical proxy so the model
-    # sees a smooth signal throughout training.
+    # sees a smooth signal throughout training. Note: zero is treated as "no signal
+    # (neutral)" here, not as genuine zero sentiment — the VADER compound score
+    # would rarely be exactly 0.0, so this distinguishes missing from actual data.
     news_sentiment_series = news_sentiment_series.where(
         news_sentiment_series != 0.0, other=sentiment_proxy
     )
