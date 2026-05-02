@@ -21,6 +21,7 @@ FEATURES_DIR = os.path.join(REPO_ROOT, "data", "features")
 OUT_DIR = os.path.join(REPO_ROOT, "data", "accuracy")
 
 LOOKBACK = 30
+DEFAULT_FEATURE_COUNT = 33  # fallback when no feature files are present
 
 
 @dataclass
@@ -62,8 +63,8 @@ def load_tickers(max_tickers: int | None) -> tuple[list[TickerSeries], int]:
                 pct = [0.0] * len(labels)
             out.append(TickerSeries(symbol, dates, feats, labels, pct))
             if max_tickers and len(out) >= max_tickers:
-                return out, (resolved_features or 33)
-    return out, (resolved_features or 33)
+                return out, (resolved_features or DEFAULT_FEATURE_COUNT)
+    return out, (resolved_features or DEFAULT_FEATURE_COUNT)
 
 
 def month_key(date_str: str) -> str:

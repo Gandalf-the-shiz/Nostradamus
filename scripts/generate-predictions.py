@@ -353,11 +353,18 @@ def _build_features_for_candles(
     # For any feature the model needs that isn't in our DataFrame, use 0.0.
     model_features = _get_model_feature_names()
     result_cols = []
+    missing_features = []
     for name in model_features:
         if name in feature_df.columns:
             result_cols.append(feature_df[name])
         else:
+            missing_features.append(name)
             result_cols.append(pd.Series(0.0, index=feature_df.index, name=name))
+    if missing_features:
+        print(
+            f"[generate-predictions] WARN: {len(missing_features)} feature(s) expected by the model "
+            f"are not in the computed feature set and will be filled with 0.0: {missing_features}"
+        )
     result_df = pd.concat(result_cols, axis=1)
     result_df.columns = model_features
 

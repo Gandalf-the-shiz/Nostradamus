@@ -105,7 +105,9 @@ export async function initWatchlist(appState) {
     );
 
     let tickerMap = new Map();
-    try { tickerMap = await loadTickerRegistry(); } catch (_) { /* ignore */ }
+    try { tickerMap = await loadTickerRegistry(); } catch (err) {
+      console.warn('[Watchlist] Could not load ticker registry:', err.message);
+    }
 
     // Build a stock stub for every watchlisted symbol
     for (const symbol of list) {
