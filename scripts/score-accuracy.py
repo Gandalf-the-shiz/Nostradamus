@@ -45,15 +45,48 @@ def prev_trading_day(from_date: date) -> date:
 
 def load_ticker_sectors() -> dict[str, str]:
     """
-    Build a ticker → sector map from data/tickers/us_tickers.json.
-    Falls back to an empty dict if the file is missing or malformed.
+    Build a ticker → sector map.
+
+    Prefer deriving sectors from data/historical/*.json because those files
+    already encode sector membership by filename. Fall back to
+    data/tickers/us_tickers.json only if no historical mapping can be built.
+    Returns an empty dict if neither source is available or usable.
     """
+    historical_sectors = {}
+    if os.path.isdir(HISTORICAL_DIR):
+        try:
+            sector_files = [
+                f for f in os.listdir(HISTORICAL_DIR)
+                if f.endswith(".json") and f != "manifest.json"
+            ]
+            for filename in sector_files:
+                sector_file = os.path.join(HISTORICAL_DIR, filename)
+                with open(sector_file) as f:
+                    sector_data = json.load(f)
+
+                sector_name = os.path.splitext(filename)[0].replace("-", " ").replace("_", " ").title()
+                for ticker in sector_data.get("stocks", {}).keys():
+                    historical_sectors[ticker] = sector_name
+
+            if historical_sectors:
+                return historical_sectors
+        except Exception as e:
+            print(f"[score-accuracy] Could not derive ticker sectors from historical files: {e}")
+
     if not os.path.exists(TICKERS_PATH):
         return {}
+
     try:
         with open(TICKERS_PATH) as f:
             data = json.load(f)
-        return {t["symbol"]: t.get("sector", "Other") for t in data.get("tickers", [])}
+
+        fallback_sectors = {}
+        for ticker_info in data.get("tickers", []):
+            symbol = ticker_info.get("symbol")
+            sector = ticker_info.get("sector")
+            if symbol and sector and sector != "Other":
+                fallback_sectors[symbol] = sector
+        return fallback_sectors
     except Exception as e:
         print(f"[score-accuracy] Could not load ticker sectors: {e}")
         return {}
