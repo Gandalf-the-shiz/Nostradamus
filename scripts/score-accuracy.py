@@ -157,6 +157,9 @@ def compute_metrics(scored: list[dict]) -> dict:
     ]
     regression_mae = round(sum(reg_abs_errors) / len(reg_abs_errors), 6) if reg_abs_errors else None
 
+    # Phase D: top-20 EV hit rate (the high-conviction subset)
+    ev_top_n_metrics = _compute_ev_top_n_metrics(scored, n=20)
+
     return {
         "hitRate":               hit_rate,
         "confidenceWeightedHitRate": round(conf_weighted, 4) if conf_weighted is not None else None,
@@ -164,6 +167,30 @@ def compute_metrics(scored: list[dict]) -> dict:
         "total":                 total,
         "correct":               correct,
         "bySector":              sector_metrics,
+        "evTop20":               ev_top_n_metrics,
+    }
+
+
+def _compute_ev_top_n_metrics(scored: list[dict], n: int = 20) -> dict:
+    """
+    Sort scored predictions by EV (expected value) descending and compute
+    hit rate for the top-N subset. Falls back to confidence if EV not present.
+    """
+    sorted_by_ev = sorted(
+        scored,
+        key=lambda s: float(s.get("ev", s.get("confidence", 0.0)) or 0.0),
+        reverse=True,
+    )
+    top_n = sorted_by_ev[:n]
+    if not top_n:
+        return {"n": n, "hitRate": None, "total": 0, "correct": 0}
+
+    correct = sum(1 for s in top_n if s["correct"])
+    return {
+        "n":       n,
+        "hitRate": round(correct / len(top_n), 4),
+        "total":   len(top_n),
+        "correct": correct,
     }
 
 
@@ -319,6 +346,8 @@ def main():
             "regressionAbsError": regression_abs_error,
             "priceActual": actual,
             "pricePrev":   pred_date_close,
+            "ev":          pred.get("ev"),
+            "ensembleStd": pred.get("ensembleStd"),
         })
 
     print(f"[score-accuracy] Scored {len(scored)} predictions ({len(no_actual)} missing actual prices)")

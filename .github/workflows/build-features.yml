@@ -42,7 +42,8 @@ jobs:
           git add data/features/
           git diff --cached --quiet && echo "No changes to commit" && exit 0
           TICKER_COUNT=$(python -c "import json; d=json.load(open('data/features/scaling_params.json')); print(d['globalStats']['tickersProcessed'])")
+          FEATURE_COUNT=$(python -c "import json; d=json.load(open('data/features/scaling_params.json')); print(d['featureCount'])")
           TODAY=$(date -u +%Y-%m-%d)
-          git commit -m "🧮 Feature engineering update [${TODAY}] — ${TICKER_COUNT} tickers, 33 features"
+          git commit -m "🧮 Feature engineering update [${TODAY}] — ${TICKER_COUNT} tickers, ${FEATURE_COUNT} features"
           git pull --rebase --autostash origin main
           git push

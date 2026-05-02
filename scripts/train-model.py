@@ -40,7 +40,7 @@ TRAINING_LOGS_DIR = os.path.join(REPO_ROOT, "data", "training-logs")
 # ---------------------------------------------------------------------------
 
 TIMESTEPS = 30       # lookback window (must match Phase 4 LOOKBACK_DAYS)
-FEATURES = 33        # feature count (must match Phase 4 FEATURE_COUNT)
+FEATURES = None      # resolved dynamically from scaling_params.json; default 40
 TRAIN_FRAC = 0.70
 VAL_FRAC = 0.15
 # TEST_FRAC = 0.15   (implicit: remainder)
@@ -49,6 +49,9 @@ MAX_TRAIN_SAMPLES = 2_000_000   # subsample training set if RAM is tight
 MIN_SAMPLES = 10_000             # warn if dataset is very small
 ARCHIVE_MAX_MB = 500
 ARCHIVE_MIN_KEEP = 4
+
+# Phase D: Ensemble training parameters
+ENSEMBLE_SIZE = 5    # number of models in the ensemble (different random seeds)
 
 # ---------------------------------------------------------------------------
 # Data loading
@@ -239,7 +242,7 @@ def compute_class_weights(y: np.ndarray) -> dict:
 # Model definition
 # ---------------------------------------------------------------------------
 
-def build_model(timesteps: int = TIMESTEPS, features: int = FEATURES):
+def build_model(timesteps: int = TIMESTEPS, features: int = 40):
     """
     TF.js-compatible dual-head BiLSTM model.
 
@@ -456,6 +459,7 @@ def export_model(model, models_v2_dir: str):
 def write_metadata(
     models_v2_dir: str,
     feature_names: list[str],
+    feature_count: int,
     train_samples: int,
     val_samples: int,
     test_samples: int,
@@ -480,11 +484,11 @@ def write_metadata(
     final_lr = float(lr_history[-1]) if lr_history else 0.001
 
     metadata = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "trainedAt": trained_at,
-        "architecture": "BiLSTM-Dense-DualHead",
-        "inputShape": [TIMESTEPS, FEATURES],
-        "featureCount": FEATURES,
+        "architecture": "BiLSTM-Dense-DualHead-Ensemble",
+        "inputShape": [TIMESTEPS, feature_count],
+        "featureCount": feature_count,
         "featureNames": feature_names,
         "lookbackDays": TIMESTEPS,
         "gitSha": os.getenv("GITHUB_SHA"),
@@ -492,6 +496,7 @@ def write_metadata(
         "trainingDataRange": training_data_range,
         "outputType": "dual_head_classification_regression",
         "outputInterpretation": "cls_output: P(price_UP_tomorrow) sigmoid [0,1]; reg_output: predicted % return linear",
+        "ensembleSize": ENSEMBLE_SIZE,
         "trainingStats": {
             "totalSamples": train_samples + val_samples + test_samples,
             "trainSamples": train_samples,
@@ -574,7 +579,6 @@ def write_training_log(
                     or history.history.get("val_auc", []))
     best_epoch = int(np.argmax(val_auc_list)) + 1 if val_auc_list else epochs_run
 
-    # Convert numpy floats to Python floats
     def to_python(v):
         if isinstance(v, (np.floating, np.integer)):
             return float(v)
@@ -599,24 +603,184 @@ def write_training_log(
 
 
 # ---------------------------------------------------------------------------
+# Phase D: Platt calibration helper
+# ---------------------------------------------------------------------------
+
+def fit_platt_scaling(model, X_val: np.ndarray, y_cls_val: np.ndarray) -> tuple[float, float]:
+    """
+    Fit Platt scaling (logistic regression on raw sigmoid outputs) to calibrate
+    the classifier so P(UP=x) is genuinely x% likely to be correct.
+
+    Returns (platt_a, platt_b) — the slope and intercept of the calibration.
+    Saves to models/v2/platt_params.json.
+    """
+    try:
+        from sklearn.linear_model import LogisticRegression
+    except ImportError:
+        print("  WARN: scikit-learn not available — skipping Platt calibration.")
+        return 1.0, 0.0
+
+    raw_preds = model.predict(X_val, verbose=0)
+    if isinstance(raw_preds, list) and len(raw_preds) == 2:
+        probs = raw_preds[0].flatten()
+    else:
+        probs = raw_preds.flatten()
+
+    # Platt scaling: fit logistic regression on raw scores (not re-applying sigmoid)
+    lr = LogisticRegression(C=1.0, solver="lbfgs", max_iter=1000)
+    lr.fit(probs.reshape(-1, 1), y_cls_val.astype(int))
+
+    platt_a = float(lr.coef_[0][0])
+    platt_b = float(lr.intercept_[0])
+
+    platt_params = {"a": round(platt_a, 6), "b": round(platt_b, 6)}
+    platt_path = os.path.join(MODELS_V2_DIR, "platt_params.json")
+    with open(platt_path, "w") as f:
+        json.dump(platt_params, f, indent=2)
+    print(f"  Platt calibration: a={platt_a:.4f}, b={platt_b:.4f} → saved to {platt_path}")
+    return platt_a, platt_b
+
+
+def platt_calibrate(raw_prob: float, platt_a: float, platt_b: float) -> float:
+    """Apply Platt scaling to convert raw probability to calibrated probability."""
+    import math
+    z = platt_a * raw_prob + platt_b
+    return 1.0 / (1.0 + math.exp(-z))
+
+
+# ---------------------------------------------------------------------------
+# Phase D: Ensemble training and export
+# ---------------------------------------------------------------------------
+
+def train_ensemble(
+    X_train, y_cls_train, y_reg_train,
+    X_val, y_cls_val, y_reg_val,
+    X_test, y_cls_test, y_reg_test,
+    sectors_test,
+    feature_count: int,
+) -> tuple[list, dict]:
+    """
+    Train ENSEMBLE_SIZE models with different random seeds.
+    Each model is saved to models/v2/ensemble/model_{i}/.
+    Returns (list_of_models, averaged_test_metrics).
+    """
+    ensemble_dir = os.path.join(MODELS_V2_DIR, "ensemble")
+    os.makedirs(ensemble_dir, exist_ok=True)
+
+    models     = []
+    histories  = []
+    all_probs  = []   # (ensemble_size, test_size) — for ensemble averaging
+
+    class_weights = compute_class_weights(y_cls_train)
+
+    for i in range(ENSEMBLE_SIZE):
+        seed = 42 + i * 17   # 17 is a prime offset to ensure seed diversity across ensemble members
+        print(f"\n  ── Ensemble member {i+1}/{ENSEMBLE_SIZE} (seed={seed}) ──")
+
+        # Set random seeds
+        import tensorflow as tf
+        tf.random.set_seed(seed)
+        np.random.seed(seed)
+
+        # Shuffle training set with this seed
+        X_tr_i, y_cls_tr_i, y_reg_tr_i = shuffle_training_set(
+            X_train, y_cls_train, y_reg_train, seed=seed
+        )
+
+        model_i = build_model(TIMESTEPS, feature_count)
+        hist_i  = train(model_i, X_tr_i, y_cls_tr_i, y_reg_tr_i,
+                        X_val, y_cls_val, y_reg_val, class_weights)
+
+        # Save each ensemble member
+        member_dir  = os.path.join(ensemble_dir, f"model_{i}")
+        keras_path  = os.path.join(member_dir, "keras_model.keras")
+        os.makedirs(member_dir, exist_ok=True)
+        model_i.save(keras_path)
+
+        # Collect test probabilities
+        raw = model_i.predict(X_test, verbose=0)
+        probs = raw[0].flatten() if isinstance(raw, list) else raw.flatten()
+        all_probs.append(probs)
+
+        models.append(model_i)
+        histories.append(hist_i)
+
+    # Ensemble: average probabilities
+    all_probs_arr  = np.stack(all_probs, axis=0)           # (ensemble, n_test)
+    ensemble_probs = all_probs_arr.mean(axis=0)            # (n_test,)
+    ensemble_std   = all_probs_arr.std(axis=0)             # (n_test,) — uncertainty
+
+    # Save std for inspection
+    std_path = os.path.join(MODELS_V2_DIR, "ensemble_std_sample.json")
+    with open(std_path, "w") as f:
+        json.dump({"mean_std": round(float(ensemble_std.mean()), 4),
+                   "max_std": round(float(ensemble_std.max()), 4)}, f)
+
+    # Evaluate ensemble
+    import tensorflow as tf
+    ensemble_preds = (ensemble_probs >= 0.5).astype(int)
+    y_true = y_cls_test.astype(int)
+
+    tp = int(((ensemble_preds == 1) & (y_true == 1)).sum())
+    tn = int(((ensemble_preds == 0) & (y_true == 0)).sum())
+    fp = int(((ensemble_preds == 1) & (y_true == 0)).sum())
+    fn = int(((ensemble_preds == 0) & (y_true == 1)).sum())
+
+    accuracy = float((ensemble_preds == y_true).mean())
+    auc_metric = tf.keras.metrics.AUC()
+    auc_metric.update_state(y_true, ensemble_probs)
+    auc_val = float(auc_metric.result())
+    prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    rec  = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1   = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
+
+    avg_metrics = {
+        "accuracy":         round(accuracy, 4),
+        "auc":              round(auc_val, 4),
+        "f1":               round(float(f1), 4),
+        "confusion_matrix": [[tn, fp], [fn, tp]],
+        "ensemble_mean_std": round(float(ensemble_std.mean()), 4),
+    }
+
+    print(f"\n  ── Ensemble combined accuracy: {accuracy:.4f}, AUC: {auc_val:.4f} ──")
+    return models, avg_metrics, histories
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main():
     start_time = time.time()
     print("=" * 60)
-    print("Phase 5: Nostradamus Model Training Pipeline")
+    print("Phase 5+D: Nostradamus Model Training Pipeline (Ensemble)")
     print("=" * 60)
 
     # --- 1. Load feature files ---
     print("\n[1/7] Loading feature files …")
     sectors = load_feature_files(FEATURES_DIR)
 
+    # --- Resolve feature count dynamically from scaling_params ---
+    feature_count = None
+    if os.path.exists(SCALING_PARAMS_PATH):
+        try:
+            with open(SCALING_PARAMS_PATH) as f:
+                sp = json.load(f)
+            feature_count = int(sp.get("featureCount", 0)) or None
+        except Exception:
+            pass
+
     # --- 2. Build windowed dataset ---
     print("\n[2/7] Building sliding-window dataset …")
     X, y_cls, y_reg, sector_labels, feature_names, tickers_used = collect_ticker_data(
         sectors, TIMESTEPS
     )
+
+    if feature_count is None:
+        feature_count = X.shape[2] if len(X.shape) == 3 else (
+            len(feature_names) if feature_names else 40
+        )
+    print(f"  Feature count  : {feature_count}")
 
     total_samples = len(X)
     n_up = int((y_cls == 1).sum())
@@ -664,48 +828,68 @@ def main():
     print(f"  Val   : {len(X_val):,}")
     print(f"  Test  : {len(X_test):,}")
 
-    # Subsample training set if needed
+    # Subsample training set if needed (before per-seed shuffling)
     X_train, y_cls_train, y_reg_train = subsample_training_set(
         X_train, y_cls_train, y_reg_train, MAX_TRAIN_SAMPLES
     )
 
-    # Shuffle training set (NOT val or test)
-    X_train, y_cls_train, y_reg_train = shuffle_training_set(X_train, y_cls_train, y_reg_train)
-
-    # Class weights (based on classification labels only)
     class_weights = compute_class_weights(y_cls_train)
     print(f"\n  Class weights: DOWN={class_weights[0]}, UP={class_weights[1]}")
 
-    # --- 4. Build model ---
-    print("\n[4/7] Building model …")
-    model = build_model(TIMESTEPS, FEATURES)
-    model.summary()
+    # --- 4. Train ensemble ---
+    print(f"\n[4/7] Training ensemble of {ENSEMBLE_SIZE} models …")
+    ensemble_models, test_metrics, histories = train_ensemble(
+        X_train, y_cls_train, y_reg_train,
+        X_val,   y_cls_val,   y_reg_val,
+        X_test,  y_cls_test,  y_reg_test,
+        sectors_test,
+        feature_count=feature_count,
+    )
 
-    # --- 5. Train ---
-    print("\n[5/7] Training …")
-    history = train(model, X_train, y_cls_train, y_reg_train, X_val, y_cls_val, y_reg_val, class_weights)
-    epochs_run = len(history.history.get("loss", []))
-    print(f"\n  Training complete. Epochs run: {epochs_run}")
+    # --- 5. Platt calibration (fitted on ensemble mean predictions over the validation set) ---
+    print("\n[5/7] Fitting Platt calibration on ensemble-averaged validation outputs …")
+    # Compute ensemble-averaged validation probabilities first
+    val_probs_all = []
+    for m_i in ensemble_models:
+        raw_v = m_i.predict(X_val, verbose=0)
+        vp = raw_v[0].flatten() if isinstance(raw_v, list) else raw_v.flatten()
+        val_probs_all.append(vp)
+    ensemble_val_probs = np.stack(val_probs_all, axis=0).mean(axis=0)
 
-    # --- 6. Evaluate ---
-    print("\n[6/7] Evaluating on test set …")
-    test_metrics = evaluate_model(model, X_test, y_cls_test, y_reg_test, sectors_test)
+    # Fit Platt scaling using a temporary wrapper so we can pass pre-computed probs
+    try:
+        from sklearn.linear_model import LogisticRegression
+        lr = LogisticRegression(C=1.0, solver="lbfgs", max_iter=1000)
+        lr.fit(ensemble_val_probs.reshape(-1, 1), y_cls_val.astype(int))
+        platt_a = float(lr.coef_[0][0])
+        platt_b = float(lr.intercept_[0])
+        platt_params = {"a": round(platt_a, 6), "b": round(platt_b, 6)}
+        platt_path = os.path.join(MODELS_V2_DIR, "platt_params.json")
+        with open(platt_path, "w") as f:
+            json.dump(platt_params, f, indent=2)
+        print(f"  Platt calibration: a={platt_a:.4f}, b={platt_b:.4f} → {platt_path}")
+    except ImportError:
+        print("  WARN: scikit-learn not available — skipping Platt calibration.")
+        platt_a, platt_b = 1.0, 0.0
 
-    # --- 7. Export ---
-    print("\n[7/7] Exporting model …")
+    # --- 6. Export primary model (first member; ensemble used at inference) ---
+    print("\n[6/7] Exporting primary model …")
     os.makedirs(MODELS_V2_DIR, exist_ok=True)
-    export_model(model, MODELS_V2_DIR)
+    export_model(ensemble_models[0], MODELS_V2_DIR)
 
     duration = time.time() - start_time
+
+    epochs_run = len(histories[0].history.get("loss", []))
 
     write_metadata(
         MODELS_V2_DIR,
         feature_names or [],
+        feature_count=feature_count,
         train_samples=len(X_train),
         val_samples=len(X_val),
         test_samples=len(X_test),
         epochs_run=epochs_run,
-        history=history,
+        history=histories[0],
         test_metrics=test_metrics,
         class_weights=class_weights,
         training_data_range=training_data_range,
@@ -718,11 +902,11 @@ def main():
         TRAINING_LOGS_DIR,
         duration_seconds=duration,
         epochs_run=epochs_run,
-        history=history,
+        history=histories[0],
         test_metrics=test_metrics,
     )
 
-    print(f"\nDone in {duration/60:.1f} min. Model exported to {MODELS_V2_DIR}")
+    print(f"\nDone in {duration/60:.1f} min. Ensemble exported to {MODELS_V2_DIR}")
     print(f"Test accuracy: {test_metrics['accuracy']:.4f} | AUC: {test_metrics['auc']:.4f}")
 
 
