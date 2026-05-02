@@ -29,6 +29,7 @@ HISTORICAL_DIR  = os.path.join(REPO_ROOT, "data", "historical")
 PREDICTIONS_DIR = os.path.join(REPO_ROOT, "data", "predictions")
 ACCURACY_DIR    = os.path.join(REPO_ROOT, "data", "accuracy")
 ACCURACY_LOG    = os.path.join(ACCURACY_DIR, "accuracy-log.json")
+TICKERS_PATH    = os.path.join(REPO_ROOT, "data", "tickers", "us_tickers.json")
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -40,6 +41,55 @@ def prev_trading_day(from_date: date) -> date:
     while d.weekday() >= 5:   # 5=Sat, 6=Sun
         d -= timedelta(days=1)
     return d
+
+
+def load_ticker_sectors() -> dict[str, str]:
+    """
+    Build a ticker → sector map.
+
+    Prefer deriving sectors from data/historical/*.json because those files
+    already encode sector membership by filename. Fall back to
+    data/tickers/us_tickers.json only if no historical mapping can be built.
+    Returns an empty dict if neither source is available or usable.
+    """
+    historical_sectors = {}
+    if os.path.isdir(HISTORICAL_DIR):
+        try:
+            sector_files = [
+                f for f in os.listdir(HISTORICAL_DIR)
+                if f.endswith(".json") and f != "manifest.json"
+            ]
+            for filename in sector_files:
+                sector_file = os.path.join(HISTORICAL_DIR, filename)
+                with open(sector_file) as f:
+                    sector_data = json.load(f)
+
+                sector_name = os.path.splitext(filename)[0].replace("-", " ").replace("_", " ").title()
+                for ticker in sector_data.get("stocks", {}).keys():
+                    historical_sectors[ticker] = sector_name
+
+            if historical_sectors:
+                return historical_sectors
+        except Exception as e:
+            print(f"[score-accuracy] Could not derive ticker sectors from historical files: {e}")
+
+    if not os.path.exists(TICKERS_PATH):
+        return {}
+
+    try:
+        with open(TICKERS_PATH) as f:
+            data = json.load(f)
+
+        fallback_sectors = {}
+        for ticker_info in data.get("tickers", []):
+            symbol = ticker_info.get("symbol")
+            sector = ticker_info.get("sector")
+            if symbol and sector and sector != "Other":
+                fallback_sectors[symbol] = sector
+        return fallback_sectors
+    except Exception as e:
+        print(f"[score-accuracy] Could not load ticker sectors: {e}")
+        return {}
 
 
 def load_predictions(pred_date_str: str) -> dict | None:
@@ -273,6 +323,10 @@ def main():
 
     print(f"[score-accuracy] Loaded {len(predictions)} predictions (for {prediction_for})")
 
+    # 1b. Load ticker → sector map
+    ticker_sectors = load_ticker_sectors()
+    print(f"[score-accuracy] Loaded {len(ticker_sectors)} ticker sector mappings")
+
     # 2. Load actual close prices for prediction_for date
     actual_prices = load_actual_prices(prediction_for)
     print(f"[score-accuracy] Found {len(actual_prices)} actual prices in historical data")
@@ -336,6 +390,7 @@ def main():
 
         scored.append({
             "ticker":      ticker,
+            "sector":      ticker_sectors.get(ticker, "Other"),
             "correct":     int(correct),
             "predicted":   predicted_dir,
             "actual":      actual_dir,
