@@ -2,14 +2,14 @@
   "metadata": {
     "source": "SEC EDGAR",
     "url": "https://www.sec.gov/files/company_tickers_exchange.json",
-    "fetchedAt": "2026-04-26T00:37:53Z",
-    "totalTickers": 7121,
+    "fetchedAt": "2026-05-03T00:42:14Z",
+    "totalTickers": 7125,
     "exchanges": {
-      "NYSE": 2857,
-      "NASDAQ": 4264
+      "NYSE": 2859,
+      "NASDAQ": 4266
     },
     "sectors": {
-      "Other": 7121
+      "Other": 7125
     }
   },
   "tickers": [
@@ -11030,14 +11030,6 @@
       "sicCode": null
     },
     {
-      "symbol": "CIGL",
-      "name": "Concorde International Group Ltd.",
-      "cik": "0002001794",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "CII",
       "name": "BlackRock Enhanced Large Cap Core Fund, Inc.",
       "cik": "0001278895",
@@ -14766,7 +14758,7 @@
       "sicCode": null
     },
     {
-      "symbol": "DHY-RW",
+      "symbol": "DHY-RI",
       "name": "CREDIT SUISSE HIGH YIELD CREDIT FUND",
       "cik": "0001061353",
       "exchange": "NYSE",
@@ -16358,6 +16350,14 @@
       "sicCode": null
     },
     {
+      "symbol": "EFOR",
+      "name": "ASGN Inc",
+      "cik": "0000890564",
+      "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "EFR",
       "name": "Eaton Vance Senior Floating-Rate Trust",
       "cik": "0001258623",
@@ -16738,6 +16738,14 @@
       "name": "Elme Communities",
       "cik": "0000104894",
       "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "ELMT",
+      "name": "Elmet Group Co.",
+      "cik": "0002101698",
+      "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
     },
@@ -19769,6 +19777,14 @@
       "symbol": "FNLC",
       "name": "First Bancorp, Inc /ME/",
       "cik": "0000765207",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "FNRN",
+      "name": "FIRST NORTHERN COMMUNITY BANCORP",
+      "cik": "0001114927",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -29225,6 +29241,14 @@
       "symbol": "LAB",
       "name": "STANDARD BIOTOOLS INC.",
       "cik": "0001162194",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "LABT",
+      "name": "Lakewood-Amedex Biotherapeutics Inc.",
+      "cik": "0002079272",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -45542,6 +45566,14 @@
       "sicCode": null
     },
     {
+      "symbol": "SE",
+      "name": "Sea Ltd",
+      "cik": "0001703399",
+      "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "SEAT",
       "name": "Vivid Seats Inc.",
       "cik": "0001856031",
@@ -46423,7 +46455,7 @@
     },
     {
       "symbol": "SKIN",
-      "name": "Beauty Health Co",
+      "name": "SkinHealth Systems Inc.",
       "cik": "0001818093",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -52655,7 +52687,7 @@
     },
     {
       "symbol": "USB",
-      "name": "US BANCORP \\DE\\",
+      "name": "US BANCORP DE",
       "cik": "0000036104",
       "exchange": "NYSE",
       "sector": "Other",
@@ -52663,7 +52695,7 @@
     },
     {
       "symbol": "USB-PS",
-      "name": "US BANCORP \\DE\\",
+      "name": "US BANCORP DE",
       "cik": "0000036104",
       "exchange": "NYSE",
       "sector": "Other",
@@ -55758,6 +55790,14 @@
       "sicCode": null
     },
     {
+      "symbol": "XE",
+      "name": "X-Energy, Inc.",
+      "cik": "0002088896",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "XEL",
       "name": "XCEL ENERGY INC",
       "cik": "0000072903",
@@ -56681,14 +56721,6 @@
       "symbol": "ZG",
       "name": "ZILLOW GROUP, INC.",
       "cik": "0001617640",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "ZGM",
-      "name": "Zenta Group Co Ltd",
-      "cik": "0002011458",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
