@@ -2,14 +2,14 @@
   "metadata": {
     "source": "SEC EDGAR",
     "url": "https://www.sec.gov/files/company_tickers_exchange.json",
-    "fetchedAt": "2026-05-17T00:45:35Z",
-    "totalTickers": 7135,
+    "fetchedAt": "2026-05-24T00:47:21Z",
+    "totalTickers": 7146,
     "exchanges": {
-      "NYSE": 2862,
-      "NASDAQ": 4273
+      "NYSE": 2861,
+      "NASDAQ": 4285
     },
     "sectors": {
-      "Other": 7135
+      "Other": 7146
     }
   },
   "tickers": [
@@ -609,14 +609,6 @@
       "symbol": "ACLS",
       "name": "AXCELIS TECHNOLOGIES INC",
       "cik": "0001113232",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "ACLX",
-      "name": "Arcellx, Inc.",
-      "cik": "0001786205",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -1854,6 +1846,14 @@
       "sicCode": null
     },
     {
+      "symbol": "AIIR",
+      "name": "AIR Global PLC",
+      "cik": "0002097725",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "AIM",
       "name": "AIM ImmunoTech Inc.",
       "cik": "0000946644",
@@ -2678,6 +2678,14 @@
       "sicCode": null
     },
     {
+      "symbol": "AMAN",
+      "name": "Amanat Acquisition Corp.",
+      "cik": "0002112457",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "AMAT",
       "name": "APPLIED MATERIALS INC /DE",
       "cik": "0000006951",
@@ -2977,6 +2985,14 @@
       "symbol": "AMSF",
       "name": "AMERISAFE INC",
       "cik": "0001018979",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "AMSS",
+      "name": "AMASS BRANDS",
+      "cik": "0001851491",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -3401,30 +3417,6 @@
       "symbol": "APACU",
       "name": "StoneBridge Acquisition II Corp",
       "cik": "0002043630",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "APAD",
-      "name": "Enhanced Group Inc.",
-      "cik": "0001956439",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "APADR",
-      "name": "Enhanced Group Inc.",
-      "cik": "0001956439",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "APADU",
-      "name": "Enhanced Group Inc.",
-      "cik": "0001956439",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -3866,22 +3858,6 @@
       "name": "ALEXANDRIA REAL ESTATE EQUITIES, INC.",
       "cik": "0001035443",
       "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "AREB",
-      "name": "AMERICAN REBEL HOLDINGS INC",
-      "cik": "0001648087",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "AREBW",
-      "name": "AMERICAN REBEL HOLDINGS INC",
-      "cik": "0001648087",
-      "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
     },
@@ -4825,6 +4801,14 @@
       "symbol": "AUBN",
       "name": "AUBURN NATIONAL BANCORPORATION, INC",
       "cik": "0000750574",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "AUC",
+      "name": "ATIF Holdings Ltd",
+      "cik": "0001755058",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -6502,6 +6486,14 @@
       "sicCode": null
     },
     {
+      "symbol": "BFLX",
+      "name": "Cann American Corp.",
+      "cik": "0001368620",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "BFLY",
       "name": "Butterfly Network, Inc.",
       "cik": "0001804176",
@@ -6886,6 +6878,14 @@
       "sicCode": null
     },
     {
+      "symbol": "BHYP",
+      "name": "Bitwise Hyperliquid ETF",
+      "cik": "0002088139",
+      "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "BIAF",
       "name": "bioAffinity Technologies, Inc.",
       "cik": "0001712762",
@@ -7250,14 +7250,6 @@
       "name": "BKV Corp",
       "cik": "0001838406",
       "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "BKYI",
-      "name": "BIO KEY INTERNATIONAL INC",
-      "cik": "0001019034",
-      "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
     },
@@ -9079,7 +9071,7 @@
     },
     {
       "symbol": "BYFC",
-      "name": "BROADWAY FINANCIAL CORP \\DE\\",
+      "name": "BROADWAY FINANCIAL CORP DE",
       "cik": "0001001171",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -13406,14 +13398,6 @@
       "sicCode": null
     },
     {
-      "symbol": "CTRA",
-      "name": "Coterra Energy Inc.",
-      "cik": "0000858470",
-      "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "CTRE",
       "name": "CareTrust REIT, Inc.",
       "cik": "0001590717",
@@ -13554,14 +13538,6 @@
       "name": "Cue Biopharma, Inc.",
       "cik": "0001645460",
       "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "CUK",
-      "name": "CARNIVAL PLC",
-      "cik": "0001125259",
-      "exchange": "NYSE",
       "sector": "Other",
       "sicCode": null
     },
@@ -14838,14 +14814,6 @@
       "sicCode": null
     },
     {
-      "symbol": "DHY-RI",
-      "name": "CREDIT SUISSE HIGH YIELD CREDIT FUND",
-      "cik": "0001061353",
-      "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "DIA",
       "name": "SPDR DOW JONES INDUSTRIAL AVERAGE ETF TRUST",
       "cik": "0001041130",
@@ -15159,8 +15127,8 @@
     },
     {
       "symbol": "DMRC",
-      "name": "Digimarc CORP",
-      "cik": "0001438231",
+      "name": "Digimarc Parent, Inc.",
+      "cik": "0002119322",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -15798,6 +15766,22 @@
       "sicCode": null
     },
     {
+      "symbol": "DUKR",
+      "name": "DUKE Robotics Corp.",
+      "cik": "0001638911",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "DUKRW",
+      "name": "DUKE Robotics Corp.",
+      "cik": "0001638911",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "DULL",
       "name": "BANK OF MONTREAL /CAN/",
       "cik": "0000927971",
@@ -16191,22 +16175,6 @@
     },
     {
       "symbol": "ECCV",
-      "name": "Eagle Point Credit Co Inc.",
-      "cik": "0001604174",
-      "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "ECCW",
-      "name": "Eagle Point Credit Co Inc.",
-      "cik": "0001604174",
-      "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "ECCX",
       "name": "Eagle Point Credit Co Inc.",
       "cik": "0001604174",
       "exchange": "NYSE",
@@ -16729,14 +16697,6 @@
       "symbol": "EJH",
       "name": "E-Home Household Service Holdings Ltd",
       "cik": "0001769768",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "EKSO",
-      "name": "ChronoScale Corp",
-      "cik": "0001549084",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -18334,14 +18294,6 @@
       "sicCode": null
     },
     {
-      "symbol": "EXPI",
-      "name": "eXp World Holdings, Inc.",
-      "cik": "0001495932",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "EXPO",
       "name": "EXPONENT INC",
       "cik": "0000851520",
@@ -18361,6 +18313,22 @@
       "symbol": "EXTR",
       "name": "EXTREME NETWORKS INC",
       "cik": "0001078271",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "EXYN",
+      "name": "Exyn Technologies, Inc.",
+      "cik": "0001960355",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "EXYNW",
+      "name": "Exyn Technologies, Inc.",
+      "cik": "0001960355",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -18497,14 +18465,6 @@
       "symbol": "FANG",
       "name": "Diamondback Energy, Inc.",
       "cik": "0001539838",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "FARM",
-      "name": "FARMER BROTHERS CO",
-      "cik": "0000034563",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -19678,6 +19638,22 @@
       "sicCode": null
     },
     {
+      "symbol": "FMAC",
+      "name": "Future Money Acquisition Corp",
+      "cik": "0002099232",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "FMACR",
+      "name": "Future Money Acquisition Corp",
+      "cik": "0002099232",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "FMACU",
       "name": "Future Money Acquisition Corp",
       "cik": "0002099232",
@@ -20847,7 +20823,7 @@
     },
     {
       "symbol": "GAIN",
-      "name": "GLADSTONE INVESTMENT CORPORATIONDE",
+      "name": "GLADSTONE INVESTMENT CORPORATION\\DE",
       "cik": "0001321741",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -20855,7 +20831,7 @@
     },
     {
       "symbol": "GAING",
-      "name": "GLADSTONE INVESTMENT CORPORATIONDE",
+      "name": "GLADSTONE INVESTMENT CORPORATION\\DE",
       "cik": "0001321741",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -20863,15 +20839,7 @@
     },
     {
       "symbol": "GAINI",
-      "name": "GLADSTONE INVESTMENT CORPORATIONDE",
-      "cik": "0001321741",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "GAINN",
-      "name": "GLADSTONE INVESTMENT CORPORATIONDE",
+      "name": "GLADSTONE INVESTMENT CORPORATION\\DE",
       "cik": "0001321741",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -20879,7 +20847,7 @@
     },
     {
       "symbol": "GAINZ",
-      "name": "GLADSTONE INVESTMENT CORPORATIONDE",
+      "name": "GLADSTONE INVESTMENT CORPORATION\\DE",
       "cik": "0001321741",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -22110,14 +22078,6 @@
       "sicCode": null
     },
     {
-      "symbol": "GLPG",
-      "name": "Lakefront Biotherapeutics NV",
-      "cik": "0001421876",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "GLPI",
       "name": "Gaming & Leisure Properties, Inc.",
       "cik": "0001575965",
@@ -23290,6 +23250,14 @@
       "name": "GETTY REALTY CORP /MD/",
       "cik": "0001052752",
       "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "GUACU",
+      "name": "Berto Acquisition Corp. II",
+      "cik": "0002081515",
+      "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
     },
@@ -25646,6 +25614,14 @@
       "sicCode": null
     },
     {
+      "symbol": "IDACU",
+      "name": "Iron Dome Acquisition I Corp.",
+      "cik": "0002090441",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "IDAI",
       "name": "T Stamp Inc",
       "cik": "0001718939",
@@ -26854,7 +26830,23 @@
       "sicCode": null
     },
     {
+      "symbol": "IPFX",
+      "name": "Inflection Point Acquisition Corp. VI",
+      "cik": "0002102041",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "IPFXU",
+      "name": "Inflection Point Acquisition Corp. VI",
+      "cik": "0002102041",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "IPFXW",
       "name": "Inflection Point Acquisition Corp. VI",
       "cik": "0002102041",
       "exchange": "NASDAQ",
@@ -28399,7 +28391,7 @@
     },
     {
       "symbol": "KFS",
-      "name": "KINGSWAY FINANCIAL SERVICES INC",
+      "name": "KINGSWAY Corp",
       "cik": "0001072627",
       "exchange": "NYSE",
       "sector": "Other",
@@ -29270,6 +29262,14 @@
       "sicCode": null
     },
     {
+      "symbol": "KWY",
+      "name": "KINGSWAY Corp",
+      "cik": "0001072627",
+      "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "KXIN",
       "name": "Kaixin Holdings",
       "cik": "0001713539",
@@ -29697,6 +29697,14 @@
       "symbol": "LCII",
       "name": "LCI INDUSTRIES",
       "cik": "0000763744",
+      "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "LCLN",
+      "name": "Lincoln International, Inc.",
+      "cik": "0001925283",
       "exchange": "NYSE",
       "sector": "Other",
       "sicCode": null
@@ -33607,7 +33615,7 @@
     },
     {
       "symbol": "MPX",
-      "name": "MARINE PRODUCTS CORP",
+      "name": "MARINE PRODUCTS GROUP, LLC",
       "cik": "0001129155",
       "exchange": "NYSE",
       "sector": "Other",
@@ -34606,7 +34614,31 @@
       "sicCode": null
     },
     {
+      "symbol": "MYX",
+      "name": "Maywood Acquisition Corp. 2",
+      "cik": "0002080087",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "MYXXR",
+      "name": "Maywood Acquisition Corp. 2",
+      "cik": "0002080087",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "MYXXU",
+      "name": "Maywood Acquisition Corp. 2",
+      "cik": "0002080087",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "MYXXW",
       "name": "Maywood Acquisition Corp. 2",
       "cik": "0002080087",
       "exchange": "NASDAQ",
@@ -38342,6 +38374,14 @@
       "sicCode": null
     },
     {
+      "symbol": "OPTH",
+      "name": "Optimi Health Corp.",
+      "cik": "0002027329",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "OPTT",
       "name": "Ocean Power Technologies, Inc.",
       "cik": "0001378140",
@@ -39022,6 +39062,14 @@
       "sicCode": null
     },
     {
+      "symbol": "PAA",
+      "name": "PLAINS ALL AMERICAN PIPELINE LP",
+      "cik": "0001070423",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "PAAC",
       "name": "Proem Acquisition Corp. I",
       "cik": "0002087446",
@@ -39114,6 +39162,14 @@
       "name": "PENSKE AUTOMOTIVE GROUP, INC.",
       "cik": "0001019849",
       "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "PAGP",
+      "name": "PLAINS GP HOLDINGS LP",
+      "cik": "0001581990",
+      "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
     },
@@ -40438,14 +40494,6 @@
       "sicCode": null
     },
     {
-      "symbol": "PKST",
-      "name": "Peakstone Realty Trust",
-      "cik": "0001600626",
-      "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "PKX",
       "name": "POSCO HOLDINGS INC.",
       "cik": "0000889132",
@@ -41758,6 +41806,14 @@
       "sicCode": null
     },
     {
+      "symbol": "PTACU",
+      "name": "Patriot Acquisition Corp./CI",
+      "cik": "0002099095",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "PTC",
       "name": "PTC INC.",
       "cik": "0000857005",
@@ -41918,6 +41974,14 @@
       "sicCode": null
     },
     {
+      "symbol": "PUSA",
+      "name": "Aureus Greenway Holdings Inc",
+      "cik": "0002009312",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "PVH",
       "name": "PVH CORP. /DE/",
       "cik": "0000078239",
@@ -42054,7 +42118,23 @@
       "sicCode": null
     },
     {
+      "symbol": "QADR",
+      "name": "QDRO Acquisition Corp.",
+      "cik": "0002083217",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "QADRU",
+      "name": "QDRO Acquisition Corp.",
+      "cik": "0002083217",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "QADRW",
       "name": "QDRO Acquisition Corp.",
       "cik": "0002083217",
       "exchange": "NASDAQ",
@@ -42407,7 +42487,7 @@
     },
     {
       "symbol": "QXL",
-      "name": "Viewbix Inc.",
+      "name": "QUANTUM X LABS INC.",
       "cik": "0000797542",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -42474,6 +42554,14 @@
       "name": "Rithm Acquisition Corp.",
       "cik": "0002047497",
       "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "RACC",
+      "name": "Research Alliance Corp III",
+      "cik": "0002118032",
+      "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
     },
@@ -44230,7 +44318,23 @@
       "sicCode": null
     },
     {
+      "symbol": "RREV",
+      "name": "RRE Ventures Acquisition Corp.",
+      "cik": "0002123969",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "RREVU",
+      "name": "RRE Ventures Acquisition Corp.",
+      "cik": "0002123969",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "RREVW",
       "name": "RRE Ventures Acquisition Corp.",
       "cik": "0002123969",
       "exchange": "NASDAQ",
@@ -44407,7 +44511,7 @@
     },
     {
       "symbol": "RUSHA",
-      "name": "RUSH ENTERPRISES INC TX",
+      "name": "RUSH ENTERPRISES INC \\TX\\",
       "cik": "0001012019",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -44415,7 +44519,7 @@
     },
     {
       "symbol": "RUSHB",
-      "name": "RUSH ENTERPRISES INC TX",
+      "name": "RUSH ENTERPRISES INC \\TX\\",
       "cik": "0001012019",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -44458,14 +44562,6 @@
       "name": "RETRACTABLE TECHNOLOGIES INC",
       "cik": "0000946563",
       "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "RVPH",
-      "name": "REVIVA PHARMACEUTICALS HOLDINGS, INC.",
-      "cik": "0001742927",
-      "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
     },
@@ -47143,7 +47239,7 @@
     },
     {
       "symbol": "SNCY",
-      "name": "Sun Country Airlines Holdings, Inc.",
+      "name": "Sun Country Airlines Holdings, LLC",
       "cik": "0001743907",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -47287,7 +47383,7 @@
     },
     {
       "symbol": "SNTI",
-      "name": "Senti Biosciences, Inc.",
+      "name": "Senti Biosciences Holdings, Inc.",
       "cik": "0001854270",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -48102,14 +48198,6 @@
       "sicCode": null
     },
     {
-      "symbol": "SRTAW",
-      "name": "Strata Critical Medical, Inc.",
-      "cik": "0001779128",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "SRTS",
       "name": "Sensus Healthcare, Inc.",
       "cik": "0001494891",
@@ -48481,14 +48569,6 @@
       "symbol": "STKH",
       "name": "Steakholder Foods Ltd.",
       "cik": "0001828098",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "STKL",
-      "name": "SunOpta Inc.",
-      "cik": "0000351834",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -50065,14 +50145,6 @@
       "symbol": "TER",
       "name": "TERADYNE, INC",
       "cik": "0000097210",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "TERN",
-      "name": "Terns Pharmaceuticals, Inc.",
-      "cik": "0001831363",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -51966,6 +52038,14 @@
       "sicCode": null
     },
     {
+      "symbol": "TYG-RW",
+      "name": "TORTOISE ENERGY INFRASTRUCTURE CORP",
+      "cik": "0001268533",
+      "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "TYGO",
       "name": "TIGO ENERGY, INC.",
       "cik": "0001855447",
@@ -52314,22 +52394,6 @@
       "name": "U-Haul Holding Co /NV/",
       "cik": "0000004457",
       "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "UHG",
-      "name": "United Homes Group, Inc.",
-      "cik": "0001830188",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "UHGWW",
-      "name": "United Homes Group, Inc.",
-      "cik": "0001830188",
-      "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
     },
@@ -53054,6 +53118,14 @@
       "sicCode": null
     },
     {
+      "symbol": "UZX",
+      "name": "Linkage Global Inc",
+      "cik": "0001969401",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "V",
       "name": "VISA INC.",
       "cik": "0001403161",
@@ -53250,6 +53322,14 @@
       "name": "VERACYTE, INC.",
       "cik": "0001384101",
       "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "VECA",
+      "name": "Vernal Capital Acquisition Corp.",
+      "cik": "0002081690",
+      "exchange": "NYSE",
       "sector": "Other",
       "sicCode": null
     },
@@ -55985,6 +56065,14 @@
       "symbol": "XLO",
       "name": "Xilio Therapeutics, Inc.",
       "cik": "0001840233",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "XMAX",
+      "name": "XMax Inc.",
+      "cik": "0001473334",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
