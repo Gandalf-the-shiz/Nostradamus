@@ -28,6 +28,12 @@ import pandas as pd
 
 # Technical Analysis library — provides RSI, MACD, Bollinger, ATR, OBV, Stochastic, ROC, SMA, EMA
 import ta
+from public_data_history import (
+    load_macro_snapshots,
+    load_ticker_snapshots,
+    resolve_macro_features,
+    resolve_ticker_record,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -42,6 +48,9 @@ MACRO_DIR        = os.path.join(os.path.dirname(__file__), "..", "data", "macro"
 MIN_CANDLES  = 50          # skip tickers with fewer valid rows after indicator warmup
 LOOKBACK_DAYS = 30        # window size (used in metadata; windowing done by Phase 5)
 DECIMALS     = 4          # round all floats to 4 decimal places
+PUBLIC_DATA_FORWARD_FILL_DAYS = int(os.getenv("PUBLIC_DATA_FORWARD_FILL_DAYS", "14"))
+STRICT_PUBLIC_DATA = os.getenv("STRICT_PUBLIC_DATA", "false").strip().lower() in {"1", "true", "yes"}
+MIN_PUBLIC_COVERAGE = float(os.getenv("MIN_PUBLIC_COVERAGE", "0.30"))
 
 # ---------------------------------------------------------------------------
 # Feature schema — MUST stay in sync with generate-predictions.py
@@ -91,11 +100,28 @@ TECHNICAL_FEATURES = [
     "put_call_ratio_norm",# 38 — normalised put/call ratio [0,1]
     # Phase C: macro regime features
     "macro_vix_norm",     # 39 — normalised VIX [0,1]
+    "macro_spread_norm",  # 40 — normalised 10Y-2Y spread [0,1]
+    "macro_fed_norm",     # 41 — normalised fed funds proxy [0,1]
+    "macro_sentiment_norm",  # 42 — normalised UMich sentiment [0,1]
+    "macro_claims_norm",  # 43 — normalised/inverted jobless claims [0,1]
 ]
 
 FEATURE_NAMES = TECHNICAL_FEATURES
 FEATURE_COUNT = len(FEATURE_NAMES)
-assert FEATURE_COUNT == 40, f"FEATURE_NAMES length mismatch: {FEATURE_COUNT}"
+assert FEATURE_COUNT == 44, f"FEATURE_NAMES length mismatch: {FEATURE_COUNT}"
+STRICT_EXCLUDED_FEATURES = {
+    "news_sentiment",
+    "reddit_sentiment",
+    "sec_filings_norm",
+    "insider_buy_ratio",
+    "earnings_days_norm",
+    "earnings_surprise",
+    "put_call_ratio_norm",
+}
+PUBLIC_TRAINING_FEATURE_NAMES = [
+    name for name in FEATURE_NAMES if name not in STRICT_EXCLUDED_FEATURES
+]
+TRAINABLE_FEATURE_NAMES = PUBLIC_TRAINING_FEATURE_NAMES if STRICT_PUBLIC_DATA else FEATURE_NAMES
 
 
 # ---------------------------------------------------------------------------
@@ -103,13 +129,21 @@ assert FEATURE_COUNT == 40, f"FEATURE_NAMES length mismatch: {FEATURE_COUNT}"
 # ---------------------------------------------------------------------------
 
 def minmax_scale(series: pd.Series) -> tuple[pd.Series, float, float]:
-    """Min-max scale a Series to [0, 1]. Returns (scaled, min, max)."""
-    mn = series.min()
-    mx = series.max()
+    """Point-in-time min-max scale to [0, 1]. Returns (scaled, min, max).
+
+    LEAKAGE FIX: previously this used the whole series' global min/max, which lets
+    each day "see" future extremes (look-ahead). We now use an *expanding* window so
+    every point is scaled only by data available up to and including that point. The
+    returned (min, max) are the final expanding values (for reference only).
+
+    Note: this changes feature semantics vs. the old global scaling, so any V2 model
+    must be retrained on features built after this change.
+    """
+    mn = series.expanding(min_periods=1).min()
+    mx = series.expanding(min_periods=1).max()
     rng = mx - mn
-    if rng == 0:
-        return pd.Series(0.5, index=series.index), float(mn), float(mx)
-    return (series - mn) / rng, float(mn), float(mx)
+    scaled = ((series - mn) / rng).where(rng != 0, 0.5).fillna(0.5)
+    return scaled, float(mn.iloc[-1]), float(mx.iloc[-1])
 
 
 def safe_div(a: pd.Series, b: pd.Series) -> pd.Series:
@@ -121,73 +155,22 @@ def safe_div(a: pd.Series, b: pd.Series) -> pd.Series:
 # Supplementary data loaders (Phase A/B/C)
 # ---------------------------------------------------------------------------
 
-def _load_latest_json(directory: str, file_pattern: str = "*.json") -> dict | None:
-    """
-    Load the most recent JSON file matching file_pattern from directory.
-    Returns the parsed dict or None if no file found or on error.
-    """
-    import glob
-    files = sorted(glob.glob(os.path.join(directory, file_pattern)))
-    if not files:
-        return None
-    try:
-        with open(files[-1]) as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"[build-features] WARN: could not load {files[-1]}: {e}")
-        return None
+def load_sentiment_history() -> list[tuple[date, dict[str, dict]]]:
+    snapshots = load_ticker_snapshots(SENTIMENT_DIR)
+    print(f"[build-features] Loaded {len(snapshots)} dated sentiment snapshot(s)")
+    return snapshots
 
 
-def load_sentiment_data() -> dict[str, dict]:
-    """
-    Load the latest sentiment snapshot.
-    Returns {ticker: {news_sentiment, reddit_sentiment, sec_filings_7d}} or {}.
-    """
-    data = _load_latest_json(SENTIMENT_DIR, "[0-9][0-9][0-9][0-9]-*.json")
-    if data is None:
-        print("[build-features] No sentiment data found — using zeros.")
-        return {}
-    tickers = data.get("tickers", {})
-    print(f"[build-features] Loaded sentiment for {len(tickers)} tickers from {data.get('date')}")
-    return tickers
+def load_fundamentals_history() -> list[tuple[date, dict[str, dict]]]:
+    snapshots = load_ticker_snapshots(FUNDAMENTALS_DIR)
+    print(f"[build-features] Loaded {len(snapshots)} dated fundamentals snapshot(s)")
+    return snapshots
 
 
-def load_fundamentals_data() -> dict[str, dict]:
-    """
-    Load the latest fundamentals snapshot.
-    Returns {ticker: {insider_buy_ratio_30d, earnings_days_to, earnings_surprise_prev,
-                      put_call_ratio}} or {}.
-    """
-    data = _load_latest_json(FUNDAMENTALS_DIR, "[0-9][0-9][0-9][0-9]-*.json")
-    if data is None:
-        print("[build-features] No fundamentals data found — using defaults.")
-        return {}
-    tickers = data.get("tickers", {})
-    print(f"[build-features] Loaded fundamentals for {len(tickers)} tickers from {data.get('date')}")
-    return tickers
-
-
-def load_macro_data() -> dict:
-    """
-    Load the latest macro snapshot (current-regime.json preferred, then latest dated file).
-    Returns the macro dict or defaults.
-    """
-    # Try current-regime.json first
-    regime_path = os.path.join(MACRO_DIR, "current-regime.json")
-    if os.path.exists(regime_path):
-        try:
-            with open(regime_path) as f:
-                data = json.load(f)
-            print(f"[build-features] Loaded macro regime: {data.get('regime')} from {data.get('date')}")
-            return data
-        except Exception as e:
-            print(f"[build-features] WARN: could not load current-regime.json: {e}")
-
-    data = _load_latest_json(MACRO_DIR, "[0-9][0-9][0-9][0-9]-*.json")
-    if data is None:
-        print("[build-features] No macro data found — using defaults.")
-        return {}
-    return data
+def load_macro_history() -> list[tuple[date, dict]]:
+    snapshots = load_macro_snapshots(MACRO_DIR)
+    print(f"[build-features] Loaded {len(snapshots)} dated macro snapshot(s)")
+    return snapshots
 
 
 # ---------------------------------------------------------------------------
@@ -197,9 +180,9 @@ def load_macro_data() -> dict:
 def compute_features(
     ticker: str,
     candles: list,
-    sentiment_data: dict | None = None,
-    fundamentals_data: dict | None = None,
-    macro_features: dict | None = None,
+    sentiment_history: list[tuple[date, dict[str, dict]]] | None = None,
+    fundamentals_history: list[tuple[date, dict[str, dict]]] | None = None,
+    macro_history: list[tuple[date, dict]] | None = None,
 ) -> dict | None:
     """
     Given a list of OHLCV candle dicts, compute the full 40-feature matrix.
@@ -210,9 +193,8 @@ def compute_features(
                                     earnings_surprise_prev, put_call_ratio}}
       macro_features    — {macro_vix_norm, macro_spread_norm, ...}
 
-    These external signals are applied to the *most recent* rows of the feature
-    matrix only (since they represent today's snapshot). Historical rows use the
-    technical proxy for the sentiment slot to maintain training continuity.
+    These external signals are date-aligned from historical daily snapshots.
+    Values are forward-filled up to PUBLIC_DATA_FORWARD_FILL_DAYS.
 
     Returns a dict with keys: dates, features, labels, scaling_params
     or None if the ticker has insufficient data.
@@ -310,75 +292,97 @@ def compute_features(
     month_cos = np.cos(2 * math.pi * month / 12)
 
     # -------------------------------------------------------------------------
-    # Phase A: Real sentiment features
-    # For historical rows we use a technical proxy (same formula as before).
-    # The most recent row (today's snapshot) is overwritten with real NLP scores
-    # when sentiment_data is available.
+    # Phase A: Real sentiment features (date-aligned snapshots)
     # -------------------------------------------------------------------------
 
     n_rows = len(df)
 
-    # Technical proxy (used for all rows as fallback)
-    rsi_deviation  = (rsi_14 - 0.5) * 2
-    sentiment_proxy = (rsi_deviation * 0.5 + momentum5 * 2 + macd_hist * 10).apply(math.tanh)
-
     news_sentiment_series   = pd.Series(0.0, index=df.index)
     reddit_sentiment_series = pd.Series(0.0, index=df.index)
     sec_filings_series      = pd.Series(0.0, index=df.index)
+    sentiment_real_mask      = pd.Series(False, index=df.index)
 
-    # Override the last row with real sentiment when available
-    if sentiment_data and ticker in sentiment_data:
-        sd = sentiment_data[ticker]
-        last_idx = n_rows - 1
-        news_sentiment_series.iloc[last_idx]   = float(sd.get("news_sentiment",   0.0) or 0.0)
-        reddit_sentiment_series.iloc[last_idx] = float(sd.get("reddit_sentiment", 0.0) or 0.0)
-        # Normalise sec_filings_7d: clamp [0, 10] → [0, 1]
-        raw_filings = float(sd.get("sec_filings_7d", 0) or 0)
-        sec_filings_series.iloc[last_idx] = min(1.0, raw_filings / 10.0)
-
-    # For older rows, fill news_sentiment with the technical proxy so the model
-    # sees a smooth signal throughout training. Note: zero is treated as "no signal
-    # (neutral)" here, not as genuine zero sentiment — the VADER compound score
-    # would rarely be exactly 0.0, so this distinguishes missing from actual data.
-    news_sentiment_series = news_sentiment_series.where(
-        news_sentiment_series != 0.0, other=sentiment_proxy
-    )
+    if sentiment_history:
+        for idx, ts in enumerate(df["date"]):
+            sd = resolve_ticker_record(
+                sentiment_history,
+                ticker=ticker,
+                target_date=ts.date(),
+                max_age_days=PUBLIC_DATA_FORWARD_FILL_DAYS,
+            )
+            if sd is None:
+                continue
+            sentiment_real_mask.iloc[idx] = True
+            news_sentiment_series.iloc[idx] = float(sd.get("news_sentiment", 0.0) or 0.0)
+            reddit_sentiment_series.iloc[idx] = float(sd.get("reddit_sentiment", 0.0) or 0.0)
+            raw_filings = float(sd.get("sec_filings_7d", 0) or 0)
+            sec_filings_series.iloc[idx] = min(1.0, raw_filings / 10.0)
 
     # -------------------------------------------------------------------------
-    # Phase B: Fundamental features (static snapshot applied to all rows)
+    # Phase B: Fundamental features (date-aligned snapshots)
     # -------------------------------------------------------------------------
 
     insider_buy_ratio   = pd.Series(0.5,  index=df.index)  # neutral default
     earnings_days_norm  = pd.Series(1.0,  index=df.index)  # far from earnings
     earnings_surprise   = pd.Series(0.0,  index=df.index)  # no surprise
     put_call_ratio_norm = pd.Series(0.5,  index=df.index)  # neutral
+    fundamentals_real_mask = pd.Series(False, index=df.index)
 
-    if fundamentals_data and ticker in fundamentals_data:
-        fd = fundamentals_data[ticker]
-        # insider_buy_ratio_30d is already [0,1]
-        ibr = float(fd.get("insider_buy_ratio_30d", 0.5) or 0.5)
-        insider_buy_ratio.iloc[:] = max(0.0, min(1.0, ibr))
+    if fundamentals_history:
+        for idx, ts in enumerate(df["date"]):
+            fd = resolve_ticker_record(
+                fundamentals_history,
+                ticker=ticker,
+                target_date=ts.date(),
+                max_age_days=PUBLIC_DATA_FORWARD_FILL_DAYS,
+            )
+            if fd is None:
+                continue
+            fundamentals_real_mask.iloc[idx] = True
+            ibr = float(fd.get("insider_buy_ratio_30d", 0.5) or 0.5)
+            insider_buy_ratio.iloc[idx] = max(0.0, min(1.0, ibr))
 
-        # earnings_days_to: normalise [0,60] → [0,1], inverted (0 = earnings very soon)
-        edd = float(fd.get("earnings_days_to", 60) or 60)
-        earnings_days_norm.iloc[:] = max(0.0, min(1.0, 1.0 - edd / 60.0))
+            edd = float(fd.get("earnings_days_to", 60) or 60)
+            earnings_days_norm.iloc[idx] = max(0.0, min(1.0, 1.0 - edd / 60.0))
 
-        # earnings_surprise_prev: already clipped to [-0.5, 0.5]
-        esp = float(fd.get("earnings_surprise_prev", 0.0) or 0.0)
-        earnings_surprise.iloc[:] = max(-0.5, min(0.5, esp))
+            esp = float(fd.get("earnings_surprise_prev", 0.0) or 0.0)
+            earnings_surprise.iloc[idx] = max(-0.5, min(0.5, esp))
 
-        # put_call_ratio: normalise [0, 5] → [0, 1]
-        pcr = float(fd.get("put_call_ratio", 1.0) or 1.0)
-        put_call_ratio_norm.iloc[:] = max(0.0, min(1.0, pcr / 5.0))
+            pcr = float(fd.get("put_call_ratio", 1.0) or 1.0)
+            put_call_ratio_norm.iloc[idx] = max(0.0, min(1.0, pcr / 5.0))
 
     # -------------------------------------------------------------------------
-    # Phase C: Macro regime features (scalar from current-regime.json)
+    # Phase C: Macro regime features (date-aligned snapshots)
     # -------------------------------------------------------------------------
 
-    macro_vix_norm_val = 0.3  # moderate VIX default
-    if macro_features:
-        macro_vix_norm_val = float(macro_features.get("macro_vix_norm", 0.3) or 0.3)
-    macro_vix_norm_series = pd.Series(macro_vix_norm_val, index=df.index)
+    macro_defaults = {
+        "macro_vix_norm": 0.3,
+        "macro_spread_norm": 0.5,
+        "macro_fed_norm": 0.5,
+        "macro_sentiment_norm": 0.5,
+        "macro_claims_norm": 0.5,
+    }
+    macro_vix_norm_series = pd.Series(macro_defaults["macro_vix_norm"], index=df.index)
+    macro_spread_norm_series = pd.Series(macro_defaults["macro_spread_norm"], index=df.index)
+    macro_fed_norm_series = pd.Series(macro_defaults["macro_fed_norm"], index=df.index)
+    macro_sentiment_norm_series = pd.Series(macro_defaults["macro_sentiment_norm"], index=df.index)
+    macro_claims_norm_series = pd.Series(macro_defaults["macro_claims_norm"], index=df.index)
+    macro_real_mask = pd.Series(False, index=df.index)
+    if macro_history:
+        for idx, ts in enumerate(df["date"]):
+            md = resolve_macro_features(
+                macro_history,
+                target_date=ts.date(),
+                max_age_days=PUBLIC_DATA_FORWARD_FILL_DAYS,
+            )
+            if md is None:
+                continue
+            macro_real_mask.iloc[idx] = True
+            macro_vix_norm_series.iloc[idx] = float(md.get("macro_vix_norm", macro_defaults["macro_vix_norm"]) or macro_defaults["macro_vix_norm"])
+            macro_spread_norm_series.iloc[idx] = float(md.get("macro_spread_norm", macro_defaults["macro_spread_norm"]) or macro_defaults["macro_spread_norm"])
+            macro_fed_norm_series.iloc[idx] = float(md.get("macro_fed_norm", macro_defaults["macro_fed_norm"]) or macro_defaults["macro_fed_norm"])
+            macro_sentiment_norm_series.iloc[idx] = float(md.get("macro_sentiment_norm", macro_defaults["macro_sentiment_norm"]) or macro_defaults["macro_sentiment_norm"])
+            macro_claims_norm_series.iloc[idx] = float(md.get("macro_claims_norm", macro_defaults["macro_claims_norm"]) or macro_defaults["macro_claims_norm"])
 
     # --- Assemble feature matrix ---
     feature_df = pd.DataFrame({
@@ -425,6 +429,10 @@ def compute_features(
         "put_call_ratio_norm": put_call_ratio_norm,
         # Phase C
         "macro_vix_norm":     macro_vix_norm_series,
+        "macro_spread_norm":  macro_spread_norm_series,
+        "macro_fed_norm":     macro_fed_norm_series,
+        "macro_sentiment_norm": macro_sentiment_norm_series,
+        "macro_claims_norm":  macro_claims_norm_series,
     })
 
     # --- Labels: did price go UP the next day? ---
@@ -443,13 +451,18 @@ def compute_features(
     feature_df.replace([np.inf, -np.inf], np.nan, inplace=True)
     feature_df.dropna(inplace=True)
 
+    kept_idx = feature_df.index
+    sentiment_real_rows = int(sentiment_real_mask.loc[kept_idx].sum())
+    fundamentals_real_rows = int(fundamentals_real_mask.loc[kept_idx].sum())
+    macro_real_rows = int(macro_real_mask.loc[kept_idx].sum())
+
     if len(feature_df) < MIN_CANDLES:
         return None
 
     dates = feature_df["_date"].tolist()
     labels = feature_df["_label"].astype(int).tolist()
     pct_returns = [round(float(v), DECIMALS) for v in feature_df["_pct_return"].tolist()]
-    raw_features = feature_df[FEATURE_NAMES].values
+    raw_features = feature_df[TRAINABLE_FEATURE_NAMES].values
 
     # Round to 4 decimal places
     features_rounded = [[round(float(v), DECIMALS) for v in row] for row in raw_features]
@@ -459,6 +472,12 @@ def compute_features(
         "features": features_rounded,
         "labels": labels,
         "pct_returns": pct_returns,
+        "coverage": {
+            "rows": len(dates),
+            "sentimentRealRows": sentiment_real_rows,
+            "fundamentalsRealRows": fundamentals_real_rows,
+            "macroRealRows": macro_real_rows,
+        },
         "scaling_params": {
             "priceMin": round(price_min, DECIMALS),
             "priceMax": round(price_max, DECIMALS),
@@ -475,9 +494,9 @@ def compute_features(
 # ---------------------------------------------------------------------------
 
 def process_sector(sector_file: str, sector_name: str,
-                   sentiment_data: dict | None = None,
-                   fundamentals_data: dict | None = None,
-                   macro_features: dict | None = None) -> dict:
+                   sentiment_history: list[tuple[date, dict[str, dict]]] | None = None,
+                   fundamentals_history: list[tuple[date, dict[str, dict]]] | None = None,
+                   macro_history: list[tuple[date, dict]] | None = None) -> dict:
     """Process one sector JSON file. Returns sector output dict + stats."""
     print(f"[build-features] Loading {sector_name}...")
 
@@ -494,6 +513,10 @@ def process_sector(sector_file: str, sector_name: str,
     total_down = 0
     skipped = 0
     processed = 0
+    coverage_rows = 0
+    coverage_sentiment_real = 0
+    coverage_fundamentals_real = 0
+    coverage_macro_real = 0
 
     for i, (ticker, stock_info) in enumerate(stocks.items(), 1):
         if i % 50 == 0 or i == total_tickers:
@@ -501,9 +524,9 @@ def process_sector(sector_file: str, sector_name: str,
 
         candles = stock_info.get("candles", [])
         result = compute_features(ticker, candles,
-                                   sentiment_data=sentiment_data,
-                                   fundamentals_data=fundamentals_data,
-                                   macro_features=macro_features)
+                                   sentiment_history=sentiment_history,
+                                   fundamentals_history=fundamentals_history,
+                                   macro_history=macro_history)
 
         if result is None:
             skipped += 1
@@ -514,6 +537,11 @@ def process_sector(sector_file: str, sector_name: str,
         total_days += n
         total_up += sum(result["labels"])
         total_down += (n - sum(result["labels"]))
+        cov = result.get("coverage", {})
+        coverage_rows += int(cov.get("rows", 0) or 0)
+        coverage_sentiment_real += int(cov.get("sentimentRealRows", 0) or 0)
+        coverage_fundamentals_real += int(cov.get("fundamentalsRealRows", 0) or 0)
+        coverage_macro_real += int(cov.get("macroRealRows", 0) or 0)
 
         per_ticker_scaling[ticker] = result["scaling_params"]
 
@@ -528,8 +556,8 @@ def process_sector(sector_file: str, sector_name: str,
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     output = {
         "sector": sector_data.get("sector", sector_name),
-        "featureCount": FEATURE_COUNT,
-        "featureNames": FEATURE_NAMES,
+        "featureCount": len(TRAINABLE_FEATURE_NAMES),
+        "featureNames": TRAINABLE_FEATURE_NAMES,
         "lookbackDays": LOOKBACK_DAYS,
         "lastBuilt": now,
         "tickerCount": processed,
@@ -551,6 +579,12 @@ def process_sector(sector_file: str, sector_name: str,
         "total_up": total_up,
         "total_down": total_down,
         "sector_name": sector_data.get("sector", sector_name),
+        "coverage": {
+            "rows": coverage_rows,
+            "sentimentRealRows": coverage_sentiment_real,
+            "fundamentalsRealRows": coverage_fundamentals_real,
+            "macroRealRows": coverage_macro_real,
+        },
     }
 
 
@@ -569,13 +603,10 @@ def main():
     sectors_in_manifest = manifest.get("sectorFiles", {})
     print(f"[build-features] Found {len(sectors_in_manifest)} sectors in manifest.")
 
-    # --- Load supplementary data (Phase A/B/C) ---
-    sentiment_data    = load_sentiment_data()
-    fundamentals_data = load_fundamentals_data()
-    macro_data        = load_macro_data()
-    macro_features    = macro_data.get("normalisedFeatures") if macro_data else None
-    if macro_features:
-        print(f"[build-features] Macro regime: {macro_data.get('regime')} | VIX norm: {macro_features.get('macro_vix_norm')}")
+    # --- Load supplementary data histories (Phase A/B/C) ---
+    sentiment_history    = load_sentiment_history()
+    fundamentals_history = load_fundamentals_history()
+    macro_history        = load_macro_history()
 
     # Discover sector files
     sector_files = []
@@ -597,14 +628,18 @@ def main():
     global_days = 0
     global_up = 0
     global_down = 0
+    global_coverage_rows = 0
+    global_sentiment_real = 0
+    global_fundamentals_real = 0
+    global_macro_real = 0
 
     for sector_file in sorted(sector_files):
         sector_name = os.path.basename(sector_file).replace(".json", "")
         result = process_sector(
             sector_file, sector_name,
-            sentiment_data=sentiment_data,
-            fundamentals_data=fundamentals_data,
-            macro_features=macro_features,
+            sentiment_history=sentiment_history,
+            fundamentals_history=fundamentals_history,
+            macro_history=macro_history,
         )
 
         # Write compact sector feature file
@@ -620,15 +655,36 @@ def main():
         global_days += result["total_days"]
         global_up += result["total_up"]
         global_down += result["total_down"]
+        cov = result.get("coverage", {})
+        global_coverage_rows += int(cov.get("rows", 0) or 0)
+        global_sentiment_real += int(cov.get("sentimentRealRows", 0) or 0)
+        global_fundamentals_real += int(cov.get("fundamentalsRealRows", 0) or 0)
+        global_macro_real += int(cov.get("macroRealRows", 0) or 0)
 
     total_samples = global_up + global_down
     up_ratio = round(global_up / total_samples, 4) if total_samples > 0 else 0.0
 
+    sentiment_cov = (global_sentiment_real / global_coverage_rows) if global_coverage_rows > 0 else 0.0
+    fundamentals_cov = (global_fundamentals_real / global_coverage_rows) if global_coverage_rows > 0 else 0.0
+    macro_cov = (global_macro_real / global_coverage_rows) if global_coverage_rows > 0 else 0.0
+
     scaling_params = {
-        "featureCount": FEATURE_COUNT,
-        "featureNames": FEATURE_NAMES,
+        "featureCount": len(TRAINABLE_FEATURE_NAMES),
+        "featureNames": TRAINABLE_FEATURE_NAMES,
         "lookbackDays": LOOKBACK_DAYS,
         "perTickerScaling": all_per_ticker_scaling,
+        "publicDataCoverage": {
+            "rows": global_coverage_rows,
+            "sentimentRealRows": global_sentiment_real,
+            "fundamentalsRealRows": global_fundamentals_real,
+            "macroRealRows": global_macro_real,
+            "sentimentCoverage": round(sentiment_cov, 4),
+            "fundamentalsCoverage": round(fundamentals_cov, 4),
+            "macroCoverage": round(macro_cov, 4),
+            "strictMode": STRICT_PUBLIC_DATA,
+            "minCoverage": MIN_PUBLIC_COVERAGE,
+            "forwardFillDays": PUBLIC_DATA_FORWARD_FILL_DAYS,
+        },
         "globalStats": {
             "totalSamples": total_samples,
             "upSamples": global_up,
@@ -655,8 +711,27 @@ def main():
     print(f"  Total feature-days: {global_days}")
     print(f"  Total samples     : {total_samples}")
     print(f"  UP / DOWN ratio   : {global_up} / {global_down} ({up_ratio:.1%} up)")
-    print(f"  Feature count     : {FEATURE_COUNT}")
+    print(f"  Feature count     : {len(TRAINABLE_FEATURE_NAMES)}")
+    if STRICT_PUBLIC_DATA:
+        print("  Sentiment coverage: inference-only")
+        print("  Fundamental cover.: inference-only")
+        print(f"  Macro coverage    : {macro_cov:.1%}")
+    else:
+        print(f"  Sentiment coverage: {sentiment_cov:.1%}")
+        print(f"  Fundamental cover.: {fundamentals_cov:.1%}")
+        print(f"  Macro coverage    : {macro_cov:.1%}")
     print("=" * 60)
+
+    if STRICT_PUBLIC_DATA:
+        failed = []
+        if macro_cov < MIN_PUBLIC_COVERAGE:
+            failed.append(f"macro={macro_cov:.2%}")
+        if failed:
+            print(
+                "[build-features] ERROR: strict public-data mode failed coverage threshold: "
+                + ", ".join(failed)
+            )
+            sys.exit(2)
 
 
 if __name__ == "__main__":
