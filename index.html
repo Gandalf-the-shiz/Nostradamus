@@ -3,292 +3,58 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="Nostradamus — The AI Stock Oracle. Predict which stocks will go up or down, powered by TensorFlow.js machine learning running entirely in your browser." />
-  <meta name="theme-color" content="#0f1117" />
-
-  <!-- PWA -->
+  <meta name="description" content="Nostradamus — ML stock intelligence dashboard" />
+  <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Nostradamus" />
-  <link rel="apple-touch-icon" href="icons/icon-192.svg" />
-
-  <!-- Open Graph -->
-  <meta property="og:title" content="Nostradamus — The AI Stock Oracle" />
-  <meta property="og:description" content="In-browser AI stock prediction powered by TensorFlow.js" />
-  <meta property="og:type" content="website" />
-
-  <title>Nostradamus 🔮 — The AI Stock Oracle</title>
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="css/styles.css" />
-
-  <!-- TensorFlow.js (loaded early, non-blocking) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js" defer></script>
-  <!-- Chart.js -->
+  <title>Nostradamus</title>
+  <link rel="stylesheet" href="css/rh-theme.css" />
+  <link rel="stylesheet" href="css/investor.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
 </head>
-<body>
-
-  <!-- ============================================================
-       HEADER
-  ============================================================ -->
-  <header class="app-header" role="banner">
-    <div class="app-header__inner">
-      <div class="app-header__brand">
-        <span class="app-header__logo" aria-hidden="true">🔮</span>
-        <h1 class="app-header__title">Nostradamus</h1>
-        <span class="app-header__subtitle">The AI Stock Oracle</span>
+<body class="rh-body">
+  <div id="rh-app" class="rh-app">
+    <header class="rh-topbar" id="rh-topbar">
+      <div class="rh-topbar__brand">
+        <span class="rh-topbar__logo" aria-hidden="true">N</span>
+        <h1 class="rh-topbar__title" id="rh-page-title">Command Center</h1>
       </div>
-      <nav class="app-header__nav" aria-label="Main navigation">
-        <button id="nav-dashboard" class="nav-btn nav-btn--active" aria-current="page">Dashboard</button>
-        <button id="nav-watchlist" class="nav-btn">Watchlist</button>
-        <button id="nav-heatmap"   class="nav-btn" aria-label="Market heatmap">🌡️</button>
-        <button id="nav-screener"  class="nav-btn" aria-label="Stock screener">🔍</button>
-        <button id="nav-backtest"  class="nav-btn" aria-label="Backtesting">📈</button>
-        <button id="nav-earnings"  class="nav-btn" aria-label="Earnings calendar">📅</button>
-        <button id="nav-accuracy"  class="nav-btn" aria-label="Prediction accuracy">📊</button>
-        <button id="nav-sectors"   class="nav-btn" aria-label="Sector analysis">🏭</button>
-        <button id="nav-help"      class="nav-btn" aria-label="Help and user guide">❓</button>
-        <button id="theme-toggle"  class="nav-btn" aria-label="Toggle dark/light theme" title="Toggle theme">🌙</button>
-        <button id="nav-settings"  class="nav-btn" aria-label="Settings">⚙️</button>
-      </nav>
-      <!-- Hamburger button — visible only on mobile (<768px) -->
-      <button id="nav-hamburger" class="nav-hamburger" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobile-nav">
-        <span class="nav-hamburger__bar"></span>
-        <span class="nav-hamburger__bar"></span>
-        <span class="nav-hamburger__bar"></span>
+      <div class="rh-topbar__actions">
+        <button type="button" class="rh-btn-icon" id="rh-arch-btn" title="How it works" aria-label="Architecture">i</button>
+        <button type="button" class="rh-btn-icon" id="rh-help-btn" title="How this page works" aria-label="Page help">?</button>
+      </div>
+    </header>
+    <main class="rh-main" id="rh-main" role="main">
+      <div class="rh-loading">Loading Nostradamus…</div>
+    </main>
+    <nav class="rh-tabbar" id="rh-tabbar" aria-label="Main navigation">
+      <button type="button" class="rh-tab rh-tab--active" data-route="home" aria-current="page">
+        <span class="rh-tab__icon" aria-hidden="true">◉</span>
+        <span>Command</span>
       </button>
-    </div>
-  </header>
-
-  <!-- Mobile nav overlay (backdrop) -->
-  <div id="mobile-nav-overlay" class="mobile-nav-overlay" aria-hidden="true"></div>
-
-  <!-- Mobile nav panel -->
-  <nav id="mobile-nav" class="mobile-nav" aria-label="Mobile navigation">
-    <div class="mobile-nav__header">
-      <span class="mobile-nav__title">🔮 Nostradamus</span>
-      <button id="mobile-nav-close" class="mobile-nav__close" aria-label="Close navigation menu">✕</button>
-    </div>
-    <div class="mobile-nav__items">
-      <button class="nav-btn mobile-nav__btn nav-btn--active" data-nav="dashboard">📊 Dashboard</button>
-      <button class="nav-btn mobile-nav__btn" data-nav="watchlist">⭐ Watchlist</button>
-      <button class="nav-btn mobile-nav__btn" data-nav="heatmap">🌡️ Heatmap</button>
-      <button class="nav-btn mobile-nav__btn" data-nav="screener">🔍 Screener</button>
-      <button class="nav-btn mobile-nav__btn" data-nav="backtest">📈 Backtesting</button>
-      <button class="nav-btn mobile-nav__btn" data-nav="earnings">📅 Earnings</button>
-      <button class="nav-btn mobile-nav__btn" data-nav="accuracy">📊 Accuracy</button>
-      <button class="nav-btn mobile-nav__btn" data-nav="sectors">🏭 Sectors</button>
-      <button class="nav-btn mobile-nav__btn" id="mobile-nav-help">❓ Help</button>
-      <button class="nav-btn mobile-nav__btn" id="mobile-theme-toggle">🌙 Toggle Theme</button>
-      <button class="nav-btn mobile-nav__btn" data-nav="settings">⚙️ Settings</button>
-    </div>
-  </nav>
-
-  <!-- ============================================================
-       SEARCH BAR
-  ============================================================ -->
-  <section class="search-section" aria-label="Stock search">
-    <div class="search-section__inner">
-      <div class="search-wrapper" role="search">
-        <span class="search-wrapper__icon" aria-hidden="true">🔍</span>
-        <input
-          type="search"
-          id="stock-search"
-          class="search-input"
-          placeholder="Search stocks (e.g. AAPL, TSLA)…"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="characters"
-          spellcheck="false"
-          aria-label="Search for a stock symbol or company name"
-        />
-        <div id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions" hidden></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       MAIN CONTENT
-  ============================================================ -->
-  <main id="main-content" class="main-content" role="main">
-
-    <!-- Dashboard View -->
-    <section id="view-dashboard" class="view view--active" aria-label="Dashboard">
-
-      <!-- Market Mood Indicator -->
-      <div id="market-mood" class="market-mood" aria-label="Market mood indicator" hidden></div>
-
-      <!-- Market Overview Strip -->
-      <div id="market-overview" class="market-overview" aria-label="Market overview">
-        <div class="market-overview__loading skeleton-strip" aria-hidden="true"></div>
-      </div>
-
-      <!-- Stock Cards Grid -->
-      <div id="stock-grid" class="stock-grid" aria-label="Stock cards">
-        <!-- Populated by js/ui/dashboard.js -->
-        <!-- Loading skeletons shown initially -->
-        <div class="stock-card stock-card--skeleton" aria-hidden="true">
-          <div class="skeleton skeleton--title"></div>
-          <div class="skeleton skeleton--subtitle"></div>
-          <div class="skeleton skeleton--price"></div>
-          <div class="skeleton skeleton--chart"></div>
-        </div>
-        <div class="stock-card stock-card--skeleton" aria-hidden="true">
-          <div class="skeleton skeleton--title"></div>
-          <div class="skeleton skeleton--subtitle"></div>
-          <div class="skeleton skeleton--price"></div>
-          <div class="skeleton skeleton--chart"></div>
-        </div>
-        <div class="stock-card stock-card--skeleton" aria-hidden="true">
-          <div class="skeleton skeleton--title"></div>
-          <div class="skeleton skeleton--subtitle"></div>
-          <div class="skeleton skeleton--price"></div>
-          <div class="skeleton skeleton--chart"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Watchlist View (hidden until nav click) -->
-    <section id="view-watchlist" class="view" aria-label="Watchlist" hidden>
-      <div id="watchlist-grid" class="stock-grid" aria-label="Watchlist stocks">
-        <!-- Populated by js/ui/watchlist.js -->
-      </div>
-    </section>
-
-    <!-- Accuracy Dashboard View (hidden until nav click) -->
-    <section id="view-accuracy" class="view" aria-label="Prediction accuracy" hidden>
-      <!-- Populated by js/ui/accuracy-dashboard.js -->
-    </section>
-
-    <!-- Sectors View (hidden until nav click) -->
-    <section id="view-sectors" class="view" aria-label="Sector analysis" hidden>
-      <!-- Populated by js/ui/sectors.js -->
-    </section>
-
-    <!-- Heatmap View (hidden until nav click) -->
-    <section id="view-heatmap" class="view" aria-label="Market heatmap" hidden>
-      <!-- Populated by js/ui/heatmap.js -->
-    </section>
-
-    <!-- Screener View (hidden until nav click) -->
-    <section id="view-screener" class="view" aria-label="Stock screener" hidden>
-      <!-- Populated by js/ui/screener.js -->
-    </section>
-
-    <!-- Backtest View (hidden until nav click) -->
-    <section id="view-backtest" class="view" aria-label="Backtesting engine" hidden>
-      <!-- Populated by js/ui/backtest-ui.js -->
-    </section>
-
-    <!-- Earnings View (hidden until nav click) -->
-    <section id="view-earnings" class="view" aria-label="Earnings calendar" hidden>
-      <!-- Populated by js/ui/earnings.js -->
-    </section>
-
-    <!-- Settings View (hidden until nav click) -->
-    <section id="view-settings" class="view" aria-label="Settings" hidden>
-      <div class="settings-panel">
-        <h2 class="settings-panel__title">⚙️ Settings</h2>
-
-        <div class="settings-group">
-          <h3 class="settings-group__title">API Keys</h3>
-          <p class="settings-group__desc">Enter your API keys below. Keys are stored only in your browser's localStorage and are never sent to any server other than the respective API provider.</p>
-
-          <label class="settings-field">
-            <span class="settings-field__label">Finnhub API Key <span class="badge badge--primary">Primary</span></span>
-            <input type="password" id="setting-finnhub-key" class="settings-input" placeholder="e.g. c1234567890abcdefghij" autocomplete="off" />
-            <a href="https://finnhub.io/register" target="_blank" rel="noopener noreferrer" class="settings-field__link">Get free key →</a>
-          </label>
-
-          <label class="settings-field">
-            <span class="settings-field__label">Twelve Data API Key <span class="badge badge--secondary">Fallback</span></span>
-            <input type="password" id="setting-twelvedata-key" class="settings-input" placeholder="e.g. a1b2c3d4e5f6789012345" autocomplete="off" />
-            <a href="https://twelvedata.com/register" target="_blank" rel="noopener noreferrer" class="settings-field__link">Get free key →</a>
-          </label>
-
-          <label class="settings-field">
-            <span class="settings-field__label">Polygon.io API Key <span class="badge badge--secondary">Fallback</span></span>
-            <input type="password" id="setting-polygon-key" class="settings-input" placeholder="e.g. ABCDEFGHIJKLMNOP1234" autocomplete="off" />
-            <a href="https://polygon.io/dashboard/signup" target="_blank" rel="noopener noreferrer" class="settings-field__link">Get free key →</a>
-          </label>
-
-          <button id="setting-save-btn" class="btn btn--primary">Save API Keys</button>
-          <button id="setting-clear-btn" class="btn btn--danger">Clear All Keys</button>
-        </div>
-
-        <div class="settings-group">
-          <h3 class="settings-group__title">Cache</h3>
-          <p class="settings-group__desc">Stock data is cached for 5 minutes to avoid hitting API rate limits.</p>
-          <button id="setting-clear-cache-btn" class="btn btn--secondary">Clear Cache</button>
-        </div>
-
-        <div class="settings-group">
-          <h3 class="settings-group__title">🧠 AI Model</h3>
-          <p class="settings-group__desc">
-            Train the prediction model using historical stock data. Training runs entirely in your browser.
-          </p>
-          <div id="training-status" style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin-bottom: var(--space-2);"></div>
-          <div id="training-progress" hidden>
-            <div style="display: flex; justify-content: space-between; font-size: var(--font-size-xs); color: var(--color-text-muted); margin-bottom: var(--space-1);">
-              <span id="training-epoch">Epoch 0/50</span>
-              <span id="training-loss">Loss: —</span>
-            </div>
-            <div style="height: 4px; background: var(--color-bg-elevated); border-radius: 2px; overflow: hidden;">
-              <div id="training-progress-bar" style="height: 100%; background: var(--color-accent); width: 0%; transition: width 0.3s ease;"></div>
-            </div>
-          </div>
-          <button id="setting-train-btn" class="btn btn--primary">🧠 Train Model</button>
-          <button id="setting-clear-model-btn" class="btn btn--danger">Delete Saved Model</button>
-        </div>
-
-        <div class="settings-group">
-          <h3 class="settings-group__title">📊 Prediction History</h3>
-          <p class="settings-group__desc">
-            Every prediction is stored locally so accuracy can be tracked over time.
-            Visit the <button class="settings-field__link" id="settings-goto-accuracy">Accuracy dashboard →</button>
-            to see hit rates, MAE, and model version history.
-          </p>
-          <button id="setting-clear-predictions-btn" class="btn btn--danger">Clear Prediction History</button>
-        </div>
-
-        <div class="settings-group">
-          <h3 class="settings-group__title">About</h3>
-          <p class="settings-group__desc">
-            Nostradamus v0.6.0 — Phase 6 (Polish &amp; Advanced Features)<br />
-            Built by GitHub Agents. Powered by TensorFlow.js &amp; Chart.js.<br />
-            <a href="https://github.com/Gandalf-the-shiz/Nostradamus" target="_blank" rel="noopener noreferrer">View source on GitHub →</a>
-          </p>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ============================================================
-       FOOTER
-  ============================================================ -->
-  <footer class="app-footer" role="contentinfo">
-    <p class="app-footer__text">
-      🔮 Nostradamus — Not financial advice. Powered by
-      <a href="https://www.tensorflow.org/js" target="_blank" rel="noopener noreferrer">TensorFlow.js</a>
-      &amp;
-      <a href="https://www.chartjs.org/" target="_blank" rel="noopener noreferrer">Chart.js</a>.
-    </p>
-  </footer>
-
-  <!-- ============================================================
-       APP BOOTSTRAP
-       app.js initializes everything after DOM + CDN libs are loaded
-  ============================================================ -->
-  <!-- PWA offline indicator (shown by sw.js message handler in app.js) -->
-  <div id="offline-banner" class="offline-banner" role="alert" hidden>
-    <span>📡 You are offline. Showing cached data.</span>
+      <button type="button" class="rh-tab" data-route="markets">
+        <span class="rh-tab__icon" aria-hidden="true">◎</span>
+        <span>Markets</span>
+      </button>
+      <button type="button" class="rh-tab" data-route="investor">
+        <span class="rh-tab__icon" aria-hidden="true">◇</span>
+        <span>Investor</span>
+      </button>
+      <button type="button" class="rh-tab" data-route="trade">
+        <span class="rh-tab__icon" aria-hidden="true">↗</span>
+        <span>Trade</span>
+      </button>
+      <button type="button" class="rh-tab" data-route="predictions">
+        <span class="rh-tab__icon" aria-hidden="true">⊙</span>
+        <span>Predict</span>
+      </button>
+      <button type="button" class="rh-tab" data-route="chat">
+        <span class="rh-tab__icon" aria-hidden="true">◈</span>
+        <span>Chat</span>
+      </button>
+    </nav>
   </div>
-
-  <!-- Stock detail overlay container (populated dynamically) -->
-  <script type="module" src="js/app.js"></script>
-
+  <div id="rh-modal-root"></div>
+  <script type="module" src="js/rh-app.js"></script>
 </body>
 </html>

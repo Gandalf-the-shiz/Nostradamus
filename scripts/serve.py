@@ -216,6 +216,57 @@ def status():
     return _pipeline_status()
 
 
+@app.get("/api/prediction-markets")
+def prediction_markets():
+    """Read-only sleeve view of the separate Prediction Market Predictor app.
+
+    Decoupled: reads that app's local data files; never imports its code and never
+    fabricates a signal. Override its location with NOSTRA_PMP_ROOT.
+    """
+    pmp_root = Path(os.getenv("NOSTRA_PMP_ROOT", r"C:\Users\nicho\prediction-market-predictor"))
+    data = pmp_root / "data"
+
+    def _ld(name, default):
+        try:
+            return json.loads((data / name).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return default
+
+    bets = _ld("paper_bets.json", [])
+    triggers = _ld("alert_triggers.json", [])
+    rules = _ld("alert_rules.json", [])
+    resolved = [b for b in bets if b.get("status") == "resolved"]
+    n = len(resolved)
+    avg_edge = sum(b.get("pnl_per_dollar", 0.0) for b in resolved) / n if n else 0.0
+    wins = sum(1 for b in resolved if b.get("pnl_per_dollar", 0.0) > 0)
+    brier = None
+    if n:
+        sq = 0.0
+        for b in resolved:
+            p_yes = b.get("modelProb", 0.5) if b.get("side") == "YES" else 1.0 - b.get("modelProb", 0.5)
+            sq += (p_yes - (1.0 if b.get("outcome") == "YES" else 0.0)) ** 2
+        brier = round(sq / n, 4)
+
+    available = (pmp_root / "app").exists()
+    has_activity = bool(bets or triggers)
+    note = ("Prediction app not found (set NOSTRA_PMP_ROOT)." if not available
+            else ("Installed but idle — add an LLM key and record/resolve paper bets to populate."
+                  if not has_activity else "Forward paper record from the prediction-market sleeve."))
+    return {
+        "available": available,
+        "hasActivity": has_activity,
+        "openBets": sum(1 for b in bets if b.get("status") == "open"),
+        "resolvedBets": n,
+        "realizedEdgePerDollar": round(avg_edge, 4),
+        "winRatePct": round(wins / n * 100, 1) if n else None,
+        "brierScore": brier,
+        "nAlertRules": len(rules),
+        "recentTriggers": [{"question": t.get("question"), "side": t.get("side"),
+                            "edge": t.get("edge")} for t in triggers[-8:]],
+        "note": note,
+    }
+
+
 @app.get("/api/decisions")
 def decisions():
     if not DECISIONS_PATH.exists():
