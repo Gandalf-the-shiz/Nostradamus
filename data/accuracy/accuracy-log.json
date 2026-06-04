@@ -149,12 +149,23 @@
       "correct": 0,
       "rolling7day": null,
       "rolling30day": null
+    },
+    {
+      "date": "2026-06-03",
+      "recordedAt": "2026-06-04T01:29:07Z",
+      "modelVersion": "2.0.0",
+      "hitRate": 0.2812,
+      "regressionMAE": 0.033418,
+      "total": 1508,
+      "correct": 424,
+      "rolling7day": null,
+      "rolling30day": null
     }
   ],
   "rolling": {
-    "7day": null,
-    "30day": 0.5694,
-    "90day": 0.5307
+    "7day": 0.2812,
+    "30day": 0.4733,
+    "90day": 0.5057
   },
-  "updatedAt": "2026-06-03T01:33:12Z"
+  "updatedAt": "2026-06-04T01:29:07Z"
 }
