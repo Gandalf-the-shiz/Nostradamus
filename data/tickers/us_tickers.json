@@ -2,7 +2,7 @@
   "metadata": {
     "source": "SEC EDGAR",
     "url": "https://www.sec.gov/files/company_tickers_exchange.json",
-    "fetchedAt": "2026-05-31T00:50:35Z",
+    "fetchedAt": "2026-06-07T00:52:38Z",
     "totalTickers": 7141,
     "exchanges": {
       "NYSE": 2858,
