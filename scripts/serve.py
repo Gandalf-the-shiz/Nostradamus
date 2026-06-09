@@ -136,13 +136,48 @@ def _run_training(log_path: Path) -> None:
             _job["error"] = str(exc)
 
 
-app = FastAPI(title="Nostradamus local server", version=VERSION)
+app = FastAPI(title="Treasure Droid local server", version=VERSION)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+# ── Public read-only guard ────────────────────────────────────────────────
+# treasure-droid.com is public to VIEW, but action/mutating endpoints must not
+# be triggerable from the internet. Requests arriving via Cloudflare carry
+# CF-* headers (set at Cloudflare's edge, not spoofable by the client, and the
+# app has no inbound port — the tunnel is the only public path). Local calls
+# (autonomous loops, owner on the box) have no CF headers and are unrestricted.
+# An optional owner token (X-TD-Token == TD_ADMIN_TOKEN) bypasses the block so
+# you can act remotely later if you set that secret.
+_PUBLIC_READONLY = os.getenv("TD_PUBLIC_READONLY", "true").lower() in {"1", "true", "yes"}
+_WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+def _is_public_request(request) -> bool:
+    h = request.headers
+    return bool(h.get("cf-connecting-ip") or h.get("cf-ray"))
+
+
+@app.middleware("http")
+async def public_readonly_guard(request, call_next):
+    if _PUBLIC_READONLY and request.method in _WRITE_METHODS and _is_public_request(request):
+        try:
+            from app_secrets import get_secret
+            admin = get_secret("TD_ADMIN_TOKEN")
+        except Exception:
+            admin = None
+        if not (admin and request.headers.get("x-td-token") == admin):
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "error": "read_only_public",
+                    "detail": "Actions are disabled on the public site. Use the local machine (or set TD_ADMIN_TOKEN).",
+                },
+            )
+    return await call_next(request)
 
 
 def _last_nightly_log() -> dict:
@@ -1343,6 +1378,10 @@ def _forward_truth() -> dict:
     verdict = honest.get("verdict") or {}
     tt_block = honest.get("test_tradeable") or {}
     tt_spread = (tt_block.get("quantile_spread_edge") or {}).get("top_minus_bottom_mean")
+    alpha_ic = _read_json(ROOT / "data" / "accuracy" / "alpha_ic.json") or {}
+    alpha_blend = alpha_ic.get("blended_neutralized") or {}
+    alpha_spread = alpha_blend.get("mean_quintile_spread")
+    alpha_icir = alpha_blend.get("icir")
     n_days = ic.get("n_days") or ic.get("nDays") or 0
     mean_ic = ic.get("mean_ic") if ic.get("mean_ic") is not None else ic.get("meanRankIc")
     sharpe = paper.get("sharpe")
@@ -1359,9 +1398,9 @@ def _forward_truth() -> dict:
     metrics = [
         {
             "id": "edge_proven",
-            "label": "Honest eval edge",
+            "label": "Mad Scientist eval edge",
             "value": verdict.get("edge_proven"),
-            "display": "proven" if verdict.get("edge_proven") else "not proven",
+            "display": "proven" if verdict.get("edge_proven") else "experimenting",
             "ok": bool(verdict.get("edge_proven")),
             "progress": 1.0 if verdict.get("edge_proven") else 0.0,
         },
@@ -1394,13 +1433,43 @@ def _forward_truth() -> dict:
         },
         {
             "id": "tradeable_spread",
-            "label": "Tradeable quintile spread",
+            "label": "Tradeable quintile spread (raw)",
             "value": tt_spread,
             "display": f"{tt_spread:.5f}" if tt_spread is not None else "—",
             "ok": (tt_spread or 0) > 0,
             "progress": 1.0 if (tt_spread or 0) > 0 else 0.0,
         },
+        {
+            "id": "alpha_spread",
+            "label": "Blended alpha spread (neutralized)",
+            "value": alpha_spread,
+            "display": f"{alpha_spread:+.5f}" if alpha_spread is not None else "—",
+            "ok": (alpha_spread or 0) > 0,
+            "progress": 1.0 if (alpha_spread or 0) > 0 else 0.0,
+        },
+        {
+            "id": "alpha_icir",
+            "label": "Blended alpha ICIR",
+            "value": alpha_icir,
+            "display": f"{alpha_icir:.3f}" if alpha_icir is not None else "—",
+            "target": 0.30,
+            "ok": (alpha_icir or 0) >= 0.30,
+            "progress": min(1.0, (alpha_icir or 0) / 0.30) if alpha_icir is not None else 0.0,
+        },
     ]
+    explain = {
+        "edge_proven": "The master gate. Out-of-sample, do our top-ranked stocks actually beat our bottom-ranked ones on tradeable names? 'Proven' = the mad experiment worked.",
+        "paper_sharpe": "Return per unit of risk on the forward paper book. 0.5 is the floor to consider real money, 1+ is good, 2+ is elite. Forward — not a backtest.",
+        "paper_return": "Actual P&L of the simulated book trading forward on real prices with fake money. The live experiment scoreboard.",
+        "live_ic": "Information Coefficient — how well today's rankings line up with tomorrow's moves, measured live. ~0.02+ sustained is genuinely valuable; needs 20+ days to count.",
+        "tradeable_spread": "Raw model only: top-bucket minus bottom-bucket return on liquid stocks. Negative means the raw signal isn't tradeable alone (its edge hides in microcaps).",
+        "alpha_spread": "After blending uncorrelated sleeves and neutralizing sector/size: top minus bottom on tradeable names. Positive = the engine makes a genuinely tradeable edge.",
+        "alpha_icir": "Consistency of the blended edge (mean IC ÷ its wobble). Higher = the edge shows up reliably, not by luck. 0.3+ is the target.",
+    }
+    for m in metrics:
+        m["explain"] = explain.get(m["id"], "")
+        m["kind"] = "forward" if m["id"] in {"paper_sharpe", "paper_return", "live_ic"} else "research"
+
     live_ok = bool(readiness.get("liveTradingPermitted"))
     return {
         "liveTradingPermitted": live_ok,
@@ -1409,6 +1478,236 @@ def _forward_truth() -> dict:
         "paperMarks": marks,
         "plan": "docs/MEGA_YACHT.md",
     }
+
+
+def _mad_scientist_loop_state() -> dict:
+    st = _read_json(ROOT / "data" / "intelligence" / "historical" / "loop_state.json") or {}
+    if not st:
+        return {"ok": False, "status": "idle"}
+    return {
+        "ok": True,
+        "status": st.get("status", "running"),
+        "cycle": st.get("cycle"),
+        "lastProfile": st.get("lastProfile"),
+        "updatedAt": st.get("updatedAt"),
+        "champions": (st.get("champions") or [])[:5],
+        "lastResult": st.get("lastResult"),
+    }
+
+
+def _mad_scientist_lab() -> dict:
+    """Mad Scientist Lab — 8yr train / 2yr historical walk-forward results."""
+    doc = _read_json(ROOT / "data" / "intelligence" / "historical" / "lab_results.json") or {}
+    meta = _read_json(ROOT / "data" / "intelligence" / "historical" / "panel_meta.json") or {}
+    loop = _mad_scientist_loop_state()
+    if not doc.get("ok"):
+        return {"ok": False, "message": doc.get("message") or "lab not run yet", "loop": loop}
+    lb = doc.get("leaderboard") or []
+    surv = doc.get("survivors") or []
+    return {
+        "ok": True,
+        "generatedAt": doc.get("generatedAt"),
+        "mantra": "mad_scientist",
+        "verdict": doc.get("verdict"),
+        "caveat": doc.get("caveat"),
+        "method": doc.get("method"),
+        "window": doc.get("window"),
+        "panel": doc.get("panel") or meta,
+        "nGenomes": doc.get("nGenomes"),
+        "nScored": doc.get("nScored"),
+        "topHeldUp": doc.get("topSelectionHeldUp"),
+        "leaderboard": lb[:10],
+        "nSurvivors": len(surv),
+        "bestHoldoutSharpe": lb[0].get("holdSharpe") if lb else None,
+        "loop": loop,
+    }
+
+
+def _sleeve_ic_summary() -> dict:
+    """Per-sleeve forward + research IC for the Bridge scoreboard."""
+    doc = _read_json(ROOT / "data" / "accuracy" / "sleeve_ic.json") or {}
+    if not doc.get("ok"):
+        return {"ok": False}
+    forward = doc.get("forward") or {}
+    research = doc.get("research") or {}
+    sleeves = []
+    names = sorted(set(list((forward.get("by_sleeve") or {}).keys()) + list((research.get("by_sleeve") or {}).keys())))
+    for name in names:
+        fwd = (forward.get("by_sleeve") or {}).get(name) or {}
+        res = (research.get("by_sleeve") or {}).get(name) or {}
+        eff_w = (doc.get("effective_weights") or {}).get(name)
+        cfg_w = (doc.get("config_weights") or {}).get(name)
+        sleeves.append({
+            "id": name,
+            "label": fwd.get("label") or res.get("label") or name,
+            "forwardIc": fwd.get("mean_ic"),
+            "forwardIcir": fwd.get("icir"),
+            "forwardDays": fwd.get("n_days") or 0,
+            "researchIc": res.get("mean_ic"),
+            "researchIcir": res.get("icir"),
+            "decayed": bool(fwd.get("decayed")),
+            "effectiveWeight": eff_w,
+            "configWeight": cfg_w,
+        })
+    return {
+        "ok": True,
+        "generatedAt": doc.get("generatedAt"),
+        "weightMode": doc.get("weight_mode"),
+        "weightNotes": doc.get("weight_notes") or [],
+        "forwardDays": forward.get("n_days") or 0,
+        "minForwardDays": doc.get("min_forward_days") or 5,
+        "sleeves": sleeves,
+    }
+
+
+def _alpha_book_summary() -> dict:
+    """Compact summary of the market-neutral alpha book for the dashboard."""
+    book = _read_json(ROOT / "data" / "intelligence" / "alpha" / "book.json") or {}
+    if not book.get("ok"):
+        return {"ok": False}
+    b = book.get("book") or {}
+    return {
+        "ok": True,
+        "generatedAt": book.get("generatedAt"),
+        "universe": book.get("universe"),
+        "sleeves": list((book.get("sleevesUsed") or {}).keys()),
+        "weightMode": book.get("weightMode"),
+        "nLong": b.get("nLong"),
+        "nShort": b.get("nShort"),
+        "grossExposure": b.get("grossExposure"),
+        "netExposure": b.get("netExposure"),
+    }
+
+
+def _alpaca_paper_cached() -> dict:
+    """Last known Alpaca paper execution state (no network)."""
+    st = _read_json(ROOT / "data" / "intelligence" / "alpha" / "alpaca_state.json") or {}
+    return {
+        "mode": st.get("mode"),
+        "placed": st.get("placed"),
+        "nLong": st.get("nLong"),
+        "nShort": st.get("nShort"),
+        "grossLong": st.get("grossLong"),
+        "grossShort": st.get("grossShort"),
+        "netExposure": st.get("netExposure"),
+        "generatedAt": st.get("generatedAt"),
+    }
+
+
+@app.get("/api/fleet")
+def fleet_summary():
+    """The crew: all forward-paper agents with equity, return, positions, status."""
+    summ = _read_json(ROOT / "data" / "fleet" / "summary.json") or {"ok": False}
+    reg = _read_json(ROOT / "data" / "fleet" / "registry.json") or {}
+    blurbs = {a["id"]: {"blurb": a.get("blurb"), "status": a.get("status")} for a in (reg.get("agents") or [])}
+    for a in (summ.get("agents") or []):
+        meta = blurbs.get(a.get("id"), {})
+        a["blurb"] = meta.get("blurb")
+        a["status"] = meta.get("status", a.get("status"))
+    return summ
+
+
+@app.get("/api/fleet/agent/{agent_id}")
+def fleet_agent(agent_id: str):
+    """One agent's documented book: positions + reasoning, equity curve, recent trades."""
+    base = ROOT / "data" / "fleet" / "agents" / agent_id
+    today = _read_json(base / "today.json") or {}
+    equity = _read_json(base / "equity.json") or []
+    reg = _read_json(ROOT / "data" / "fleet" / "registry.json") or {}
+    meta = next((a for a in (reg.get("agents") or []) if a.get("id") == agent_id), {})
+    trades = []
+    tp = base / "trades.jsonl"
+    if tp.exists():
+        try:
+            lines = tp.read_text(encoding="utf-8").strip().splitlines()
+            trades = [json.loads(ln) for ln in lines[-60:] if ln.strip()][::-1]
+        except (OSError, json.JSONDecodeError):
+            trades = []
+    if not today:
+        raise HTTPException(404, f"agent {agent_id} has no forward book yet")
+    return {"agent": {"id": agent_id, "name": meta.get("name"), "kind": meta.get("kind"),
+                      "status": meta.get("status"), "blurb": meta.get("blurb"), "params": meta.get("params")},
+            "today": today, "equityCurve": equity, "trades": trades}
+
+
+@app.get("/api/walkforward")
+def walkforward():
+    """Historical walk-forward: genomes selected on the OOS year's first 60%, judged on the held-out tail."""
+    return _read_json(ROOT / "data" / "intelligence" / "fleet" / "walkforward.json") or {"ok": False}
+
+
+@app.get("/api/bridge/top-traders")
+def bridge_top_traders(limit: int = 3):
+    """Top N traders across fleet forward paper + arena ML genomes."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.bridge.top_traders import top_traders
+    return top_traders(limit=max(1, min(limit, 10)))
+
+
+@app.get("/api/brain/insights")
+def brain_insights():
+    """Last 30 backtest runs + dev changelog + harness state."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.brain.journal import insights_payload
+    return insights_payload()
+
+
+@app.post("/api/brain/changelog")
+def brain_changelog_append(body: dict = Body(default_factory=dict)):
+    """Append a dev changelog entry (Cursor agent / manual)."""
+    title = (body.get("title") or "").strip()
+    summary = (body.get("summary") or "").strip()
+    if not title or not summary:
+        raise HTTPException(400, "title and summary required")
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.brain.journal import append_dev_change
+    entry = append_dev_change(
+        title=title,
+        summary=summary,
+        author=(body.get("author") or "Cursor agent").strip(),
+        areas=body.get("areas") or [],
+        tags=body.get("tags") or [],
+    )
+    return {"ok": True, "entry": entry}
+
+
+@app.get("/api/alpaca/account")
+def alpaca_account():
+    """Live Alpaca PAPER account snapshot (equity, P&L, positions). Read-only."""
+    try:
+        import requests
+        from app_secrets import get_secret
+        key = get_secret("ALPACA_API_KEY")
+        sec = get_secret("ALPACA_API_SECRET")
+        if not key or not sec:
+            return {"ok": False, "reason": "no_keys"}
+        h = {"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": sec}
+        base = "https://paper-api.alpaca.markets"
+        acct = requests.get(f"{base}/v2/account", headers=h, timeout=12).json()
+        positions = requests.get(f"{base}/v2/positions", headers=h, timeout=12).json()
+        equity = float(acct.get("equity") or 0)
+        last_equity = float(acct.get("last_equity") or equity)
+        npos = len(positions) if isinstance(positions, list) else 0
+        long_mv = sum(float(p.get("market_value", 0)) for p in positions if isinstance(p, dict) and float(p.get("qty", 0)) > 0) if isinstance(positions, list) else 0
+        short_mv = sum(float(p.get("market_value", 0)) for p in positions if isinstance(p, dict) and float(p.get("qty", 0)) < 0) if isinstance(positions, list) else 0
+        upl = sum(float(p.get("unrealized_pl", 0)) for p in positions if isinstance(p, dict)) if isinstance(positions, list) else 0
+        return {
+            "ok": True,
+            "equity": equity,
+            "lastEquity": last_equity,
+            "dayChangePct": round((equity / last_equity - 1.0) * 100, 3) if last_equity else 0.0,
+            "cash": float(acct.get("cash") or 0),
+            "buyingPower": float(acct.get("buying_power") or 0),
+            "nPositions": npos,
+            "longMarketValue": round(long_mv, 2),
+            "shortMarketValue": round(short_mv, 2),
+            "netExposure": round(long_mv + short_mv, 2),
+            "unrealizedPl": round(upl, 2),
+            "shortingEnabled": bool(acct.get("shorting_enabled")),
+            "status": acct.get("status"),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "reason": str(exc)[:160]}
 
 
 @app.get("/api/command-center")
@@ -1565,6 +1864,14 @@ def command_center():
             "tone": "ok",
         },
         {
+            "route": "fleet",
+            "title": "The Fleet",
+            "icon": "\U0001f3f4\u200d\u2620\ufe0f",
+            "tagline": "Crew of ML agents · forward paper",
+            "stat": "Walking forward",
+            "tone": "ok",
+        },
+        {
             "route": "investor",
             "title": "Investor",
             "icon": "◇",
@@ -1619,14 +1926,6 @@ def command_center():
             "tone": "muted",
         },
         {
-            "route": "chat",
-            "title": "Oracle Chat",
-            "icon": "◈",
-            "tagline": "Ask the models",
-            "stat": (npu.get("primary") or "CPU").replace("ExecutionProvider", ""),
-            "tone": "ok",
-        },
-        {
             "route": "architecture",
             "title": "Stack & Edge",
             "icon": "⬡",
@@ -1639,6 +1938,10 @@ def command_center():
     return {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "forwardTruth": _forward_truth(),
+        "alphaBook": _alpha_book_summary(),
+        "sleeveIc": _sleeve_ic_summary(),
+        "madScientistLab": _mad_scientist_lab(),
+        "alpacaPaper": _alpaca_paper_cached(),
         "models": models,
         "trends": {
             "v2Accuracy": acc_entries,
@@ -1657,9 +1960,9 @@ def command_center():
         },
         "appModules": app_modules,
         "brand": {
-            "name": "Nostradamus",
-            "epithet": "The Oracle",
-            "motto": "Mathematics inscribed on the scroll of tomorrow.",
+            "name": "Treasure Droid",
+            "epithet": "Greedy Salvage Droid",
+            "motto": "Greedy. Forward. Paper until the edge screams yes.",
         },
     }
 
@@ -1704,60 +2007,6 @@ def predictions_live(limit: int = 100):
 def pipeline_health():
     ov = models_overview()
     return {"checks": ov["healthChecks"], "healthScore": ov["healthScore"], "generatedAt": ov["generatedAt"]}
-
-
-@app.post("/api/chat")
-async def chat(body: dict):
-    """NPU / Gemini / structured-template chat about ML agent findings."""
-    message = str(body.get("message") or "").strip()
-    if not message:
-        raise HTTPException(400, "message required")
-    history = body.get("history") or []
-
-    ov = models_overview()
-    strategy = _read_json(REASONING_STRATEGY) or {}
-    reason_port = _read_json(REASON_PORTFOLIO) or {}
-    sched = _read_json(BRAIN_SCHEDULE) if BRAIN_SCHEDULE.exists() else {}
-
-    ctx = {
-        "predictor": ov.get("predictor"),
-        "investor": ov.get("investor"),
-        "healthScore": ov.get("healthScore"),
-        "healthChecks": ov.get("healthChecks"),
-        "strategy": {
-            "name": strategy.get("strategyId") or strategy.get("name"),
-            "watchlist": strategy.get("watchlist") or [],
-            "narrative": (strategy.get("narrative") or "")[:500],
-        },
-        "paper": {
-            "equity": reason_port.get("equity"),
-            "totalReturnPct": reason_port.get("totalReturnPct"),
-            "nPositions": len(reason_port.get("positions") or {}),
-        },
-        "pipeline": {
-            "harness": {
-                "phase": (ov.get("pipeline") or {}).get("harnessPhase"),
-                "mode": (ov.get("pipeline") or {}).get("harnessMode"),
-            },
-            "schedule": sched.get("recommendedMode"),
-            "npu": (ov.get("pipeline") or {}).get("npu"),
-            "daytrade": {
-                "manifestOk": DAYTRADE_MANIFEST.exists(),
-                "modifiedAt": _file_meta(DAYTRADE_MANIFEST).get("modified_at"),
-            },
-        },
-    }
-
-    from npu_llm import complete
-
-    reply, backend = complete(
-        message,
-        max_tokens=int(os.getenv("CHAT_MAX_TOKENS", "600")),
-        message=message,
-        context=ctx,
-        history=history,
-    )
-    return {"reply": reply, "backend": backend, "generatedAt": datetime.now(timezone.utc).isoformat()}
 
 
 @app.post("/api/orchestrator/run")
