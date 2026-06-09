@@ -56,9 +56,14 @@ export async function renderChat(container) {
     HISTORY.push({ role: 'user', content: text });
     try {
       const res = await api.chat(text, HISTORY);
-      addBubble(res.reply, 'bot');
+      addBubble(res.reply.replace(/\*\*/g, ''), 'bot');
       HISTORY.push({ role: 'assistant', content: res.reply });
-      backendEl.textContent = `Backend: ${res.backend}`;
+      const backendHint = {
+        gemini: 'Google Gemini (live)',
+        genai: 'Local NPU/CPU model',
+        template: 'Structured local answers (no LLM weights)',
+      }[res.backend] || res.backend;
+      backendEl.textContent = `Backend: ${backendHint}`;
     } catch (err) {
       addBubble(`Error: ${err.message}. Is serve.py running?`, 'bot');
     }

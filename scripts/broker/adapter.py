@@ -31,9 +31,28 @@ class OrderSide(str, Enum):
     SELL = "sell"
 
 
+class PositionSide(str, Enum):
+    LONG = "long"
+    SHORT = "short"
+
+
+class ContractType(str, Enum):
+    EQUITY = "equity"
+    ETF = "etf"
+    OPTION = "option"
+    SPREAD = "spread"  # multi-leg placeholder
+
+
 class OrderType(str, Enum):
     MARKET = "market"
     LIMIT = "limit"
+    STOP = "stop"
+    STOP_LIMIT = "stop_limit"
+
+
+class PositionEffect(str, Enum):
+    OPEN = "open"
+    CLOSE = "close"
 
 
 @dataclass
@@ -48,6 +67,11 @@ class TradeIntent:
     rationale: str
     trade_date: str
     agent: str = "investor_v3"
+    position_side: PositionSide = PositionSide.LONG
+    position_effect: PositionEffect = PositionEffect.OPEN
+    contract_type: ContractType = ContractType.EQUITY
+    # Optional legs for spreads / options (Robinhood-style schema)
+    legs: list[dict] | None = None
 
 
 @dataclass
@@ -67,6 +91,14 @@ class OrderRequest:
         d = asdict(self)
         d["side"] = self.side.value
         d["order_type"] = self.order_type.value
+        meta = d.get("metadata") or {}
+        if meta.get("position_side"):
+            meta["position_side"] = str(meta["position_side"])
+        if meta.get("position_effect"):
+            meta["position_effect"] = str(meta["position_effect"])
+        if meta.get("contract_type"):
+            meta["contract_type"] = str(meta["contract_type"])
+        d["metadata"] = meta
         return d
 
 
@@ -135,6 +167,16 @@ class RobinhoodAgentBridge:
             qty = round(intent.notional_usd / px, 4)
             if qty <= 0:
                 continue
+            pos_side = getattr(intent, "position_side", PositionSide.LONG)
+            if isinstance(pos_side, PositionSide):
+                ps = pos_side.value
+            else:
+                ps = str(pos_side)
+            effect = getattr(intent, "position_effect", PositionEffect.OPEN)
+            effect_v = effect.value if isinstance(effect, PositionEffect) else str(effect)
+            ctype = getattr(intent, "contract_type", ContractType.EQUITY)
+            ctype_v = ctype.value if isinstance(ctype, ContractType) else str(ctype)
+
             orders.append(
                 OrderRequest(
                     order_id=str(uuid.uuid4()),
@@ -150,6 +192,10 @@ class RobinhoodAgentBridge:
                         "rationale": intent.rationale,
                         "trade_date": intent.trade_date,
                         "agent": intent.agent,
+                        "position_side": ps,
+                        "position_effect": effect_v,
+                        "contract_type": ctype_v,
+                        "legs": intent.legs,
                     },
                 )
             )
@@ -190,7 +236,50 @@ class RobinhoodAgentBridge:
                 "Execute orders in order. POST fills to /api/trading/ack with order_id and status."
             ),
         }
+        manifest = self._apply_profit_gate(manifest)
+        manifest = self._apply_risk_engine(manifest)
         return self._apply_live_gate(manifest)
+
+    @staticmethod
+    def _apply_profit_gate(manifest: dict) -> dict:
+        try:
+            import sys
+            scripts_dir = str(Path(__file__).resolve().parent.parent)
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            pg_path = REPO / "data" / "paper_agent" / "profit-gate.json"
+            if not pg_path.exists():
+                subprocess_run = __import__("subprocess")
+                subprocess_run.run(
+                    [sys.executable, str(REPO / "scripts" / "paper-agent-profit-gate.py")],
+                    cwd=str(REPO), capture_output=True, timeout=120,
+                )
+            if pg_path.exists():
+                doc = json.loads(pg_path.read_text(encoding="utf-8"))
+                manifest.setdefault("gates", {})["profitGate"] = {
+                    "passed": bool(doc.get("gate_passed")),
+                    "action": doc.get("action"),
+                }
+                if not doc.get("gate_passed"):
+                    manifest["dryRun"] = True
+                    manifest["mode"] = "paper"
+                    manifest.setdefault("risk", {}).setdefault("notes", []).append(
+                        "PROFIT GATE: paper agent unhealthy — manifest forced paper")
+        except Exception:
+            pass
+        return manifest
+
+    @staticmethod
+    def _apply_risk_engine(manifest: dict) -> dict:
+        try:
+            import sys
+            scripts_dir = str(Path(__file__).resolve().parent.parent)
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            from intelligence.risk_engine import enforce_manifest
+            return enforce_manifest(manifest)
+        except Exception:
+            return manifest
 
     @staticmethod
     def _apply_live_gate(manifest: dict) -> dict:
@@ -228,7 +317,42 @@ class RobinhoodAgentBridge:
             broker="robinhood_agents",
         )
 
-    def record_ack(self, report: ExecutionReport) -> None:
+    def record_ack(self, report: ExecutionReport) -> dict:
         TRADING_DIR.mkdir(parents=True, exist_ok=True)
+        payload = asdict(report)
+        sym = payload.get("symbol")
+        if not sym and MANIFEST_PATH.exists():
+            try:
+                m = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+                for o in m.get("orders") or []:
+                    if o.get("order_id") == payload.get("order_id"):
+                        sym = o.get("symbol")
+                        side = (o.get("side") or "buy")
+                        payload["symbol"] = sym
+                        payload["side"] = side
+                        break
+            except (OSError, json.JSONDecodeError):
+                pass
+        if MANIFEST_PATH.exists() and "position_side" not in payload:
+            try:
+                m = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+                for o in m.get("orders") or []:
+                    if o.get("order_id") == payload.get("order_id"):
+                        meta = o.get("metadata") or {}
+                        payload["position_side"] = meta.get("position_side")
+                        payload["position_effect"] = meta.get("position_effect")
+                        payload["contract_type"] = meta.get("contract_type")
+                        break
+            except (OSError, json.JSONDecodeError):
+                pass
         with open(EXEC_LOG_PATH, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(asdict(report)) + "\n")
+            fh.write(json.dumps(payload) + "\n")
+        try:
+            import sys
+            scripts_dir = str(Path(__file__).resolve().parent.parent)
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            from intelligence.execution_feedback import on_ack
+            return on_ack(payload)
+        except Exception as exc:
+            return {"ok": True, "feedbackError": str(exc)}

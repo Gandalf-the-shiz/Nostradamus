@@ -32,12 +32,13 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 ROOT = Path(__file__).resolve().parents[1]
+LIVE_ROOT = Path(os.getenv("NOSTRA_LIVE_ROOT", r"C:\Users\nicho\nostradamus-live"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 DECISIONS_PATH = ROOT / "data" / "investor_v3" / "decisions.json"
@@ -216,6 +217,97 @@ def status():
     return _pipeline_status()
 
 
+def _pmp_sane_pnl(x: float) -> bool:
+    return -2.0 <= x <= 2.0
+
+
+def _pmp_bet_analytics(b: dict) -> dict:
+    """Edge and expected profit for a binary paper bet (stake in USD at entry price)."""
+    stake = float(b.get("stake") or 1.0)
+    price = float(b.get("price") or 0.5)
+    price = min(max(price, 0.02), 0.98)
+    mp = float(b.get("modelProb") or 0.5)
+    side = (b.get("side") or "YES").upper()
+    if side == "YES":
+        p_win = mp
+        entry = price
+        market_label = "YES"
+        alt = "NO"
+        p_alt = 1.0 - mp
+        alt_price = 1.0 - price
+    else:
+        p_win = 1.0 - mp
+        entry = 1.0 - price
+        market_label = "NO"
+        alt = "YES"
+        p_alt = mp
+        alt_price = price
+    entry = min(max(entry, 0.02), 0.98)
+    win_profit = stake * (1.0 / entry - 1.0)
+    lose_profit = -stake
+    ev_usd = p_win * win_profit + (1.0 - p_win) * lose_profit
+    edge = p_win - entry
+    choice = (
+        f"Oracle favors {market_label} ({p_win:.1%} true prob) vs market {entry:.1%} implied. "
+        f"Alternative {alt} is {p_alt:.1%} model / {alt_price:.1%} market."
+    )
+    if edge > 0.02:
+        rationale = (
+            f"Positive edge (+{edge:.1%}): model sees {market_label} as underpriced at {entry:.1%}. "
+            f"At ${stake:.2f} stake, expected profit ≈ ${ev_usd:.2f} before fees/slippage."
+        )
+    elif edge < -0.02:
+        rationale = (
+            f"Negative edge ({edge:.1%}): market prices {market_label} richer than the model. "
+            f"Paper book may be exploratory; expected value ≈ ${ev_usd:.2f}."
+        )
+    else:
+        rationale = (
+            f"Near fair value (edge {edge:+.1%}). Expected profit ≈ ${ev_usd:.2f} on ${stake:.2f} stake."
+        )
+    return {
+        "edge": round(edge, 4),
+        "expectedProfitUsd": round(ev_usd, 3),
+        "expectedProfitPerDollar": round(ev_usd / max(stake, 0.01), 4),
+        "choiceSummary": choice,
+        "explanation": rationale,
+        "impliedProb": round(entry, 4),
+        "modelWinProb": round(p_win, 4),
+    }
+
+
+def _pmp_position_row(b: dict, *, mark_unrealized: float | None = None) -> dict:
+    stake = float(b.get("stake") or 1.0)
+    price = float(b.get("price") or 0.5)
+    price = min(max(price, 0.02), 0.98)
+    mp = float(b.get("modelProb") or 0.5)
+    side = (b.get("side") or "YES").upper()
+    analytics = _pmp_bet_analytics(b)
+    row = {
+        "id": b.get("id"),
+        "exchange": b.get("exchange"),
+        "ticker": b.get("ticker"),
+        "question": (b.get("question") or b.get("ticker") or "")[:160],
+        "side": side,
+        "price": round(price, 4),
+        "modelProb": round(mp, 4),
+        "stakeUsd": round(stake, 2),
+        "status": b.get("status"),
+        "openedAt": b.get("openedAt"),
+        "resolvedAt": b.get("resolvedAt"),
+        "outcome": b.get("outcome"),
+        **analytics,
+    }
+    if b.get("status") == "resolved":
+        pnl = b.get("pnl_per_dollar", 0.0)
+        if _pmp_sane_pnl(float(pnl)):
+            row["pnlUsd"] = round(float(pnl) * stake, 2)
+            row["pnlPerDollar"] = round(float(pnl), 4)
+    elif mark_unrealized is not None:
+        row["unrealizedUsd"] = round(mark_unrealized, 2)
+    return row
+
+
 @app.get("/api/prediction-markets")
 def prediction_markets():
     """Read-only sleeve view of the separate Prediction Market Predictor app.
@@ -235,36 +327,420 @@ def prediction_markets():
     bets = _ld("paper_bets.json", [])
     triggers = _ld("alert_triggers.json", [])
     rules = _ld("alert_rules.json", [])
+    portfolio_snap = _ld("learning/portfolio.json", {})
+
     resolved = [b for b in bets if b.get("status") == "resolved"]
-    n = len(resolved)
-    avg_edge = sum(b.get("pnl_per_dollar", 0.0) for b in resolved) / n if n else 0.0
-    wins = sum(1 for b in resolved if b.get("pnl_per_dollar", 0.0) > 0)
+    sane_resolved = [b for b in resolved if _pmp_sane_pnl(float(b.get("pnl_per_dollar", 0.0)))]
+    n = len(sane_resolved)
+    avg_edge = sum(b.get("pnl_per_dollar", 0.0) for b in sane_resolved) / n if n else 0.0
+    wins = sum(1 for b in sane_resolved if b.get("pnl_per_dollar", 0.0) > 0)
     brier = None
     if n:
         sq = 0.0
-        for b in resolved:
+        for b in sane_resolved:
             p_yes = b.get("modelProb", 0.5) if b.get("side") == "YES" else 1.0 - b.get("modelProb", 0.5)
             sq += (p_yes - (1.0 if b.get("outcome") == "YES" else 0.0)) ** 2
         brier = round(sq / n, 4)
+
+    open_bets = [b for b in bets if b.get("status") == "open"]
+    open_sorted = sorted(open_bets, key=lambda b: b.get("openedAt") or "", reverse=True)
+    recent_resolved = sorted(sane_resolved, key=lambda b: b.get("resolvedAt") or "", reverse=True)[:40]
 
     available = (pmp_root / "app").exists()
     has_activity = bool(bets or triggers)
     note = ("Prediction app not found (set NOSTRA_PMP_ROOT)." if not available
             else ("Installed but idle — add an LLM key and record/resolve paper bets to populate."
                   if not has_activity else "Forward paper record from the prediction-market sleeve."))
+
+    portfolio = {
+        "generatedAt": portfolio_snap.get("generatedAt"),
+        "nOpen": portfolio_snap.get("nOpen", len(open_bets)),
+        "nResolved": portfolio_snap.get("nResolved", len(sane_resolved)),
+        "nMarkedOpen": portfolio_snap.get("nMarkedOpen"),
+        "stakeAtRiskUsd": portfolio_snap.get("stakeAtRiskUsd"),
+        "realizedUsd": portfolio_snap.get("realizedUsd"),
+        "unrealizedUsd": portfolio_snap.get("unrealizedUsd"),
+        "totalEquityUsd": portfolio_snap.get("totalEquityUsd"),
+        "returnPerStakedDollar": portfolio_snap.get("returnPerStakedDollar"),
+        "winRatePct": portfolio_snap.get("winRatePct"),
+        "byExchange": portfolio_snap.get("byExchange") or {},
+        "note": portfolio_snap.get("note"),
+    }
+
     return {
         "available": available,
         "hasActivity": has_activity,
-        "openBets": sum(1 for b in bets if b.get("status") == "open"),
-        "resolvedBets": n,
+        "openBets": len(open_bets),
+        "resolvedBets": len(sane_resolved),
         "realizedEdgePerDollar": round(avg_edge, 4),
         "winRatePct": round(wins / n * 100, 1) if n else None,
         "brierScore": brier,
         "nAlertRules": len(rules),
         "recentTriggers": [{"question": t.get("question"), "side": t.get("side"),
                             "edge": t.get("edge")} for t in triggers[-8:]],
+        "portfolio": portfolio,
+        "openPositions": [_pmp_position_row(b) for b in open_sorted[:80]],
+        "recentResolved": [_pmp_position_row(b) for b in recent_resolved],
+        "positionCounts": {
+            "openTotal": len(open_bets),
+            "openShown": min(80, len(open_sorted)),
+            "resolvedShown": len(recent_resolved),
+        },
         "note": note,
     }
+
+
+@app.get("/api/penny/overview")
+def penny_overview():
+    """Penny Wolf — sub-$5 momentum desk (separate paper book)."""
+    from penny_engine import overview
+    return overview()
+
+
+@app.post("/api/penny/tick")
+def penny_tick():
+    """Scan sub-$5 universe, rank by heat, paper-trade top names, enforce stops."""
+    from penny_engine import tick
+    return tick()
+
+
+@app.get("/api/penny/ml/status")
+def penny_ml_status():
+    """Penny Wolf ML champion search status + NPU inference readiness."""
+    from penny_engine import _penny_ml_status
+    return _penny_ml_status()
+
+
+@app.get("/api/intelligence/status")
+def intelligence_status():
+    """Unified brain status — mass psychology, insider monitor, forward book."""
+    paths = {
+        "brain": ROOT / "data" / "intelligence" / "brain_status.json",
+        "massPsychology": ROOT / "data" / "mass_psychology" / "ticker_sentiment.json",
+        "insiderMonitor": ROOT / "data" / "insider" / "follow_insider_signals.json",
+        "forwardBook": ROOT / "data" / "trading" / "forward_portfolio.json",
+        "retrainTriggers": ROOT / "data" / "learning" / "retrain_triggers.json",
+        "liveChampion": ROOT / "data" / "intelligence" / "live_champion_overlay.json",
+        "forwardIc": ROOT / "data" / "accuracy" / "v3_live_ic.json",
+    }
+    out = {}
+    for name, p in paths.items():
+        if p.exists():
+            try:
+                out[name] = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                out[name] = {"error": "parse failed"}
+        else:
+            out[name] = None
+    return out
+
+
+@app.get("/api/arena/leaderboard")
+def arena_leaderboard():
+    """Legacy v1 leaderboard (backward compatible)."""
+    p = ROOT / "data" / "trader_arena" / "v1" / "leaderboard.json"
+    if not p.exists():
+        p = ROOT / "data" / "trader_arena" / "leaderboard.json"
+    if not p.exists():
+        raise HTTPException(404, "arena not run yet — POST /api/arena/pulse or wait for loop")
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def _arena_versions() -> list[str]:
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.arena.paths import list_versions
+    return list_versions()
+
+
+def _check_arena_version(version: str) -> None:
+    if version not in _arena_versions():
+        raise HTTPException(400, f"unknown arena version {version}")
+
+
+@app.get("/api/arena/versions")
+def arena_versions():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.arena.paths import list_versions, ensure_experiment
+    exp = ensure_experiment()
+    return {"versions": list_versions(), "experiment": exp}
+
+
+@app.get("/api/arena/experiment")
+def arena_experiment():
+    p = ROOT / "data" / "trader_arena" / "experiment.json"
+    if not p.exists():
+        raise HTTPException(404, "experiment not initialized")
+    return json.loads(p.read_text(encoding="utf-8-sig"))
+
+
+@app.get("/api/arena/operating")
+def arena_operating():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.arena.operating import operating_status
+    return operating_status()
+
+
+@app.get("/api/real-agents")
+def real_agents_registry():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.real_agents import sync_registry
+    return sync_registry()
+
+
+@app.get("/api/stack/overview")
+def stack_overview():
+    """Single payload for Stack & Edge UI (operating model + live metrics)."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.arena.operating import operating_status
+    from intelligence.arena.ledger import compare_series
+
+    harvest_path = ROOT / "data" / "trader_arena" / "harvest_latest.json"
+    harvest = {}
+    if harvest_path.exists():
+        try:
+            harvest = json.loads(harvest_path.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            harvest = {"error": "harvest_latest unreadable"}
+
+    agents_path = ROOT / "data" / "intelligence" / "real_agents" / "registry.json"
+    agents = {}
+    if agents_path.exists():
+        try:
+            agents = json.loads(agents_path.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            agents = {"error": "registry unreadable"}
+
+    live_path = ROOT / "data" / "predictions_v3" / "live.csv"
+    n_live = 0
+    if live_path.exists():
+        try:
+            n_live = max(0, sum(1 for _ in live_path.open(encoding="utf-8")) - 1)
+        except OSError:
+            pass
+
+    megamind_summary = {}
+    for p in (
+        ROOT / "data" / "intelligence" / "megamind" / "latest_report.json",
+        ROOT / "data" / "intelligence" / "ultimate_model" / "latest_report.json",
+    ):
+        if p.exists():
+            try:
+                doc = json.loads(p.read_text(encoding="utf-8-sig"))
+                recs = doc.get("recommendations") or []
+                megamind_summary = {
+                    "generatedAt": doc.get("generatedAt"),
+                    "nPending": sum(1 for r in recs if r.get("status") == "proposed"),
+                    "nApproved": sum(1 for r in recs if r.get("status") == "approved"),
+                    "nImplemented": sum(1 for r in recs if r.get("status") == "implemented"),
+                    "status": doc.get("status"),
+                }
+                break
+            except (OSError, json.JSONDecodeError):
+                pass
+
+    exp_path = ROOT / "data" / "trader_arena" / "experiment.json"
+    experiment = {}
+    if exp_path.exists():
+        try:
+            experiment = json.loads(exp_path.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    return {
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "operating": operating_status(),
+        "realAgents": agents,
+        "compare": compare_series(),
+        "harvest": harvest,
+        "megamind": megamind_summary,
+        "livePanel": {"path": "data/predictions_v3/live.csv", "nSymbols": n_live},
+        "experiment": experiment,
+    }
+
+
+@app.get("/api/arena/compare")
+def arena_compare():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.arena.ledger import compare_series
+    return compare_series()
+
+
+@app.post("/api/arena/spawn")
+def arena_spawn_new(spec: dict = Body(default_factory=dict)):
+    """Spawn new arena v3+ (Megamind policy — never mutates v1/v2)."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.arena.spawn import spawn_new_arena
+    try:
+        return spawn_new_arena(
+            version=spec.get("version"),
+            label=spec.get("label", ""),
+            selection_mode=spec.get("selection_mode", "rank_v2"),
+            panel_path=spec.get("panel_path"),
+            feed_name=spec.get("feed_name"),
+            n_traders=int(spec.get("n_traders") or 100),
+            source_recommendation=spec.get("source_recommendation"),
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/arena/{version}/leaderboard")
+def arena_version_leaderboard(version: str):
+    _check_arena_version(version)
+    p = ROOT / "data" / "trader_arena" / version / "leaderboard.json"
+    if not p.exists():
+        raise HTTPException(404, f"{version} arena not run yet")
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+@app.get("/api/arena/{version}/traders")
+def arena_version_traders(version: str):
+    _check_arena_version(version)
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.arena.ledger import ranked_traders
+    return {"version": version, "traders": ranked_traders(version)}
+
+
+@app.get("/api/arena/{version}/trader/{trader_id}")
+def arena_trader_detail(version: str, trader_id: str):
+    _check_arena_version(version)
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.arena.ledger import trader_detail
+    doc = trader_detail(version, trader_id)
+    if not doc:
+        raise HTTPException(404, "trader not found")
+    return doc
+
+
+@app.get("/api/ultimate-model")
+def ultimate_model_report():
+    """Alias for Megamind report."""
+    return megamind_report()
+
+
+@app.get("/api/megamind")
+def megamind_report():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    try:
+        from intelligence.megamind import public_report
+        return public_report()
+    except FileNotFoundError:
+        raise HTTPException(404, "Megamind not run yet — wait for daily close or run megamind.py --tick")
+
+
+@app.post("/api/megamind/tick")
+def megamind_tick():
+    import subprocess
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "intelligence" / "megamind.py"), "--tick"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if proc.returncode != 0:
+        raise HTTPException(500, proc.stderr or proc.stdout or "megamind tick failed")
+    return megamind_report()
+
+
+@app.post("/api/megamind/recommendations/{rec_id}/approve")
+def megamind_approve_post(rec_id: str):
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.megamind import approve_recommendation
+    try:
+        return approve_recommendation(rec_id, source="dashboard")
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/megamind/recommendations/{rec_id}/implemented")
+def megamind_implemented_post(rec_id: str):
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.megamind import mark_implemented
+    try:
+        return mark_implemented(rec_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/megamind/recommendations/{rec_id}/reject")
+def megamind_reject_post(rec_id: str):
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.megamind import reject_recommendation
+    try:
+        return reject_recommendation(rec_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.get("/api/megamind/approve/{rec_id}")
+def megamind_approve_link(rec_id: str, token: str = ""):
+    """One-click approve from email (localhost / tunneled dashboard host)."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from intelligence.megamind import approve_recommendation, verify_token
+    if not verify_token(rec_id, token):
+        return HTMLResponse(
+            "<html><body style='font-family:sans-serif;padding:24px'>"
+            "<h2>Invalid or missing approval token</h2>"
+            "<p>Open the <a href='/#/megamind'>Megamind dashboard</a> to approve.</p></body></html>",
+            status_code=403,
+        )
+    try:
+        result = approve_recommendation(rec_id, source="email_link")
+    except ValueError as e:
+        return HTMLResponse(f"<html><body><h2>Error</h2><p>{e}</p></body></html>", status_code=404)
+    launch = result.get("cursorLaunch") or {}
+    sdk = launch.get("sdk") or {}
+    ide = launch.get("ide") or {}
+    return HTMLResponse(
+        f"""<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+        <body style="font-family:sans-serif;padding:24px;max-width:720px">
+        <h2 style="color:#00c805">Megamind — approved &amp; queued for Cursor</h2>
+        <p style="color:#555">Approved from your phone — your PC will run the agent when online.</p>
+        <p>Recommendation <code>{rec_id}</code></p>
+        <ul>
+          <li>Cursor rule active: <code>.cursor/rules/megamind-active-task.mdc</code></li>
+          <li>Prompt file: <code>{launch.get('promptPath', 'data/intelligence/megamind/CURRENT_AGENT_PROMPT.md')}</code></li>
+          <li>IDE opened: {'yes' if ide.get('opened') else 'no — open repo in Cursor'}</li>
+          <li>SDK agent: {'started (' + str(sdk.get('mode', '')) + ')' if sdk.get('sdk') else sdk.get('reason', 'set CURSOR_API_KEY for full auto')}</li>
+        </ul>
+        <p><strong>In Cursor Agent, paste:</strong></p>
+        <blockquote style="background:#f4f4f4;padding:12px;border-radius:8px">
+        Implement the Megamind active task (@megamind-active-task.mdc)
+        </blockquote>
+        <p><a href="/#/megamind">Megamind dashboard</a> · <a href="/#/arena">Arena</a></p>
+        </body></html>"""
+    )
+
+
+@app.post("/api/arena/pulse")
+def arena_pulse():
+    import subprocess
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "intelligence" / "trader_arena.py"), "--pulse", "--version", "active"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    if proc.returncode != 0:
+        raise HTTPException(500, proc.stderr or proc.stdout or "arena pulse failed")
+    return {"ok": True, "stdout": proc.stdout[-2000:]}
+
+
+@app.post("/api/intelligence/pulse")
+def intelligence_pulse():
+    """Run full intelligence brain (scrapers + feedback + forward score)."""
+    import subprocess
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "intelligence" / "brain.py")],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=600,
+        env={**os.environ, "PYTHONPATH": str(ROOT / "scripts")},
+    )
+    return {"ok": proc.returncode == 0, "stdout": proc.stdout[-4000:], "stderr": proc.stderr[-2000:]}
 
 
 @app.get("/api/decisions")
@@ -563,8 +1039,8 @@ async def trading_ack(body: dict):
         message=str(body.get("message") or ""),
         broker=str(body.get("broker") or "robinhood_agents"),
     )
-    RobinhoodAgentBridge().record_ack(report)
-    return {"ok": True, "recorded": order_id}
+    feedback = RobinhoodAgentBridge().record_ack(report)
+    return {"ok": True, "recorded": order_id, "feedback": feedback}
 
 
 @app.post("/api/trading/generate")
@@ -854,6 +1330,87 @@ PROMO_HISTORY = ROOT / "data" / "learning" / "promotion-history.json"
 REASON_PORTFOLIO = ROOT / "data" / "reasoning" / "paper_portfolio.json"
 
 
+def _forward_truth() -> dict:
+    """Mega Yacht scoreboard — forward paper + IC + honest eval (gate-trusted)."""
+    readiness = _read_json(LIVE_ROOT / "data" / "gate" / "readiness.json") or {}
+    honest = _read_json(LIVE_ROOT / "reports" / "honest_eval.json") or {}
+    ic = _read_json(LIVE_ROOT / "data" / "accuracy" / "v3_live_ic.json") or {}
+    if not ic.get("n_days") and not ic.get("mean_ic"):
+        ic = _read_json(ROOT / "data" / "accuracy" / "v3_live_ic.json") or ic
+    gate = _read_json(LIVE_ROOT / "config" / "live_policy.json") or {}
+    gpol = (gate.get("gate") or {})
+    paper = readiness.get("paperSummary") or {}
+    verdict = honest.get("verdict") or {}
+    tt_block = honest.get("test_tradeable") or {}
+    tt_spread = (tt_block.get("quantile_spread_edge") or {}).get("top_minus_bottom_mean")
+    n_days = ic.get("n_days") or ic.get("nDays") or 0
+    mean_ic = ic.get("mean_ic") if ic.get("mean_ic") is not None else ic.get("meanRankIc")
+    sharpe = paper.get("sharpe")
+    ret = paper.get("totalReturnPct")
+    marks = paper.get("nMarks") or 0
+
+    def _bar(val, target, higher=True):
+        if val is None or target is None:
+            return 0.0
+        if higher:
+            return min(1.0, max(0.0, float(val) / float(target))) if target else 0.0
+        return min(1.0, max(0.0, 1.0 - float(val) / float(target))) if target else 0.0
+
+    metrics = [
+        {
+            "id": "edge_proven",
+            "label": "Honest eval edge",
+            "value": verdict.get("edge_proven"),
+            "display": "proven" if verdict.get("edge_proven") else "not proven",
+            "ok": bool(verdict.get("edge_proven")),
+            "progress": 1.0 if verdict.get("edge_proven") else 0.0,
+        },
+        {
+            "id": "paper_sharpe",
+            "label": "Forward paper Sharpe",
+            "value": sharpe,
+            "display": f"{sharpe:.2f}" if sharpe is not None else "—",
+            "target": gpol.get("min_paper_sharpe", 0.5),
+            "ok": sharpe is not None and sharpe >= gpol.get("min_paper_sharpe", 0.5),
+            "progress": _bar(sharpe, gpol.get("min_paper_sharpe", 0.5)),
+        },
+        {
+            "id": "paper_return",
+            "label": "Forward paper return %",
+            "value": ret,
+            "display": f"{ret:+.2f}%" if ret is not None else "—",
+            "target": gpol.get("min_paper_return_pct", 1.0),
+            "ok": ret is not None and ret >= gpol.get("min_paper_return_pct", 1.0),
+            "progress": _bar(ret, gpol.get("min_paper_return_pct", 1.0)),
+        },
+        {
+            "id": "live_ic",
+            "label": "Live forward IC",
+            "value": mean_ic,
+            "display": f"{mean_ic:.4f} ({n_days}d)" if mean_ic is not None else f"— ({n_days}d)",
+            "target": gpol.get("min_live_rank_ic", 0.01),
+            "ok": n_days >= gpol.get("min_live_days", 20) and mean_ic is not None and mean_ic >= gpol.get("min_live_rank_ic", 0.01),
+            "progress": min(1.0, n_days / max(1, gpol.get("min_live_days", 20))) * _bar(mean_ic, gpol.get("min_live_rank_ic", 0.01)),
+        },
+        {
+            "id": "tradeable_spread",
+            "label": "Tradeable quintile spread",
+            "value": tt_spread,
+            "display": f"{tt_spread:.5f}" if tt_spread is not None else "—",
+            "ok": (tt_spread or 0) > 0,
+            "progress": 1.0 if (tt_spread or 0) > 0 else 0.0,
+        },
+    ]
+    live_ok = bool(readiness.get("liveTradingPermitted"))
+    return {
+        "liveTradingPermitted": live_ok,
+        "reasons": readiness.get("reasons") or [],
+        "metrics": metrics,
+        "paperMarks": marks,
+        "plan": "docs/MEGA_YACHT.md",
+    }
+
+
 @app.get("/api/command-center")
 def command_center():
     """Full breakdown of every ML model feeding predictions, accuracy, and trends."""
@@ -986,8 +1543,102 @@ def command_center():
 
     ov = models_overview()
 
+    # App module highlights for command center navigation
+    exp_path = ROOT / "data" / "trader_arena" / "experiment.json"
+    exp = _read_json(exp_path) or {}
+    om = exp.get("operatingModel") or {}
+    meg_report = _read_json(ROOT / "data" / "intelligence" / "megamind" / "latest_report.json") or {}
+    meg_recs = meg_report.get("recommendations") or []
+    meg_pending = sum(1 for r in meg_recs if (r.get("status") or "") in ("pending", "proposed"))
+    penny_ml = _read_json(ROOT / "data" / "penny" / "ml" / "search_status.json") or {}
+
+    pmp_root = Path(os.getenv("NOSTRA_PMP_ROOT", r"C:\Users\nicho\prediction-market-predictor"))
+    pmp_port = _read_json(pmp_root / "data" / "learning" / "portfolio.json") or {}
+
+    app_modules = [
+        {
+            "route": "markets",
+            "title": "Markets",
+            "icon": "◎",
+            "tagline": "Live ML-ranked universe",
+            "stat": f"{live_count:,} predictions",
+            "tone": "ok",
+        },
+        {
+            "route": "investor",
+            "title": "Investor",
+            "icon": "◇",
+            "tagline": "Kelly allocator book",
+            "stat": f"{inv_sum.get('total_return_pct', 0):+.1f}% backtest" if inv_sum.get("total_return_pct") is not None else "Portfolio policy",
+            "tone": "ok" if (inv_sum.get("total_return_pct") or 0) > 0 else "muted",
+        },
+        {
+            "route": "arena",
+            "title": "Arena",
+            "icon": "⚔",
+            "tagline": "Evolutionary traders",
+            "stat": f"Pulse {', '.join(om.get('pulseVersions') or ['v1','v2','v3'])}" if om else "Trader genomes",
+            "tone": "ok",
+        },
+        {
+            "route": "megamind",
+            "title": "Megamind",
+            "icon": "🧠",
+            "tagline": "Meta-agent improvements",
+            "stat": f"{meg_pending} pending approvals" if meg_pending else "Watching",
+            "tone": "warn" if meg_pending else "ok",
+        },
+        {
+            "route": "predictions",
+            "title": "Prophecy Markets",
+            "icon": "⊙",
+            "tagline": "Kalshi / Polymarket paper",
+            "stat": (
+                f"${pmp_port.get('totalEquityUsd', 0):,.0f} equity · {pmp_port.get('nOpen', 0)} open"
+                if pmp_port.get("nOpen") is not None else "Prediction sleeve"
+            ),
+            "tone": "ok" if pmp_port.get("totalEquityUsd") else "muted",
+        },
+        {
+            "route": "penny",
+            "title": "Penny Wolf",
+            "icon": "🐺",
+            "tagline": "Sub-$5 momentum desk",
+            "stat": (
+                f"ML obj {penny_ml.get('bestObjective', 0):.2f}"
+                if penny_ml.get("bestObjective") is not None else "Penny scanner"
+            ),
+            "tone": "ok",
+        },
+        {
+            "route": "trade",
+            "title": "Trade",
+            "icon": "↗",
+            "tagline": "Manifests & signals",
+            "stat": "Robinhood prep",
+            "tone": "muted",
+        },
+        {
+            "route": "chat",
+            "title": "Oracle Chat",
+            "icon": "◈",
+            "tagline": "Ask the models",
+            "stat": (npu.get("primary") or "CPU").replace("ExecutionProvider", ""),
+            "tone": "ok",
+        },
+        {
+            "route": "architecture",
+            "title": "Stack & Edge",
+            "icon": "⬡",
+            "tagline": "How it all connects",
+            "stat": f"Health {ov.get('healthScore', 0)}/100",
+            "tone": "ok" if (ov.get("healthScore") or 0) >= 60 else "warn",
+        },
+    ]
+
     return {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "forwardTruth": _forward_truth(),
         "models": models,
         "trends": {
             "v2Accuracy": acc_entries,
@@ -1003,6 +1654,12 @@ def command_center():
             "mode": sched.get("recommendedMode"),
             "npu": npu.get("primary", "CPUExecutionProvider"),
             "npuAvailable": npu.get("available", []),
+        },
+        "appModules": app_modules,
+        "brand": {
+            "name": "Nostradamus",
+            "epithet": "The Oracle",
+            "motto": "Mathematics inscribed on the scroll of tomorrow.",
         },
     }
 
@@ -1051,7 +1708,7 @@ def pipeline_health():
 
 @app.post("/api/chat")
 async def chat(body: dict):
-    """NPU-backed (or template) chat about ML agent findings."""
+    """NPU / Gemini / structured-template chat about ML agent findings."""
     message = str(body.get("message") or "").strip()
     if not message:
         raise HTTPException(400, "message required")
@@ -1059,24 +1716,47 @@ async def chat(body: dict):
 
     ov = models_overview()
     strategy = _read_json(REASONING_STRATEGY) or {}
-    context_lines = [
-        "You are Nostradamus, an assistant explaining local ML trading agents (paper only, not financial advice).",
-        f"Predictor test accuracy: {ov['predictor']['test'].get('accuracy')}, AUC: {ov['predictor']['test'].get('auc')}.",
-        f"Investor backtest return %: {ov['investor'].get('totalReturnPct')}, Sharpe: {ov['investor'].get('sharpe')}.",
-        f"Pipeline health score: {ov.get('healthScore')}/100.",
-        f"Reasoning watchlist: {', '.join(strategy.get('watchlist') or [])}.",
-        f"Strategy narrative: {(strategy.get('narrative') or '')[:500]}",
-    ]
-    for h in history[-6:]:
-        role = h.get("role", "user")
-        content = str(h.get("content", ""))[:400]
-        context_lines.append(f"{role}: {content}")
-    context_lines.append(f"user: {message}")
-    context_lines.append("assistant:")
+    reason_port = _read_json(REASON_PORTFOLIO) or {}
+    sched = _read_json(BRAIN_SCHEDULE) if BRAIN_SCHEDULE.exists() else {}
+
+    ctx = {
+        "predictor": ov.get("predictor"),
+        "investor": ov.get("investor"),
+        "healthScore": ov.get("healthScore"),
+        "healthChecks": ov.get("healthChecks"),
+        "strategy": {
+            "name": strategy.get("strategyId") or strategy.get("name"),
+            "watchlist": strategy.get("watchlist") or [],
+            "narrative": (strategy.get("narrative") or "")[:500],
+        },
+        "paper": {
+            "equity": reason_port.get("equity"),
+            "totalReturnPct": reason_port.get("totalReturnPct"),
+            "nPositions": len(reason_port.get("positions") or {}),
+        },
+        "pipeline": {
+            "harness": {
+                "phase": (ov.get("pipeline") or {}).get("harnessPhase"),
+                "mode": (ov.get("pipeline") or {}).get("harnessMode"),
+            },
+            "schedule": sched.get("recommendedMode"),
+            "npu": (ov.get("pipeline") or {}).get("npu"),
+            "daytrade": {
+                "manifestOk": DAYTRADE_MANIFEST.exists(),
+                "modifiedAt": _file_meta(DAYTRADE_MANIFEST).get("modified_at"),
+            },
+        },
+    }
 
     from npu_llm import complete
 
-    reply, backend = complete("\n".join(context_lines), max_tokens=int(os.getenv("CHAT_MAX_TOKENS", "600")))
+    reply, backend = complete(
+        message,
+        max_tokens=int(os.getenv("CHAT_MAX_TOKENS", "600")),
+        message=message,
+        context=ctx,
+        history=history,
+    )
     return {"reply": reply, "backend": backend, "generatedAt": datetime.now(timezone.utc).isoformat()}
 
 

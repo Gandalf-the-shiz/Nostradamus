@@ -1,0 +1,336 @@
+/* Architecture & comparison — Nostradamus stack docs */
+
+.rh-arch-page { padding-bottom: 24px; }
+
+.rh-arch-hero {
+  background: var(--rh-bg-1);
+  border: 1px solid var(--rh-border);
+  border-radius: var(--rh-radius);
+  padding: 20px 18px;
+  margin-bottom: 16px;
+}
+
+.rh-arch-hero h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--rh-text);
+}
+
+.rh-arch-hero p {
+  margin: 0;
+  color: var(--rh-text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.rh-arch-subnav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.rh-arch-subnav button {
+  flex: 1;
+  min-width: 120px;
+  padding: 12px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--rh-border);
+  background: var(--rh-bg-1);
+  color: var(--rh-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rh-arch-subnav button.rh-arch-subnav--active {
+  border-color: var(--rh-green);
+  color: var(--rh-green);
+  background: rgba(0, 200, 5, 0.08);
+}
+
+.rh-arch-live {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 14px 0 20px;
+}
+
+.rh-arch-stat {
+  background: var(--rh-bg-card);
+  border: 1px solid var(--rh-border-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.rh-arch-stat__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rh-text-dim);
+  margin-bottom: 4px;
+}
+
+.rh-arch-stat__value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rh-text);
+  font-family: var(--rh-mono);
+}
+
+.rh-arch-stat__value--accent { color: var(--rh-green); }
+
+.rh-arch-callout {
+  border-left: 3px solid var(--rh-green);
+  padding: 12px 14px;
+  margin: 14px 0;
+  background: var(--rh-bg-1);
+  border-radius: 0 var(--rh-radius) var(--rh-radius) 0;
+}
+
+.rh-arch-callout--warn {
+  border-left-color: var(--rh-orange, #ff9500);
+}
+
+.rh-arch-callout strong { color: var(--rh-text); }
+
+.rh-arch-steps {
+  counter-reset: archstep;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.rh-arch-steps li {
+  counter-increment: archstep;
+  position: relative;
+  padding: 12px 12px 12px 44px;
+  margin-bottom: 8px;
+  background: var(--rh-bg-1);
+  border: 1px solid var(--rh-border-soft);
+  border-radius: var(--rh-radius);
+  font-size: 13px;
+  color: var(--rh-text-muted);
+  line-height: 1.5;
+}
+
+.rh-arch-steps li::before {
+  content: counter(archstep);
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--rh-green);
+  color: #000;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rh-arch-steps li strong { color: var(--rh-text); }
+
+.rh-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 12px 0;
+}
+
+.rh-compare-table th,
+.rh-compare-table td {
+  border: 1px solid var(--rh-border-soft);
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rh-compare-table th {
+  background: var(--rh-bg-1);
+  color: var(--rh-green);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rh-compare-table td:first-child {
+  font-weight: 600;
+  color: var(--rh-text);
+  white-space: nowrap;
+}
+
+.rh-compare-table .rh-us { background: rgba(0, 200, 5, 0.06); }
+
+.rh-compare-verdict {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+@media (min-width: 640px) {
+  .rh-compare-verdict { grid-template-columns: 1fr 1fr; }
+}
+
+.rh-compare-verdict .rh-card h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--rh-green);
+}
+
+.rh-arch-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--rh-text-dim);
+  margin-top: 8px;
+}
+
+.rh-arch-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.rh-arch-legend .leg-frozen::before { background: #61afff; }
+.rh-arch-legend .leg-champ::before { background: #00c805; }
+.rh-arch-legend .leg-arch::before { background: #888; }
+.rh-arch-legend .leg-real::before { background: #b078ff; }
+
+.rh-arch-diagram--tall .mermaid { min-width: 720px; min-height: 320px; }
+
+.rh-chart-wrap--md { height: 280px; }
+
+.rh-arch-list {
+  color: var(--rh-text-muted);
+  font-size: 13px;
+  padding-left: 18px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.rh-arch-prose {
+  font-size: 13px;
+  color: var(--rh-text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.rh-table--compact td,
+.rh-table--compact th { padding: 6px 8px; font-size: 12px; }
+
+.rh-table-wrap {
+  overflow-x: auto;
+  margin-top: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Leading traders — Stack & Arena */
+.rh-arch-leader-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(0, 200, 5, 0.2);
+  color: var(--rh-green);
+  border: 1px solid rgba(0, 200, 5, 0.45);
+}
+
+.rh-table tr.rh-arch-leader-row td {
+  background: rgba(0, 200, 5, 0.08);
+}
+
+.rh-table tr.rh-arch-leader-row td:first-child {
+  border-left: 3px solid var(--rh-green);
+}
+
+.rh-arch-leader-id {
+  color: var(--rh-green);
+  font-weight: 700;
+}
+
+.rh-arch-leaders {
+  margin: 12px 0 20px;
+}
+
+.rh-arch-leaders-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.rh-arch-leader-card {
+  display: block;
+  border: 1px solid var(--rh-border);
+  border-radius: var(--rh-radius);
+  padding: 12px 14px;
+  background: var(--rh-bg-1);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.rh-arch-leader-card:hover {
+  border-color: var(--rh-green);
+  background: rgba(0, 200, 5, 0.06);
+}
+
+a.rh-arch-trader-link {
+  color: var(--rh-green);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+a.rh-arch-trader-link:hover {
+  text-decoration: underline;
+}
+
+.rh-table tr.rh-arch-trader-row {
+  cursor: pointer;
+}
+
+.rh-table tr.rh-arch-trader-row:hover td {
+  background: rgba(0, 200, 5, 0.06);
+}
+
+.rh-arch-leader-card--champ {
+  border-color: rgba(0, 200, 5, 0.5);
+  background: rgba(0, 200, 5, 0.06);
+}
+
+.rh-arch-leader-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--rh-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rh-arch-leader-card__top {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--rh-green);
+  margin: 0 0 4px;
+}
+
+.rh-arch-leader-card__meta {
+  font-size: 12px;
+  color: var(--rh-text-muted);
+  line-height: 1.45;
+}
