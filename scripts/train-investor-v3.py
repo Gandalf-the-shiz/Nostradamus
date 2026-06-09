@@ -533,6 +533,11 @@ def main() -> int:
 
     print("\n=== INVESTOR SUMMARY ===")
     print(json.dumps(summary, indent=2))
+    try:
+        from intelligence.brain.journal import log_investor_v3
+        log_investor_v3(summary)
+    except Exception as exc:
+        print(f"[brain-journal] skip investor log: {exc}", flush=True)
     return 0
 
 

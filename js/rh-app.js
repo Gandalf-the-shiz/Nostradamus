@@ -6,26 +6,27 @@ import { renderHome } from './rh-pages/home.js';
 import { renderMarkets } from './rh-pages/markets.js';
 import { renderInvestorPage } from './rh-pages/investor-page.js';
 import { renderTrade } from './rh-pages/trade.js';
-import { renderChat } from './rh-pages/chat.js';
 import { renderStock } from './rh-pages/stock.js';
 import { renderArchitecture } from './rh-pages/architecture.js';
 import { renderPredictions } from './rh-pages/predictions.js';
 import { renderPenny } from './rh-pages/penny.js';
 import { renderArena } from './rh-pages/arena.js';
 import { renderMegamind } from './rh-pages/megamind.js';
+import { renderFleet } from './rh-pages/fleet.js';
+import { initStarfield } from './rh-starfield.js';
 
 const TITLES = {
-  home: 'The Oracle',
+  home: 'Treasure Droid',
   markets: 'Markets',
   investor: 'Investor',
   trade: 'Trade',
-  chat: 'Oracle Chat',
-  predictions: 'Prophecy Markets',
+  predictions: 'Bounties',
   penny: 'Penny Wolf',
   stock: 'Stock',
   architecture: 'Stack & Edge',
   arena: 'Investor Arena',
-  megamind: 'Megamind',
+  megamind: 'Treasure Droid · Captain',
+  fleet: 'The Fleet',
 };
 
 let currentPage = 'home';
@@ -39,7 +40,7 @@ function parseRoute() {
     return { page: 'stock', symbol: parts[1].toUpperCase() };
   }
   if (parts[0] === 'architecture') {
-    const sub = parts[1] === 'compare' ? 'compare' : 'system';
+    const sub = ['compare', 'brain'].includes(parts[1]) ? parts[1] : 'system';
     return { page: 'architecture', sub };
   }
   if (parts[0] === 'arena') {
@@ -52,7 +53,13 @@ function parseRoute() {
     const highlight = new URLSearchParams(qs).get('highlight');
     return { page: 'megamind', highlight };
   }
-  const page = ['home', 'markets', 'investor', 'trade', 'chat', 'predictions', 'penny', 'arena', 'megamind', 'architecture'].includes(parts[0]) ? parts[0] : 'home';
+  if (parts[0] === 'fleet') {
+    return { page: 'fleet', agentId: parts[1] || null };
+  }
+  if (parts[0] === 'chat') {
+    return { page: 'megamind' };
+  }
+  const page = ['home', 'markets', 'investor', 'trade', 'predictions', 'penny', 'arena', 'megamind', 'fleet', 'architecture'].includes(parts[0]) ? parts[0] : 'home';
   return { page };
 }
 
@@ -63,7 +70,7 @@ function setActiveTab(page) {
       || (page === 'arena' && r === 'arena')
       || (page === 'megamind' && r === 'megamind')
       || (page === 'architecture' && r === 'architecture');
-    tab.classList.toggle('rh-tab--active', active && ['home', 'markets', 'investor', 'trade', 'chat', 'predictions', 'penny', 'arena', 'megamind', 'architecture'].includes(r));
+    tab.classList.toggle('rh-tab--active', active && ['home', 'markets', 'investor', 'trade', 'predictions', 'penny', 'arena', 'megamind', 'fleet', 'architecture'].includes(r));
     tab.toggleAttribute('aria-current', active && tab.classList.contains('rh-tab--active') ? 'page' : false);
   });
 }
@@ -72,7 +79,8 @@ function navigate(page, symbol) {
   if (page === 'stock' && symbol) {
     location.hash = `#/stock/${symbol}`;
   } else if (page === 'architecture') {
-    location.hash = symbol === 'compare' ? '#/architecture/compare' : '#/architecture';
+    location.hash = symbol === 'compare' ? '#/architecture/compare'
+      : symbol === 'brain' ? '#/architecture/brain' : '#/architecture';
   } else {
     location.hash = `#/${page}`;
   }
@@ -92,8 +100,9 @@ async function render() {
       ? `Arena ${route.version} #${route.traderId}`
       : route.page === 'arena' && route.version
         ? `Arena ${route.version}`
-        : (TITLES[route.page] || 'Nostradamus · The Oracle');
+        : (TITLES[route.page] || 'Treasure Droid');
   setActiveTab(route.page);
+  document.body.classList.toggle('td-body--arch', route.page === 'architecture' && route.sub !== 'compare');
 
   const stale = () => seq !== renderSeq;
 
@@ -109,9 +118,6 @@ async function render() {
   } else if (route.page === 'trade') {
     await renderTrade(main);
     if (stale()) return;
-  } else if (route.page === 'chat') {
-    await renderChat(main);
-    if (stale()) return;
   } else if (route.page === 'predictions') {
     await renderPredictions(main);
     if (stale()) return;
@@ -123,6 +129,9 @@ async function render() {
     if (stale()) return;
   } else if (route.page === 'megamind') {
     await renderMegamind(main, route);
+    if (stale()) return;
+  } else if (route.page === 'fleet') {
+    await renderFleet(main, route, stale);
     if (stale()) return;
   } else if (route.page === 'stock') {
     await renderStock(main, route.symbol);
@@ -154,6 +163,7 @@ function init() {
 
   window.addEventListener('hashchange', () => render());
   if (!location.hash) location.hash = '#/home';
+  initStarfield();
   render();
 }
 
