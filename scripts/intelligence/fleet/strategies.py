@@ -92,7 +92,8 @@ def _genome(df: pd.DataFrame, params: dict) -> list[dict]:
 
 
 def target_book(agent: dict, df: pd.DataFrame, cfg: dict) -> list[dict]:
-    kind = agent.get("kind", "")
+    # Registry entries promoted before 2026-06-13 used "strategy" instead of "kind".
+    kind = agent.get("kind") or agent.get("strategy") or ""
     params = agent.get("params") or {}
     if kind == "alpha_blended":
         return _alpha_blended(df, cfg)

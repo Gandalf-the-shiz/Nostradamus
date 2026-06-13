@@ -174,7 +174,8 @@
         "short_frac": 0.486
       },
       "labHoldoutSharpe": 2.766,
-      "labHoldoutReturnPct": 124.65
+      "labHoldoutReturnPct": 124.65,
+      "kind": "genome"
     },
     {
       "id": "ms_598355b1",
@@ -193,7 +194,8 @@
         "short_frac": 0.317
       },
       "labHoldoutSharpe": 1.955,
-      "labHoldoutReturnPct": 102.89
+      "labHoldoutReturnPct": 102.89,
+      "kind": "genome"
     },
     {
       "id": "ms_f62d37b8",
@@ -212,7 +214,8 @@
         "short_frac": 0.487
       },
       "labHoldoutSharpe": 3.875,
-      "labHoldoutReturnPct": 220.76
+      "labHoldoutReturnPct": 220.76,
+      "kind": "genome"
     },
     {
       "id": "ms_3cddc295",
@@ -231,7 +234,8 @@
         "short_frac": 0.472
       },
       "labHoldoutSharpe": 2.806,
-      "labHoldoutReturnPct": 104.71
+      "labHoldoutReturnPct": 104.71,
+      "kind": "genome"
     },
     {
       "id": "ms_f2dae967",
@@ -250,7 +254,8 @@
         "short_frac": 0.544
       },
       "labHoldoutSharpe": 3.479,
-      "labHoldoutReturnPct": 228.21
+      "labHoldoutReturnPct": 228.21,
+      "kind": "genome"
     },
     {
       "id": "ms_6e1e876b",
@@ -269,7 +274,8 @@
         "short_frac": 0.424
       },
       "labHoldoutSharpe": 2.237,
-      "labHoldoutReturnPct": 109.16
+      "labHoldoutReturnPct": 109.16,
+      "kind": "genome"
     },
     {
       "id": "ms_9f87fb13",
@@ -288,7 +294,8 @@
         "short_frac": 0.318
       },
       "labHoldoutSharpe": 2.591,
-      "labHoldoutReturnPct": 148.36
+      "labHoldoutReturnPct": 148.36,
+      "kind": "genome"
     },
     {
       "id": "ms_968a8a2c",
@@ -307,7 +314,8 @@
         "short_frac": 0.537
       },
       "labHoldoutSharpe": 2.92,
-      "labHoldoutReturnPct": 124.06
+      "labHoldoutReturnPct": 124.06,
+      "kind": "genome"
     },
     {
       "id": "ms_9dc29ded",
@@ -326,7 +334,8 @@
         "short_frac": 0.424
       },
       "labHoldoutSharpe": 2.919,
-      "labHoldoutReturnPct": 167.12
+      "labHoldoutReturnPct": 167.12,
+      "kind": "genome"
     },
     {
       "id": "ms_17f47c40",
@@ -345,7 +354,8 @@
         "short_frac": 0.371
       },
       "labHoldoutSharpe": 2.954,
-      "labHoldoutReturnPct": 178.87
+      "labHoldoutReturnPct": 178.87,
+      "kind": "genome"
     },
     {
       "id": "ms_c78f7f77",
@@ -364,7 +374,8 @@
         "short_frac": 0.306
       },
       "labHoldoutSharpe": 2.707,
-      "labHoldoutReturnPct": 167.52
+      "labHoldoutReturnPct": 167.52,
+      "kind": "genome"
     },
     {
       "id": "ms_3a2ab9c1",
@@ -383,7 +394,8 @@
         "short_frac": 0.423
       },
       "labHoldoutSharpe": 3.041,
-      "labHoldoutReturnPct": 185.42
+      "labHoldoutReturnPct": 185.42,
+      "kind": "genome"
     },
     {
       "id": "ms_e4c7df98",
@@ -402,7 +414,8 @@
         "short_frac": 0.388
       },
       "labHoldoutSharpe": 2.303,
-      "labHoldoutReturnPct": 126.58
+      "labHoldoutReturnPct": 126.58,
+      "kind": "genome"
     },
     {
       "id": "ms_4689b204",
@@ -421,7 +434,8 @@
         "short_frac": 0.484
       },
       "labHoldoutSharpe": 2.37,
-      "labHoldoutReturnPct": 122.07
+      "labHoldoutReturnPct": 122.07,
+      "kind": "genome"
     },
     {
       "id": "ms_b54754d1",
@@ -440,7 +454,8 @@
         "short_frac": 0.537
       },
       "labHoldoutSharpe": 2.1,
-      "labHoldoutReturnPct": 97.82
+      "labHoldoutReturnPct": 97.82,
+      "kind": "genome"
     },
     {
       "id": "ms_ffa2df6a",
@@ -459,7 +474,8 @@
         "short_frac": 0.367
       },
       "labHoldoutSharpe": 2.488,
-      "labHoldoutReturnPct": 115.0
+      "labHoldoutReturnPct": 115.0,
+      "kind": "genome"
     },
     {
       "id": "ms_c041fa59",
@@ -478,7 +494,8 @@
         "short_frac": 0.41
       },
       "labHoldoutSharpe": 1.613,
-      "labHoldoutReturnPct": 62.33
+      "labHoldoutReturnPct": 62.33,
+      "kind": "genome"
     },
     {
       "id": "ms_2518d0e9",
@@ -497,7 +514,8 @@
         "short_frac": 0.33
       },
       "labHoldoutSharpe": 2.131,
-      "labHoldoutReturnPct": 116.09
+      "labHoldoutReturnPct": 116.09,
+      "kind": "genome"
     },
     {
       "id": "ms_0d001c8e",
@@ -516,7 +534,8 @@
         "short_frac": 0.352
       },
       "labHoldoutSharpe": 1.935,
-      "labHoldoutReturnPct": 90.89
+      "labHoldoutReturnPct": 90.89,
+      "kind": "genome"
     },
     {
       "id": "ms_81618749",
@@ -535,7 +554,8 @@
         "short_frac": 0.435
       },
       "labHoldoutSharpe": 2.683,
-      "labHoldoutReturnPct": 124.18
+      "labHoldoutReturnPct": 124.18,
+      "kind": "genome"
     },
     {
       "id": "ms_1b17a008",
@@ -554,7 +574,8 @@
         "short_frac": 0.473
       },
       "labHoldoutSharpe": 2.845,
-      "labHoldoutReturnPct": 132.46
+      "labHoldoutReturnPct": 132.46,
+      "kind": "genome"
     },
     {
       "id": "ms_1e22fd1f",
@@ -573,7 +594,8 @@
         "short_frac": 0.496
       },
       "labHoldoutSharpe": 3.032,
-      "labHoldoutReturnPct": 158.4
+      "labHoldoutReturnPct": 158.4,
+      "kind": "genome"
     },
     {
       "id": "ms_7281509c",
@@ -592,7 +614,8 @@
         "short_frac": 0.539
       },
       "labHoldoutSharpe": 2.632,
-      "labHoldoutReturnPct": 133.57
+      "labHoldoutReturnPct": 133.57,
+      "kind": "genome"
     },
     {
       "id": "ms_7e5d029a",
@@ -611,7 +634,8 @@
         "short_frac": 0.425
       },
       "labHoldoutSharpe": 2.094,
-      "labHoldoutReturnPct": 92.25
+      "labHoldoutReturnPct": 92.25,
+      "kind": "genome"
     },
     {
       "id": "ms_f740b546",
@@ -630,7 +654,8 @@
         "short_frac": 0.474
       },
       "labHoldoutSharpe": 2.721,
-      "labHoldoutReturnPct": 159.0
+      "labHoldoutReturnPct": 159.0,
+      "kind": "genome"
     },
     {
       "id": "ms_27fc21d3",
@@ -649,7 +674,8 @@
         "short_frac": 0.437
       },
       "labHoldoutSharpe": 3.053,
-      "labHoldoutReturnPct": 182.78
+      "labHoldoutReturnPct": 182.78,
+      "kind": "genome"
     },
     {
       "id": "ms_7fbe847f",
@@ -668,7 +694,8 @@
         "short_frac": 0.413
       },
       "labHoldoutSharpe": 2.36,
-      "labHoldoutReturnPct": 117.91
+      "labHoldoutReturnPct": 117.91,
+      "kind": "genome"
     },
     {
       "id": "ms_643ce9b1",
@@ -687,7 +714,8 @@
         "short_frac": 0.537
       },
       "labHoldoutSharpe": 3.95,
-      "labHoldoutReturnPct": 217.57
+      "labHoldoutReturnPct": 217.57,
+      "kind": "genome"
     },
     {
       "id": "ms_1f6298dd",
@@ -706,7 +734,8 @@
         "short_frac": 0.492
       },
       "labHoldoutSharpe": 3.597,
-      "labHoldoutReturnPct": 220.35
+      "labHoldoutReturnPct": 220.35,
+      "kind": "genome"
     },
     {
       "id": "ms_8c420d0f",
@@ -725,7 +754,8 @@
         "short_frac": 0.421
       },
       "labHoldoutSharpe": 3.093,
-      "labHoldoutReturnPct": 160.71
+      "labHoldoutReturnPct": 160.71,
+      "kind": "genome"
     },
     {
       "id": "ms_b3e1bd43",
@@ -744,7 +774,8 @@
         "short_frac": 0.483
       },
       "labHoldoutSharpe": 2.731,
-      "labHoldoutReturnPct": 160.72
+      "labHoldoutReturnPct": 160.72,
+      "kind": "genome"
     },
     {
       "id": "ms_0291286b",
@@ -763,7 +794,8 @@
         "short_frac": 0.499
       },
       "labHoldoutSharpe": 3.16,
-      "labHoldoutReturnPct": 206.01
+      "labHoldoutReturnPct": 206.01,
+      "kind": "genome"
     },
     {
       "id": "ms_06413610",
@@ -782,7 +814,8 @@
         "short_frac": 0.45
       },
       "labHoldoutSharpe": 3.794,
-      "labHoldoutReturnPct": 132.08
+      "labHoldoutReturnPct": 132.08,
+      "kind": "genome"
     },
     {
       "id": "ms_81e16124",
@@ -801,7 +834,8 @@
         "short_frac": 0.461
       },
       "labHoldoutSharpe": 3.009,
-      "labHoldoutReturnPct": 185.25
+      "labHoldoutReturnPct": 185.25,
+      "kind": "genome"
     },
     {
       "id": "ms_77d759c3",
@@ -820,7 +854,8 @@
         "short_frac": 0.515
       },
       "labHoldoutSharpe": 3.324,
-      "labHoldoutReturnPct": 166.72
+      "labHoldoutReturnPct": 166.72,
+      "kind": "genome"
     },
     {
       "id": "ms_43cadde9",
@@ -839,7 +874,8 @@
         "short_frac": 0.377
       },
       "labHoldoutSharpe": 2.481,
-      "labHoldoutReturnPct": 138.29
+      "labHoldoutReturnPct": 138.29,
+      "kind": "genome"
     },
     {
       "id": "ms_1298e059",
@@ -858,7 +894,8 @@
         "short_frac": 0.338
       },
       "labHoldoutSharpe": 2.098,
-      "labHoldoutReturnPct": 112.41
+      "labHoldoutReturnPct": 112.41,
+      "kind": "genome"
     },
     {
       "id": "ms_7212075c",
@@ -877,7 +914,8 @@
         "short_frac": 0.478
       },
       "labHoldoutSharpe": 2.259,
-      "labHoldoutReturnPct": 89.49
+      "labHoldoutReturnPct": 89.49,
+      "kind": "genome"
     },
     {
       "id": "ms_22d4f50a",
@@ -896,7 +934,8 @@
         "short_frac": 0.496
       },
       "labHoldoutSharpe": 2.411,
-      "labHoldoutReturnPct": 125.5
+      "labHoldoutReturnPct": 125.5,
+      "kind": "genome"
     },
     {
       "id": "ms_9401e52a",
@@ -915,7 +954,8 @@
         "short_frac": 0.452
       },
       "labHoldoutSharpe": 2.716,
-      "labHoldoutReturnPct": 135.56
+      "labHoldoutReturnPct": 135.56,
+      "kind": "genome"
     },
     {
       "id": "ms_0bad3f86",
@@ -934,7 +974,8 @@
         "short_frac": 0.523
       },
       "labHoldoutSharpe": 3.133,
-      "labHoldoutReturnPct": 146.92
+      "labHoldoutReturnPct": 146.92,
+      "kind": "genome"
     },
     {
       "id": "ms_4a3e1c86",
@@ -953,7 +994,8 @@
         "short_frac": 0.323
       },
       "labHoldoutSharpe": 2.751,
-      "labHoldoutReturnPct": 173.97
+      "labHoldoutReturnPct": 173.97,
+      "kind": "genome"
     },
     {
       "id": "ms_73e9d599",
@@ -972,7 +1014,8 @@
         "short_frac": 0.436
       },
       "labHoldoutSharpe": 2.568,
-      "labHoldoutReturnPct": 164.44
+      "labHoldoutReturnPct": 164.44,
+      "kind": "genome"
     },
     {
       "id": "ms_7ea560ac",
@@ -991,7 +1034,8 @@
         "short_frac": 0.359
       },
       "labHoldoutSharpe": 2.998,
-      "labHoldoutReturnPct": 85.05
+      "labHoldoutReturnPct": 85.05,
+      "kind": "genome"
     },
     {
       "id": "ms_fcf07403",
@@ -1010,7 +1054,8 @@
         "short_frac": 0.488
       },
       "labHoldoutSharpe": 2.623,
-      "labHoldoutReturnPct": 112.28
+      "labHoldoutReturnPct": 112.28,
+      "kind": "genome"
     },
     {
       "id": "ms_0145dc5b",
@@ -1029,7 +1074,8 @@
         "short_frac": 0.412
       },
       "labHoldoutSharpe": 2.497,
-      "labHoldoutReturnPct": 136.55
+      "labHoldoutReturnPct": 136.55,
+      "kind": "genome"
     },
     {
       "id": "ms_fe264eb3",
@@ -1048,7 +1094,8 @@
         "short_frac": 0.372
       },
       "labHoldoutSharpe": 2.594,
-      "labHoldoutReturnPct": 134.02
+      "labHoldoutReturnPct": 134.02,
+      "kind": "genome"
     },
     {
       "id": "ms_e783faee",
@@ -1067,7 +1114,8 @@
         "short_frac": 0.301
       },
       "labHoldoutSharpe": 3.202,
-      "labHoldoutReturnPct": 259.61
+      "labHoldoutReturnPct": 259.61,
+      "kind": "genome"
     },
     {
       "id": "ms_3945e08b",
@@ -1086,7 +1134,8 @@
         "short_frac": 0.514
       },
       "labHoldoutSharpe": 3.454,
-      "labHoldoutReturnPct": 235.04
+      "labHoldoutReturnPct": 235.04,
+      "kind": "genome"
     },
     {
       "id": "ms_80eee074",
@@ -1105,7 +1154,8 @@
         "short_frac": 0.532
       },
       "labHoldoutSharpe": 3.198,
-      "labHoldoutReturnPct": 157.22
+      "labHoldoutReturnPct": 157.22,
+      "kind": "genome"
     },
     {
       "id": "ms_d4190b74",
@@ -1124,7 +1174,8 @@
         "short_frac": 0.478
       },
       "labHoldoutSharpe": 3.626,
-      "labHoldoutReturnPct": 257.87
+      "labHoldoutReturnPct": 257.87,
+      "kind": "genome"
     },
     {
       "id": "ms_18cdf6d6",
@@ -1143,7 +1194,8 @@
         "short_frac": 0.458
       },
       "labHoldoutSharpe": 3.249,
-      "labHoldoutReturnPct": 181.92
+      "labHoldoutReturnPct": 181.92,
+      "kind": "genome"
     },
     {
       "id": "ms_b4064c3d",
@@ -1162,7 +1214,8 @@
         "short_frac": 0.477
       },
       "labHoldoutSharpe": 3.087,
-      "labHoldoutReturnPct": 199.06
+      "labHoldoutReturnPct": 199.06,
+      "kind": "genome"
     },
     {
       "id": "ms_aad696dc",
@@ -1181,7 +1234,8 @@
         "short_frac": 0.388
       },
       "labHoldoutSharpe": 2.586,
-      "labHoldoutReturnPct": 144.91
+      "labHoldoutReturnPct": 144.91,
+      "kind": "genome"
     },
     {
       "id": "ms_923fb2c9",
@@ -1200,7 +1254,8 @@
         "short_frac": 0.534
       },
       "labHoldoutSharpe": 2.638,
-      "labHoldoutReturnPct": 145.44
+      "labHoldoutReturnPct": 145.44,
+      "kind": "genome"
     },
     {
       "id": "ms_996a74b7",
@@ -1219,7 +1274,8 @@
         "short_frac": 0.394
       },
       "labHoldoutSharpe": 1.99,
-      "labHoldoutReturnPct": 85.94
+      "labHoldoutReturnPct": 85.94,
+      "kind": "genome"
     },
     {
       "id": "ms_6caae171",
@@ -1238,7 +1294,8 @@
         "short_frac": 0.479
       },
       "labHoldoutSharpe": 2.865,
-      "labHoldoutReturnPct": 179.2
+      "labHoldoutReturnPct": 179.2,
+      "kind": "genome"
     },
     {
       "id": "ms_50e5391f",
@@ -1257,7 +1314,8 @@
         "short_frac": 0.439
       },
       "labHoldoutSharpe": 2.453,
-      "labHoldoutReturnPct": 140.85
+      "labHoldoutReturnPct": 140.85,
+      "kind": "genome"
     },
     {
       "id": "ms_07ed7def",
@@ -1276,7 +1334,8 @@
         "short_frac": 0.314
       },
       "labHoldoutSharpe": 3.58,
-      "labHoldoutReturnPct": 129.67
+      "labHoldoutReturnPct": 129.67,
+      "kind": "genome"
     },
     {
       "id": "ms_a823958a",
@@ -1295,7 +1354,8 @@
         "short_frac": 0.392
       },
       "labHoldoutSharpe": 2.262,
-      "labHoldoutReturnPct": 116.13
+      "labHoldoutReturnPct": 116.13,
+      "kind": "genome"
     },
     {
       "id": "ms_0f3e359f",
@@ -1314,7 +1374,8 @@
         "short_frac": 0.537
       },
       "labHoldoutSharpe": 2.839,
-      "labHoldoutReturnPct": 158.02
+      "labHoldoutReturnPct": 158.02,
+      "kind": "genome"
     },
     {
       "id": "ms_dcdf6cde",
@@ -1333,7 +1394,8 @@
         "short_frac": 0.528
       },
       "labHoldoutSharpe": 2.508,
-      "labHoldoutReturnPct": 134.53
+      "labHoldoutReturnPct": 134.53,
+      "kind": "genome"
     },
     {
       "id": "ms_17a8eecb",
@@ -1352,7 +1414,8 @@
         "short_frac": 0.457
       },
       "labHoldoutSharpe": 2.227,
-      "labHoldoutReturnPct": 115.78
+      "labHoldoutReturnPct": 115.78,
+      "kind": "genome"
     },
     {
       "id": "ms_9c39c9ce",
@@ -1371,7 +1434,8 @@
         "short_frac": 0.429
       },
       "labHoldoutSharpe": 2.577,
-      "labHoldoutReturnPct": 134.25
+      "labHoldoutReturnPct": 134.25,
+      "kind": "genome"
     },
     {
       "id": "ms_78e2387c",
@@ -1390,7 +1454,8 @@
         "short_frac": 0.502
       },
       "labHoldoutSharpe": 2.595,
-      "labHoldoutReturnPct": 134.31
+      "labHoldoutReturnPct": 134.31,
+      "kind": "genome"
     },
     {
       "id": "ms_633dd7fd",
@@ -1409,7 +1474,8 @@
         "short_frac": 0.428
       },
       "labHoldoutSharpe": 2.62,
-      "labHoldoutReturnPct": 121.56
+      "labHoldoutReturnPct": 121.56,
+      "kind": "genome"
     },
     {
       "id": "ms_d1010b1d",
@@ -1428,7 +1494,8 @@
         "short_frac": 0.507
       },
       "labHoldoutSharpe": 3.551,
-      "labHoldoutReturnPct": 239.41
+      "labHoldoutReturnPct": 239.41,
+      "kind": "genome"
     },
     {
       "id": "ms_63d08381",
@@ -1447,7 +1514,8 @@
         "short_frac": 0.423
       },
       "labHoldoutSharpe": 2.192,
-      "labHoldoutReturnPct": 107.19
+      "labHoldoutReturnPct": 107.19,
+      "kind": "genome"
     },
     {
       "id": "ms_fd0a955f",
@@ -1466,7 +1534,8 @@
         "short_frac": 0.435
       },
       "labHoldoutSharpe": 2.698,
-      "labHoldoutReturnPct": 160.47
+      "labHoldoutReturnPct": 160.47,
+      "kind": "genome"
     },
     {
       "id": "ms_c81e2e95",
@@ -1485,7 +1554,8 @@
         "short_frac": 0.449
       },
       "labHoldoutSharpe": 2.69,
-      "labHoldoutReturnPct": 136.96
+      "labHoldoutReturnPct": 136.96,
+      "kind": "genome"
     },
     {
       "id": "ms_8a352bc4",
@@ -1504,7 +1574,8 @@
         "short_frac": 0.515
       },
       "labHoldoutSharpe": 2.466,
-      "labHoldoutReturnPct": 136.37
+      "labHoldoutReturnPct": 136.37,
+      "kind": "genome"
     },
     {
       "id": "ms_f2e312f3",
@@ -1523,7 +1594,8 @@
         "short_frac": 0.352
       },
       "labHoldoutSharpe": 2.372,
-      "labHoldoutReturnPct": 136.34
+      "labHoldoutReturnPct": 136.34,
+      "kind": "genome"
     },
     {
       "id": "ms_b2142e66",
@@ -1542,7 +1614,8 @@
         "short_frac": 0.437
       },
       "labHoldoutSharpe": 2.18,
-      "labHoldoutReturnPct": 107.81
+      "labHoldoutReturnPct": 107.81,
+      "kind": "genome"
     },
     {
       "id": "ms_4cd66038",
@@ -1561,7 +1634,8 @@
         "short_frac": 0.484
       },
       "labHoldoutSharpe": 3.447,
-      "labHoldoutReturnPct": 276.88
+      "labHoldoutReturnPct": 276.88,
+      "kind": "genome"
     },
     {
       "id": "ms_0afa6003",
@@ -1580,7 +1654,8 @@
         "short_frac": 0.309
       },
       "labHoldoutSharpe": 1.907,
-      "labHoldoutReturnPct": 90.73
+      "labHoldoutReturnPct": 90.73,
+      "kind": "genome"
     },
     {
       "id": "ms_bf1ee75f",
@@ -1599,7 +1674,8 @@
         "short_frac": 0.492
       },
       "labHoldoutSharpe": 2.307,
-      "labHoldoutReturnPct": 106.25
+      "labHoldoutReturnPct": 106.25,
+      "kind": "genome"
     },
     {
       "id": "ms_1d826177",
@@ -1618,7 +1694,8 @@
         "short_frac": 0.532
       },
       "labHoldoutSharpe": 2.296,
-      "labHoldoutReturnPct": 81.8
+      "labHoldoutReturnPct": 81.8,
+      "kind": "genome"
     },
     {
       "id": "ms_cbcd9017",
@@ -1637,7 +1714,8 @@
         "short_frac": 0.437
       },
       "labHoldoutSharpe": 2.255,
-      "labHoldoutReturnPct": 92.5
+      "labHoldoutReturnPct": 92.5,
+      "kind": "genome"
     },
     {
       "id": "ms_36f5d328",
@@ -1656,9 +1734,550 @@
         "short_frac": 0.495
       },
       "labHoldoutSharpe": 2.896,
-      "labHoldoutReturnPct": 178.72
+      "labHoldoutReturnPct": 178.72,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_69471561",
+      "name": "MS-short_bi-69471561",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "short_bias",
+        "signal": "alpha",
+        "min_proba": 0.543,
+        "min_pred_ret": 0.0023,
+        "top_k": 19,
+        "kelly": 0.568,
+        "short_enabled": true,
+        "short_frac": 0.496
+      },
+      "labHoldoutSharpe": 2.809,
+      "labHoldoutReturnPct": 130.0,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_d1d61362",
+      "name": "MS-high_con-d1d61362",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "high_conviction",
+        "signal": "alpha",
+        "min_proba": 0.542,
+        "min_pred_ret": 0.0028,
+        "top_k": 24,
+        "kelly": 0.969,
+        "short_enabled": true,
+        "short_frac": 0.317
+      },
+      "labHoldoutSharpe": 1.951,
+      "labHoldoutReturnPct": 94.4,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_7d85a59c",
+      "name": "MS-alpha_ne-7d85a59c",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "alpha_neutral",
+        "signal": "alpha",
+        "min_proba": 0.616,
+        "min_pred_ret": 0.0022,
+        "top_k": 33,
+        "kelly": 0.366,
+        "short_enabled": true,
+        "short_frac": 0.545
+      },
+      "labHoldoutSharpe": 3.622,
+      "labHoldoutReturnPct": 153.57,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_6b8bb88c",
+      "name": "MS-high_con-6b8bb88c",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "high_conviction",
+        "signal": "edge",
+        "min_proba": 0.554,
+        "min_pred_ret": 0.002,
+        "top_k": 21,
+        "kelly": 0.655,
+        "short_enabled": true,
+        "short_frac": 0.508
+      },
+      "labHoldoutSharpe": 3.157,
+      "labHoldoutReturnPct": 152.13,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_874a4546",
+      "name": "MS-alpha_ne-874a4546",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "alpha_neutral",
+        "signal": "alpha",
+        "min_proba": 0.565,
+        "min_pred_ret": 0.0025,
+        "top_k": 16,
+        "kelly": 0.871,
+        "short_enabled": true,
+        "short_frac": 0.484
+      },
+      "labHoldoutSharpe": 3.18,
+      "labHoldoutReturnPct": 190.44,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_8cc0942f",
+      "name": "MS-breakout-8cc0942f",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "breakout",
+        "signal": "edge",
+        "min_proba": 0.54,
+        "min_pred_ret": 0.0027,
+        "top_k": 18,
+        "kelly": 0.392,
+        "short_enabled": true,
+        "short_frac": 0.469
+      },
+      "labHoldoutSharpe": 2.821,
+      "labHoldoutReturnPct": 148.08,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_18385f0a",
+      "name": "MS-momentum-18385f0a",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "momentum_long",
+        "signal": "alpha",
+        "min_proba": 0.51,
+        "min_pred_ret": 0.0027,
+        "top_k": 35,
+        "kelly": 0.604,
+        "short_enabled": true,
+        "short_frac": 0.528
+      },
+      "labHoldoutSharpe": 2.885,
+      "labHoldoutReturnPct": 145.17,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_17130e3d",
+      "name": "MS-long_sho-17130e3d",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "long_short_neutral",
+        "signal": "alpha",
+        "min_proba": 0.553,
+        "min_pred_ret": 0.0026,
+        "top_k": 6,
+        "kelly": 0.488,
+        "short_enabled": true,
+        "short_frac": 0.514
+      },
+      "labHoldoutSharpe": 2.94,
+      "labHoldoutReturnPct": 232.78,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_d35d716d",
+      "name": "MS-breakout-d35d716d",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "breakout",
+        "signal": "edge",
+        "min_proba": 0.552,
+        "min_pred_ret": 0.0038,
+        "top_k": 28,
+        "kelly": 0.621,
+        "short_enabled": true,
+        "short_frac": 0.408
+      },
+      "labHoldoutSharpe": 2.481,
+      "labHoldoutReturnPct": 145.8,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_59cc3cb3",
+      "name": "MS-short_bi-59cc3cb3",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "short_bias",
+        "signal": "alpha",
+        "min_proba": 0.55,
+        "min_pred_ret": 0.0027,
+        "top_k": 31,
+        "kelly": 0.348,
+        "short_enabled": true,
+        "short_frac": 0.455
+      },
+      "labHoldoutSharpe": 2.491,
+      "labHoldoutReturnPct": 128.98,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_333dca68",
+      "name": "MS-high_con-333dca68",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "high_conviction",
+        "signal": "edge",
+        "min_proba": 0.525,
+        "min_pred_ret": 0.003,
+        "top_k": 31,
+        "kelly": 0.442,
+        "short_enabled": true,
+        "short_frac": 0.442
+      },
+      "labHoldoutSharpe": 2.052,
+      "labHoldoutReturnPct": 93.67,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_b96bebc4",
+      "name": "MS-mean_rev-b96bebc4",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "mean_reverter",
+        "signal": "alpha",
+        "min_proba": 0.567,
+        "min_pred_ret": 0.0027,
+        "top_k": 27,
+        "kelly": 0.672,
+        "short_enabled": true,
+        "short_frac": 0.41
+      },
+      "labHoldoutSharpe": 2.993,
+      "labHoldoutReturnPct": 179.14,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_2e4fef83",
+      "name": "MS-ml_edge-2e4fef83",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "ml_edge",
+        "signal": "edge",
+        "min_proba": 0.554,
+        "min_pred_ret": 0.0033,
+        "top_k": 15,
+        "kelly": 0.372,
+        "short_enabled": true,
+        "short_frac": 0.313
+      },
+      "labHoldoutSharpe": 2.675,
+      "labHoldoutReturnPct": 162.38,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_66b1f2f0",
+      "name": "MS-alpha_ne-66b1f2f0",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "alpha_neutral",
+        "signal": "alpha",
+        "min_proba": 0.54,
+        "min_pred_ret": 0.0027,
+        "top_k": 13,
+        "kelly": 0.858,
+        "short_enabled": true,
+        "short_frac": 0.542
+      },
+      "labHoldoutSharpe": 3.12,
+      "labHoldoutReturnPct": 183.02,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_6dadbb1c",
+      "name": "MS-long_sho-6dadbb1c",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "long_short_neutral",
+        "signal": "alpha",
+        "min_proba": 0.527,
+        "min_pred_ret": 0.002,
+        "top_k": 35,
+        "kelly": 0.986,
+        "short_enabled": true,
+        "short_frac": 0.532
+      },
+      "labHoldoutSharpe": 1.98,
+      "labHoldoutReturnPct": 67.75,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_ead590bb",
+      "name": "MS-contrari-ead590bb",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "contrarian",
+        "signal": "alpha",
+        "min_proba": 0.549,
+        "min_pred_ret": 0.0024,
+        "top_k": 16,
+        "kelly": 0.758,
+        "short_enabled": true,
+        "short_frac": 0.31
+      },
+      "labHoldoutSharpe": 1.983,
+      "labHoldoutReturnPct": 107.66,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_6c387e04",
+      "name": "MS-alpha_ne-6c387e04",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "alpha_neutral",
+        "signal": "alpha",
+        "min_proba": 0.533,
+        "min_pred_ret": 0.0023,
+        "top_k": 35,
+        "kelly": 0.616,
+        "short_enabled": true,
+        "short_frac": 0.538
+      },
+      "labHoldoutSharpe": 2.399,
+      "labHoldoutReturnPct": 93.32,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_bd421024",
+      "name": "MS-long_sho-bd421024",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "long_short_neutral",
+        "signal": "alpha",
+        "min_proba": 0.549,
+        "min_pred_ret": 0.003,
+        "top_k": 33,
+        "kelly": 0.838,
+        "short_enabled": true,
+        "short_frac": 0.455
+      },
+      "labHoldoutSharpe": 2.349,
+      "labHoldoutReturnPct": 122.08,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_e993ce82",
+      "name": "MS-breakout-e993ce82",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "breakout",
+        "signal": "edge",
+        "min_proba": 0.56,
+        "min_pred_ret": 0.0021,
+        "top_k": 33,
+        "kelly": 0.264,
+        "short_enabled": true,
+        "short_frac": 0.322
+      },
+      "labHoldoutSharpe": 2.43,
+      "labHoldoutReturnPct": 122.57,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_4fc572c6",
+      "name": "MS-ml_edge-4fc572c6",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "ml_edge",
+        "signal": "alpha",
+        "min_proba": 0.523,
+        "min_pred_ret": 0.0022,
+        "top_k": 19,
+        "kelly": 0.932,
+        "short_enabled": true,
+        "short_frac": 0.522
+      },
+      "labHoldoutSharpe": 2.256,
+      "labHoldoutReturnPct": 85.39,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_d2f7ecbd",
+      "name": "MS-ml_edge-d2f7ecbd",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "ml_edge",
+        "signal": "alpha",
+        "min_proba": 0.658,
+        "min_pred_ret": 0.0022,
+        "top_k": 6,
+        "kelly": 0.343,
+        "short_enabled": true,
+        "short_frac": 0.485
+      },
+      "labHoldoutSharpe": 4.324,
+      "labHoldoutReturnPct": 398.19,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_498097c3",
+      "name": "MS-high_con-498097c3",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "high_conviction",
+        "signal": "edge",
+        "min_proba": 0.547,
+        "min_pred_ret": 0.0036,
+        "top_k": 9,
+        "kelly": 0.944,
+        "short_enabled": true,
+        "short_frac": 0.461
+      },
+      "labHoldoutSharpe": 2.946,
+      "labHoldoutReturnPct": 197.2,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_b5ab09ec",
+      "name": "MS-long_sho-b5ab09ec",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "long_short_neutral",
+        "signal": "alpha",
+        "min_proba": 0.516,
+        "min_pred_ret": 0.0027,
+        "top_k": 30,
+        "kelly": 0.648,
+        "short_enabled": true,
+        "short_frac": 0.535
+      },
+      "labHoldoutSharpe": 1.9,
+      "labHoldoutReturnPct": 76.48,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_5c99e324",
+      "name": "MS-short_bi-5c99e324",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "short_bias",
+        "signal": "edge",
+        "min_proba": 0.524,
+        "min_pred_ret": 0.0033,
+        "top_k": 8,
+        "kelly": 0.939,
+        "short_enabled": true,
+        "short_frac": 0.526
+      },
+      "labHoldoutSharpe": 2.928,
+      "labHoldoutReturnPct": 190.73,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_67df1cc3",
+      "name": "MS-ml_edge-67df1cc3",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "ml_edge",
+        "signal": "edge",
+        "min_proba": 0.614,
+        "min_pred_ret": 0.0024,
+        "top_k": 15,
+        "kelly": 0.319,
+        "short_enabled": true,
+        "short_frac": 0.417
+      },
+      "labHoldoutSharpe": 3.222,
+      "labHoldoutReturnPct": 134.17,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_12842954",
+      "name": "MS-high_con-12842954",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "high_conviction",
+        "signal": "edge",
+        "min_proba": 0.56,
+        "min_pred_ret": 0.0032,
+        "top_k": 29,
+        "kelly": 0.368,
+        "short_enabled": true,
+        "short_frac": 0.484
+      },
+      "labHoldoutSharpe": 2.745,
+      "labHoldoutReturnPct": 162.75,
+      "kind": "genome"
+    },
+    {
+      "id": "ms_a10168ea",
+      "name": "MS-short_bi-a10168ea",
+      "strategy": "genome",
+      "status": "shadow",
+      "spawnedBy": "mad_scientist_lab",
+      "params": {
+        "family": "short_bias",
+        "signal": "alpha",
+        "min_proba": 0.534,
+        "min_pred_ret": 0.003,
+        "top_k": 12,
+        "kelly": 0.699,
+        "short_enabled": true,
+        "short_frac": 0.462
+      },
+      "labHoldoutSharpe": 2.892,
+      "labHoldoutReturnPct": 177.28,
+      "kind": "genome"
     }
   ],
-  "updatedAt": "2026-06-09T20:58:26Z",
+  "updatedAt": "2026-06-13T13:14:11Z",
   "championVersion": "v3"
 }

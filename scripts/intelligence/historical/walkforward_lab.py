@@ -180,8 +180,9 @@ def _promote_survivors(survivors: list[dict]) -> int:
         agents.append({
             "id": aid,
             "name": f"MS-{s['family'][:8]}-{sig}",
-            "strategy": "genome",
+            "kind": "genome",
             "status": "shadow",
+            "capital": 100000.0,
             "spawnedBy": "mad_scientist_lab",
             "params": {
                 "family": s["family"],

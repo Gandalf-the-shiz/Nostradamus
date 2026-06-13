@@ -58,6 +58,10 @@ if ($tunnelEnabled) {
     Log "[loop] Cloudflare tunnel enabled for remote Megamind approve"
 }
 
+$pennyMlRestarts = 0
+$pennyMlLastAttempt = $null
+$pennyMlLog = Join-Path $LogDir "penny-ml-search.log"
+
 while ($true) {
     if ($reason.HasExited)  { Log "[loop] reasoning died; restarting";  $reason  = Start-Child "reasoning"  $reasonScript  @("-TickMinutes", "15") }
     if ($intraday.HasExited) { Log "[loop] intraday died; restarting"; $intraday = Start-Child "intraday" $intradayScript @("-IntervalHours", "4") }
@@ -72,9 +76,31 @@ while ($true) {
                 if ($p -and -not $p.HasExited) { $skip = $true }
             } catch { }
         }
+        if (-not $skip -and (Test-Path $pennyMlLog)) {
+            try {
+                $tail = (Get-Content $pennyMlLog -Tail 40 -ErrorAction SilentlyContinue) -join "`n"
+                if ($tail -match '(?i)(disk.full|no space left|enospc|not enough space on the disk)') {
+                    Log "[loop] penny ML disk-full in log; deferring restart"
+                    $skip = $true
+                }
+            } catch { }
+        }
+        if (-not $skip) {
+            $backoffSec = [Math]::Min(60 * [Math]::Pow(2, $pennyMlRestarts), 3600)
+            if ($pennyMlLastAttempt -and ((Get-Date) - $pennyMlLastAttempt).TotalSeconds -lt $backoffSec) {
+                $skip = $true
+            }
+        }
         if (-not $skip) {
             Log "[loop] penny ML search died; restarting"
             $pennyMl = Start-Child "penny-ml" $pennyMlScript @()
+            $pennyMlRestarts++
+            $pennyMlLastAttempt = Get-Date
+        }
+    } else {
+        if ($pennyMlRestarts -gt 0) {
+            $pennyMlRestarts = 0
+            $pennyMlLastAttempt = $null
         }
     }
     if ($intel.HasExited)    { Log "[loop] intelligence pulse died; restarting"; $intel = Start-Child "intelligence" $intelScript @("-IntervalHours", "2") }
