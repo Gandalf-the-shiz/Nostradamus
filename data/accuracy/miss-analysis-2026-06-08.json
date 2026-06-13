@@ -1,0 +1,51 @@
+{
+  "analysisDate": "2026-06-08",
+  "generatedAt": "2026-06-08T08:37:12Z",
+  "windowDays": 7,
+  "overallHitRate": 0.2856,
+  "totalPredictions": 4345,
+  "totalCorrect": 1241,
+  "dailyRates": [
+    {
+      "date": "2026-06-03",
+      "hitRate": 0.2812,
+      "total": 1508
+    },
+    {
+      "date": "2026-06-05",
+      "hitRate": 0.288,
+      "total": 2837
+    }
+  ],
+  "sectorMisses": {
+    "Other": {
+      "hitRate": 0.27,
+      "total": 400,
+      "correct": 108,
+      "flag": "OK"
+    }
+  },
+  "confidenceBucketAnalysis": [
+    {
+      "bucket": "low (<0.3)",
+      "hitRate": 0.2702,
+      "total": 322,
+      "correct": 87
+    },
+    {
+      "bucket": "medium (0.3-0.5)",
+      "hitRate": 0.2692,
+      "total": 78,
+      "correct": 21
+    }
+  ],
+  "evTopN": {
+    "n": 20,
+    "hitRate": 0.275,
+    "total": 40,
+    "correct": 11
+  },
+  "topMissPatterns": [
+    "Top-20 EV predictions (28%) not beating overall (29%). EV scoring needs review."
+  ]
+}
