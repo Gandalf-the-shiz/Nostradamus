@@ -46,7 +46,9 @@ except Exception:  # pragma: no cover - yfinance is required in prod, optional i
     yf = None  # type: ignore
 
 USER_AGENT = "Nostradamus-DataCanal/1.0 (+https://github.com/Gandalf-the-shiz/Nostradamus)"
-DEFAULT_TIMEOUT_SECS = 30
+DEFAULT_TIMEOUT_SECS = int(os.getenv("DATA_FEEDS_TIMEOUT_SECS", "45") or "45")
+FRED_DEFAULT_LOOKBACK_DAYS = int(os.getenv("FRED_DEFAULT_LOOKBACK_DAYS", "365") or "365")
+GDELT_MIN_SLEEP_SECS = float(os.getenv("GDELT_MIN_SLEEP_SECS", "6.0") or "6.0")
 MIN_CANDLES_FOR_OK = 60
 
 
@@ -295,15 +297,33 @@ def fetch_equity_history(
 FRED_CSV_BASE = "https://fred.stlouisfed.org/graph/fredgraph.csv?id="
 
 
-def fetch_macro_series(series_id: str, start: date | None = None) -> list[dict]:
+def fetch_macro_series(
+    series_id: str,
+    start: date | None = None,
+    end: date | None = None,
+) -> list[dict]:
     """
     Fetch a FRED macroeconomic series via the public CSV endpoint (no key).
 
+    Always scopes the CSV download to a date window (default: last year) so the
+    full-series graph export cannot hang on multi-megabyte history pulls.
+
     Returns list of {"date", "value"} sorted ascending. Missing values are skipped.
     """
-    url = f"{FRED_CSV_BASE}{series_id}"
+    if end is None:
+        end = _today_utc()
+    if start is None:
+        start = end - timedelta(days=FRED_DEFAULT_LOOKBACK_DAYS)
+    url = (
+        f"{FRED_CSV_BASE}{series_id}"
+        f"&cosd={start.isoformat()}&coed={end.isoformat()}"
+    )
     try:
-        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=DEFAULT_TIMEOUT_SECS)
+        resp = requests.get(
+            url,
+            headers={"User-Agent": USER_AGENT},
+            timeout=(10, DEFAULT_TIMEOUT_SECS),
+        )
     except Exception:
         return []
     if resp.status_code != 200 or not resp.text:
@@ -341,57 +361,7 @@ def fetch_macro_series(series_id: str, start: date | None = None) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def fetch_gdelt_daily_tone(
-    start: date,
-    end: date | None = None,
-    query: str | None = None,
-) -> list[dict]:
-    """
-    Fetch GDELT 2.0 GKG-derived event tone daily averages via the DOC API.
-
-    Args:
-        start, end: inclusive date range.
-        query: GDELT search query. Defaults to a broad finance/markets query
-            that reliably returns a non-empty timeline.
-
-    Returns list of {"date", "avgTone", "articleCount"}.
-    """
-    if end is None:
-        end = _today_utc()
-    q = (query or os.getenv("GDELT_QUERY") or "stock market").strip()
-    # GDELT requires OR-clauses to be wrapped in parentheses. If the caller
-    # passes a bare OR query we wrap it defensively.
-    if " OR " in q and not (q.startswith("(") and q.endswith(")")):
-        q = f"({q})"
-    encoded = requests.utils.quote(q, safe="")  # type: ignore[attr-defined]
-    url = (
-        "https://api.gdeltproject.org/api/v2/doc/doc"
-        f"?query={encoded}&mode=timelinetone&format=json"
-        f"&startdatetime={start.strftime('%Y%m%d')}000000"
-        f"&enddatetime={end.strftime('%Y%m%d')}235959"
-    )
-    # GDELT enforces ~1 request / 5 sec. One bounded retry on 429.
-    resp = None
-    for attempt in range(2):
-        try:
-            resp = requests.get(
-                url,
-                headers={"User-Agent": USER_AGENT},
-                timeout=DEFAULT_TIMEOUT_SECS,
-            )
-        except Exception:
-            return []
-        if resp.status_code == 429:
-            time.sleep(6.0)
-            continue
-        break
-    if resp is None or resp.status_code != 200 or not resp.text:
-        return []
-    try:
-        payload = resp.json()
-    except Exception:
-        return []
-
+def _parse_gdelt_timeline_payload(payload: dict) -> list[dict]:
     timeline = payload.get("timeline") or []
     if not isinstance(timeline, list) or not timeline:
         return []
@@ -412,6 +382,87 @@ def fetch_gdelt_daily_tone(
         )
     out.sort(key=lambda r: r["date"])
     return out
+
+
+def _gdelt_doc_request(
+    start: date,
+    end: date,
+    query: str,
+) -> tuple[list[dict], str]:
+    """
+    Call the GDELT DOC API and return (rows, error_message).
+
+    GDELT enforces ~1 request / 5 sec; callers should sleep between chunks.
+    """
+    q = query.strip()
+    if " OR " in q and not (q.startswith("(") and q.endswith(")")):
+        q = f"({q})"
+    encoded = requests.utils.quote(q, safe="")  # type: ignore[attr-defined]
+    span_days = max(1, (end - start).days + 1)
+    if span_days <= 90:
+        url = (
+            "https://api.gdeltproject.org/api/v2/doc/doc"
+            f"?query={encoded}&mode=timelinetone&format=json&timespan={span_days}d"
+        )
+    else:
+        url = (
+            "https://api.gdeltproject.org/api/v2/doc/doc"
+            f"?query={encoded}&mode=timelinetone&format=json"
+            f"&startdatetime={start.strftime('%Y%m%d')}000000"
+            f"&enddatetime={end.strftime('%Y%m%d')}235959"
+        )
+
+    last_err = ""
+    for attempt in range(3):
+        try:
+            resp = requests.get(
+                url,
+                headers={"User-Agent": USER_AGENT},
+                timeout=(10, DEFAULT_TIMEOUT_SECS),
+            )
+        except requests.Timeout:
+            last_err = f"timeout after {DEFAULT_TIMEOUT_SECS}s"
+            time.sleep(GDELT_MIN_SLEEP_SECS)
+            continue
+        except requests.RequestException as exc:
+            return [], str(exc)
+
+        if resp.status_code == 429:
+            last_err = "rate_limited (HTTP 429): wait >=5s between GDELT requests"
+            time.sleep(GDELT_MIN_SLEEP_SECS * (attempt + 1))
+            continue
+        if resp.status_code != 200 or not resp.text:
+            snippet = (resp.text or "").strip().replace("\n", " ")[:120]
+            return [], f"HTTP {resp.status_code}: {snippet or 'empty response'}"
+        try:
+            payload = resp.json()
+        except Exception:
+            return [], "invalid JSON from GDELT"
+        return _parse_gdelt_timeline_payload(payload), ""
+
+    return [], last_err or "GDELT request failed"
+
+
+def fetch_gdelt_daily_tone(
+    start: date,
+    end: date | None = None,
+    query: str | None = None,
+) -> list[dict]:
+    """
+    Fetch GDELT 2.0 GKG-derived event tone daily averages via the DOC API.
+
+    Args:
+        start, end: inclusive date range.
+        query: GDELT search query. Defaults to a broad finance/markets query
+            that reliably returns a non-empty timeline.
+
+    Returns list of {"date", "avgTone", "articleCount"}.
+    """
+    if end is None:
+        end = _today_utc()
+    q = query or os.getenv("GDELT_QUERY") or "stock market"
+    rows, _err = _gdelt_doc_request(start, end, q)
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -449,6 +500,25 @@ def probe_providers(probe_symbol: str = "AAPL") -> dict:
         "error": err,
     }
 
+    # GDELT first — rate-limited and must not run back-to-back with other slow probes
+    gdelt_start = today - timedelta(days=7)
+
+    def _probe_gdelt() -> tuple[list[dict], str]:
+        return _gdelt_doc_request(
+            gdelt_start, today, os.getenv("GDELT_QUERY") or "stock market"
+        )
+
+    raw, ms, wrap_err = _time(_probe_gdelt)
+    gdelt_rows, gdelt_err = raw if isinstance(raw, tuple) else ([], "")
+    if wrap_err:
+        gdelt_err = wrap_err or gdelt_err
+    result["providers"]["gdelt"] = {
+        "ok": bool(gdelt_rows),
+        "rows": len(gdelt_rows),
+        "latencyMs": ms,
+        "error": gdelt_err,
+    }
+
     # stooq (manual-import only — its programmatic endpoints are captcha-walled)
     if os.getenv("STOOQ_API_KEY"):
         candles, ms, err = _time(_fetch_equity_stooq, probe_symbol, lookback_start, today)
@@ -467,8 +537,14 @@ def probe_providers(probe_symbol: str = "AAPL") -> dict:
             "skipped": True,
         }
 
-    # FRED
-    series, ms, err = _time(fetch_macro_series, "DFF", today - timedelta(days=60))
+    # FRED (scoped CSV — full history export can exceed 30s)
+    fred_start = today - timedelta(days=90)
+    fred_end = today
+
+    def _probe_fred() -> list[dict]:
+        return fetch_macro_series("DFF", fred_start, fred_end)
+
+    series, ms, err = _time(_probe_fred)
     result["providers"]["fred"] = {
         "ok": bool(series),
         "rows": len(series or []),
@@ -476,14 +552,23 @@ def probe_providers(probe_symbol: str = "AAPL") -> dict:
         "error": err,
     }
 
-    # GDELT
-    tone, ms, err = _time(fetch_gdelt_daily_tone, today - timedelta(days=7), today)
-    result["providers"]["gdelt"] = {
-        "ok": bool(tone),
-        "rows": len(tone or []),
-        "latencyMs": ms,
-        "error": err,
-    }
+    # Crowd / Reddit (optional — may be IP-blocked without API credentials)
+    try:
+        from intelligence.mass_psychology import probe_reddit_feed  # noqa: WPS433
+
+        crowd, ms, err = _time(probe_reddit_feed)
+        result["providers"]["reddit"] = {
+            **(crowd or {}),
+            "latencyMs": ms,
+            "error": err or (crowd or {}).get("error") or "",
+        }
+    except Exception as exc:
+        result["providers"]["reddit"] = {
+            "ok": False,
+            "rows": 0,
+            "latencyMs": 0.0,
+            "error": str(exc),
+        }
 
     # Tiingo (optional key)
     if os.getenv("TIINGO_API_TOKEN", "").strip():
@@ -523,8 +608,15 @@ def probe_providers(probe_symbol: str = "AAPL") -> dict:
 
     result["summary"] = {
         "okCount": sum(1 for p in result["providers"].values() if p.get("ok")),
-        "totalProviders": sum(1 for p in result["providers"].values() if not p.get("skipped")),
+        "totalProviders": sum(
+            1 for p in result["providers"].values() if not p.get("skipped")
+        ),
         "skippedProviders": sum(1 for p in result["providers"].values() if p.get("skipped")),
+        "degradedProviders": sum(
+            1
+            for p in result["providers"].values()
+            if not p.get("ok") and not p.get("skipped")
+        ),
     }
     return result
 

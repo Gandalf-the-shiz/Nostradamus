@@ -98,14 +98,19 @@ SPREAD_BULL_THRESH  =  0.50   # Positive spread > 0.50% → BULL signal
 # ---------------------------------------------------------------------------
 
 def _load_fred_graph_series(series_id: str) -> dict[date, float]:
-    """Load a full public historical series from FRED's CSV graph endpoint."""
+    """Load public historical series from FRED's CSV graph endpoint."""
     try:
         import requests
     except ImportError:
         return {}
 
+    window_start = date.today() - timedelta(days=365 * MACRO_BACKFILL_YEARS)
+    url = (
+        f"{FRED_GRAPH_BASE}{series_id}"
+        f"&cosd={window_start.isoformat()}&coed={date.today().isoformat()}"
+    )
     try:
-        resp = requests.get(f"{FRED_GRAPH_BASE}{series_id}", timeout=30)
+        resp = requests.get(url, timeout=(10, 45))
         resp.raise_for_status()
     except Exception as exc:
         print(f"[fetch-macro] FRED graph CSV error ({series_id}): {exc}")

@@ -197,6 +197,20 @@ Priority order — top to bottom is "build the canal wider before deepening it":
 
 ### Operator quick-reference
 
+**Environment variables** (set in `.env` locally or GitHub Secrets — never commit values):
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `TIINGO_API_TOKEN` | Optional | Equity OHLCV fallback when yfinance fails |
+| `ALPHAVANTAGE_API_KEY` | Optional | Equity OHLCV fallback (25 calls/day free) |
+| `STOOQ_API_KEY` | Optional | Captcha-issued key if you manually solved Stooq's gate |
+| `FRED_API_KEY` | Optional | Faster macro via `fetch-macro.py` API (CSV works without key) |
+| `NEWSAPI_KEY` | Optional | `fetch-sentiment.py` headline sentiment |
+| `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` | Optional | Reddit via PRAW; without keys public JSON may 403 |
+| `FINNHUB_API_KEY` | Optional | `fetch_sentiment_feed.py` company news |
+| `DATA_FEEDS_TIMEOUT_SECS` | Optional | Provider probe timeout (default 45) |
+| `GDELT_MIN_SLEEP_SECS` | Optional | Backoff between GDELT requests (default 6) |
+
 ```powershell
 # Probe every provider once and write data/feeds/health.json
 python scripts/verify-data-feeds.py

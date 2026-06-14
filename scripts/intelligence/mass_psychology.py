@@ -17,6 +17,8 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+import requests
+
 REPO = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO / "data" / "mass_psychology"
 INDEX_PATH = OUT_DIR / "index.json"
@@ -140,6 +142,45 @@ def scrape_reddit(valid: set[str] | None = None) -> list[dict]:
                 "createdUtc": d.get("created_utc"),
             })
     return posts
+
+
+def probe_reddit_feed() -> dict:
+    """Lightweight probe for verify-data-feeds (no ticker scoring)."""
+    errors: list[str] = []
+    rows = 0
+    blocked = False
+    for sub in REDDIT_SUBS[:2]:
+        url = f"https://www.reddit.com/r/{sub}/hot.json?limit=5"
+        try:
+            resp = requests.get(
+                url,
+                headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+                timeout=15,
+            )
+        except requests.RequestException as exc:
+            errors.append(f"{sub}: {exc}")
+            continue
+        if resp.status_code == 403:
+            blocked = True
+            errors.append(f"r/{sub}: blocked (403) - set REDDIT_CLIENT_ID/SECRET or use ML panel proxy")
+            continue
+        if resp.status_code != 200:
+            errors.append(f"r/{sub}: HTTP {resp.status_code}")
+            continue
+        try:
+            children = (resp.json().get("data") or {}).get("children") or []
+            rows += len(children)
+        except (ValueError, AttributeError):
+            errors.append(f"r/{sub}: invalid JSON")
+        time.sleep(0.5)
+
+    return {
+        "ok": rows > 0,
+        "rows": rows,
+        "blocked": blocked,
+        "error": "; ".join(errors),
+        "skipped": False,
+    }
 
 
 def scrape_news_rss(valid: set[str] | None = None) -> list[dict]:
