@@ -63,7 +63,7 @@ def main() -> int:
     n = 0
     t0 = time.time()
     for fp in sorted(HIST.glob("*.json")):
-        if fp.name in {"manifest.json", "multiyear-coverage.json", "stooq-bulk-coverage.json"}:
+        if fp.name in {"manifest.json", "multiyear-coverage.json", "stooq-bulk-coverage.json", "_live.json"}:
             continue
         sector = fp.stem
         data = json.loads(fp.read_text(encoding="utf-8"))

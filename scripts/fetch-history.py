@@ -75,6 +75,16 @@ SECTOR_FILES = {
     "Other":                  "other",
 }
 
+# Same skip list as generate_live_predictions.py (exclude ad-hoc _live.json cache).
+SKIP_HIST_META = frozenset({
+    "manifest.json",
+    "multiyear-coverage.json",
+    "stooq-bulk-coverage.json",
+    "_live.json",
+})
+SECTOR_BY_FILENAME = {v: k for k, v in SECTOR_FILES.items()}
+DEFAULT_PANEL_LIMIT = int(os.getenv("LIVE_PREDICT_LIMIT", "2500"))
+
 
 def sector_to_filename(sector: str) -> str:
     """Return the base filename (without .json) for a given sector name."""
@@ -99,7 +109,68 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Force a 1-year backfill instead of the default incremental refresh.",
     )
+    parser.add_argument(
+        "--panel-only",
+        action="store_true",
+        help="Refresh only live ML panel symbols (same order/limit as generate_live_predictions.py).",
+    )
     return parser.parse_args()
+
+
+def collect_panel_tickers(limit: int = DEFAULT_PANEL_LIMIT) -> list[dict]:
+    """Walk sector historical files in live-panel order (matches generate_live_predictions)."""
+    tickers: list[dict] = []
+    if not HISTORICAL_DIR.exists():
+        return tickers
+    for fp in sorted(HISTORICAL_DIR.glob("*.json")):
+        if fp.name in SKIP_HIST_META:
+            continue
+        try:
+            with open(fp, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+        sector = data.get("sector") or SECTOR_BY_FILENAME.get(fp.stem, "Other")
+        if sector not in SECTOR_FILES:
+            sector = "Other"
+        for sym, payload in (data.get("stocks") or {}).items():
+            if limit and len(tickers) >= limit:
+                return tickers
+            info = payload if isinstance(payload, dict) else {}
+            tickers.append({
+                "symbol": sym,
+                "sector": sector,
+                "name": info.get("name", ""),
+                "exchange": info.get("exchange", ""),
+            })
+    return tickers
+
+
+def build_fetch_universe(registry_tickers: list[dict], panel_only: bool) -> tuple[list[dict], set[str]]:
+    """Panel symbols first so nightly timeout still refreshes live.csv inputs."""
+    panel = collect_panel_tickers()
+    panel_syms = {t["symbol"] for t in panel}
+    registry_by_sym = {t["symbol"]: t for t in registry_tickers}
+
+    if panel_only:
+        merged = [registry_by_sym.get(t["symbol"], t) for t in panel]
+        return merged, panel_syms
+
+    merged: list[dict] = []
+    seen: set[str] = set()
+    for t in panel:
+        sym = t["symbol"]
+        if sym in seen:
+            continue
+        seen.add(sym)
+        merged.append(registry_by_sym.get(sym, t))
+    for t in registry_tickers:
+        sym = t["symbol"]
+        if sym in seen:
+            continue
+        seen.add(sym)
+        merged.append(t)
+    return merged, panel_syms
 
 
 def is_incremental_mode(manifest: dict, full_fetch_requested: bool) -> bool:
@@ -228,6 +299,74 @@ def merge_candles(existing: list[dict], new_candles: list[dict]) -> list[dict]:
     return merged
 
 
+def write_sector_outputs(
+    sector_data: dict[str, dict],
+    *,
+    manifest: dict,
+    incremental: bool,
+    total_tickers: int,
+    failed_tickers: list[str],
+    total_data_points: int,
+    mode_label: str,
+) -> None:
+    """Persist sector JSON files and refresh manifest.json."""
+    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    sector_file_meta: dict[str, dict] = {}
+
+    for sector, data in sector_data.items():
+        stocks = data["stocks"]
+        if not stocks:
+            continue
+
+        data["lastUpdated"] = now_utc
+        data["tickerCount"] = len(stocks)
+
+        size_bytes = save_sector_file(sector, data)
+        size_mb = size_bytes / (1024 * 1024)
+        key = sector_to_filename(sector)
+        sector_file_meta[key] = {
+            "file":    f"{key}.json",
+            "tickers": len(stocks),
+            "size":    f"{size_mb:.1f}MB",
+        }
+
+    all_starts, all_ends = [], []
+    for data in sector_data.values():
+        for stock in data["stocks"].values():
+            dr = stock.get("dateRange", {})
+            if dr.get("start"):
+                all_starts.append(dr["start"])
+            if dr.get("end"):
+                all_ends.append(dr["end"])
+
+    date_range = {
+        "start": min(all_starts) if all_starts else "",
+        "end":   max(all_ends)   if all_ends   else "",
+    }
+
+    succeeded = total_tickers - len(failed_tickers)
+    new_manifest: dict = dict(manifest)
+    if incremental:
+        new_manifest["lastIncrementalFetch"] = now_utc
+    else:
+        new_manifest["lastFullFetch"] = now_utc
+
+    new_manifest["totalTickers"]    = succeeded
+    new_manifest["totalDataPoints"] = total_data_points
+    new_manifest["failedTickers"]   = failed_tickers
+    new_manifest["sectorFiles"]     = sector_file_meta
+    new_manifest["dateRange"]       = date_range
+
+    with open(MANIFEST_FILE, "w", encoding="utf-8") as f:
+        json.dump(new_manifest, f, indent=2)
+        f.write("\n")
+
+    print(
+        f"[fetch-history] Wrote {len(sector_file_meta)} sector files "
+        f"({succeeded:,}/{total_tickers:,} ok, mode={mode_label})"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
@@ -247,8 +386,10 @@ def main() -> None:
         registry = json.load(f)
 
     tickers_list = registry.get("tickers", [])
+    tickers_list, panel_syms = build_fetch_universe(tickers_list, args.panel_only)
     total_tickers = len(tickers_list)
-    print(f"[fetch-history] Loaded {total_tickers:,} tickers from registry")
+    scope = f"panel-only ({len(panel_syms):,} symbols)" if args.panel_only else f"{total_tickers:,} tickers (panel-first)"
+    print(f"[fetch-history] Fetch universe: {scope}")
 
     # --- Determine fetch mode ---
     manifest = load_manifest()
@@ -278,10 +419,14 @@ def main() -> None:
                 "stocks": {},
             }
 
-    # --- Build batches ---
+    # --- Build batches (panel symbols are first in tickers_list) ---
     all_symbols = [t["symbol"] for t in tickers_list]
     batches = [all_symbols[i:i + BATCH_SIZE] for i in range(0, len(all_symbols), BATCH_SIZE)]
     total_batches = len(batches)
+    panel_batches = 0
+    if panel_syms:
+        panel_count = sum(1 for sym in all_symbols if sym in panel_syms)
+        panel_batches = (panel_count + BATCH_SIZE - 1) // BATCH_SIZE
 
     # Build a fast lookup: symbol → ticker info
     symbol_to_info: dict[str, dict] = {t["symbol"]: t for t in tickers_list}
@@ -289,8 +434,11 @@ def main() -> None:
     processed = 0
     failed_tickers: list[str] = []
     total_data_points = 0
+    panel_flushed = False
 
     print(f"[fetch-history] Processing {total_batches} batches of up to {BATCH_SIZE} tickers each")
+    if panel_batches:
+        print(f"[fetch-history] Panel priority: flush after batch {panel_batches}/{total_batches}")
 
     for batch_num, batch in enumerate(batches, start=1):
         df = download_batch(batch, period_days)
@@ -341,69 +489,40 @@ def main() -> None:
             f"- {processed:,}/{total_tickers:,} tickers processed"
         )
 
+        if panel_batches and batch_num == panel_batches and not panel_flushed:
+            write_sector_outputs(
+                sector_data,
+                manifest=manifest,
+                incremental=incremental,
+                total_tickers=total_tickers,
+                failed_tickers=failed_tickers,
+                total_data_points=total_data_points,
+                mode_label=f"{mode_label} (panel flush)",
+            )
+            panel_flushed = True
+
         if batch_num < total_batches:
             time.sleep(BATCH_DELAY)
 
-    # --- Write sector files ---
-    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    sector_file_meta: dict[str, dict] = {}
-
-    for sector, data in sector_data.items():
-        stocks = data["stocks"]
-        if not stocks:
-            continue
-
-        data["lastUpdated"] = now_utc
-        data["tickerCount"] = len(stocks)
-
-        size_bytes = save_sector_file(sector, data)
-        size_mb = size_bytes / (1024 * 1024)
-        key = sector_to_filename(sector)
-        sector_file_meta[key] = {
-            "file":    f"{key}.json",
-            "tickers": len(stocks),
-            "size":    f"{size_mb:.1f}MB",
-        }
-
-    # Compute overall date range from manifest or freshly fetched data
-    all_starts, all_ends = [], []
-    for data in sector_data.values():
-        for stock in data["stocks"].values():
-            dr = stock.get("dateRange", {})
-            if dr.get("start"):
-                all_starts.append(dr["start"])
-            if dr.get("end"):
-                all_ends.append(dr["end"])
-
-    date_range = {
-        "start": min(all_starts) if all_starts else "",
-        "end":   max(all_ends)   if all_ends   else "",
-    }
-
-    # --- Write manifest ---
-    succeeded = total_tickers - len(failed_tickers)
-    new_manifest: dict = dict(manifest)  # preserve existing fields
-    if incremental:
-        new_manifest["lastIncrementalFetch"] = now_utc
-    else:
-        new_manifest["lastFullFetch"] = now_utc
-
-    new_manifest["totalTickers"]    = succeeded
-    new_manifest["totalDataPoints"] = total_data_points
-    new_manifest["failedTickers"]   = failed_tickers
-    new_manifest["sectorFiles"]     = sector_file_meta
-    new_manifest["dateRange"]       = date_range
-
-    with open(MANIFEST_FILE, "w", encoding="utf-8") as f:
-        json.dump(new_manifest, f, indent=2)
-        f.write("\n")
+    # --- Final sector write (panel-only stops after the panel flush above) ---
+    if not args.panel_only and (not panel_flushed or batch_num > panel_batches):
+        write_sector_outputs(
+            sector_data,
+            manifest=manifest,
+            incremental=incremental,
+            total_tickers=total_tickers,
+            failed_tickers=failed_tickers,
+            total_data_points=total_data_points,
+            mode_label=mode_label,
+        )
 
     # --- Summary ---
     elapsed = time.time() - start_time
+    succeeded = total_tickers - len(failed_tickers)
     print("\n" + "=" * 60)
     print("[fetch-history] OK Historical data pipeline complete")
     print(f"  Mode:            {mode_label}")
-    print(f"  Total tickers:   {total_tickers:,}")
+    print(f"  Scope:           {scope}")
     print(f"  Succeeded:       {succeeded:,}")
     print(f"  Failed:          {len(failed_tickers):,}")
     print(f"  Total data pts:  {total_data_points:,}")

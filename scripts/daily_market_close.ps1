@@ -46,6 +46,7 @@ if (Test-Path $fetch) {
     }
 }
 
+Step "Live ML panel history" "scripts\fetch-history.py" @("--panel-only")
 Step "Live ML panel" "scripts\generate_live_predictions.py"
 Step "Finnhub feed (PEAD+revisions)" "scripts\fetch_finnhub.py"
 Step "Sentiment feed (news+reddit gossip)" "scripts\fetch_sentiment_feed.py"
