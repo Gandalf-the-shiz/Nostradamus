@@ -36,7 +36,6 @@ def _load_panel() -> pd.DataFrame:
     raise FileNotFoundError("no panel — run panel_builder.py")
 META_PATH = REPO / "data" / "intelligence" / "historical" / "panel_meta.json"
 OUT_PATH = REPO / "data" / "intelligence" / "historical" / "lab_results.json"
-VERDICTS_PATH = REPO / "data" / "intelligence" / "research" / "verdicts.jsonl"
 CONFIG_PATH = REPO / "config" / "mad_scientist_lab.json"
 
 sys.path.insert(0, str(REPO / "scripts"))
@@ -164,73 +163,6 @@ def _spawn_genomes(n: int, seed: int = 42) -> list[dict]:
 def _sig(s: dict) -> str:
     raw = "|".join(str(s.get(k)) for k in ("family", "signal", "min_proba", "min_pred_ret", "top_k", "kelly", "short_enabled", "short_frac"))
     return hashlib.sha1(raw.encode()).hexdigest()[:8]
-
-
-def _append_spread_verdict(survivor: dict, *, reasons: list[str], holdout: dict) -> None:
-    VERDICTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    row = {
-        "at": _now(),
-        "hypothesisId": f"ms_promo_{_sig(survivor)}",
-        "type": "mad_scientist_promotion",
-        "statement": f"Mad scientist survivor {survivor.get('id')} fleet promotion spread gate",
-        "verdict": "reject",
-        "reasons": reasons,
-        "evidence": {
-            "survivorId": survivor.get("id"),
-            "signal": survivor.get("signal", "edge"),
-            "holdoutSharpe": (survivor.get("holdout") or {}).get("sharpe"),
-            "holdout": holdout,
-        },
-        "experimentEngine": "walkforward_engine",
-    }
-    with VERDICTS_PATH.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(row, separators=(",", ":")) + "\n")
-
-
-def _spread_gate_filter(survivors: list[dict], *, selection_frac: float) -> tuple[list[dict], list[dict]]:
-    """Confirm holdout tradeable spread via walkforward_engine before fleet promotion."""
-    from intelligence.walkforward_engine import promotion_verdict, run as wf_run
-
-    signal_cache: dict[str, dict] = {}
-    passed: list[dict] = []
-    rejected: list[dict] = []
-
-    for s in survivors:
-        signal = s.get("signal") or "edge"
-        if signal not in signal_cache:
-            wf = wf_run(signal=signal, selection_frac=selection_frac, rebuild_panel=False)
-            if not wf.get("ok"):
-                signal_cache[signal] = {
-                    "verdict": "reject",
-                    "reasons": [wf.get("message") or "walkforward_failed"],
-                    "holdout": {},
-                }
-            else:
-                holdout = wf.get("holdout") or {}
-                label, reasons = promotion_verdict(holdout, min_spread=0.0)
-                signal_cache[signal] = {"verdict": label, "reasons": reasons, "holdout": holdout}
-
-        sr = signal_cache[signal]
-        holdout = sr["holdout"]
-        reasons = list(sr["reasons"])
-        hold_sharpe = (s.get("holdout") or {}).get("sharpe")
-        spread = holdout.get("mean_quintile_spread")
-
-        if sr["verdict"] == "reject":
-            reject = True
-        elif hold_sharpe and hold_sharpe > 0.5 and (spread is None or spread <= 0):
-            reasons = reasons + ["sharpe_proxy_high_but_spread_negative"]
-            reject = True
-        else:
-            reject = False
-
-        if reject:
-            rejected.append({**s, "spreadGateReasons": reasons})
-            _append_spread_verdict(s, reasons=reasons, holdout=holdout)
-        else:
-            passed.append(s)
-
-    return passed, rejected
 
 
 def _promote_survivors(survivors: list[dict]) -> int:
@@ -369,7 +301,14 @@ def run(*, genomes: int | None = None, promote: int = 0, rebuild_panel: bool = F
     spread_gate: dict = {"requested": promote_n, "passed": 0, "rejected": 0, "rejectedIds": []}
     if promote_n and survivors:
         candidates = survivors[:promote_n]
-        passed, spread_rejected = _spread_gate_filter(candidates, selection_frac=sel_frac)
+        from intelligence.spread_gate import spread_gate_filter
+
+        passed, spread_rejected = spread_gate_filter(
+            candidates,
+            selection_frac=sel_frac,
+            promotion_type="mad_scientist_promotion",
+            hypothesis_id_fn=lambda s: f"ms_promo_{_sig(s)}",
+        )
         spread_gate = {
             "requested": promote_n,
             "passed": len(passed),

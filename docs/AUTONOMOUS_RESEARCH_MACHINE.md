@@ -93,6 +93,8 @@ A hypothesis is **accepted** only when holdout metrics clear pre-registered crit
 
 **Mad Scientist fleet promotion:** survivors with strong holdout Sharpe are only added to the shadow fleet when `walkforward_engine` confirms `holdout.mean_quintile_spread > 0` on tradeable names. High Sharpe + negative spread is auto-rejected; rejections append to `verdicts.jsonl`.
 
+**Fleet walk-forward promotion** (`fleet/backtest.py --promote`): same spread gate via shared `spread_gate.py` — no bypass for test.csv survivors.
+
 ---
 
 ## What's proven vs hoped-for

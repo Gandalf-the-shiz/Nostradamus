@@ -200,7 +200,32 @@ def run(n_genomes: int = 200, promote: int = 0) -> dict:
           f"ret={best_hold['holdout']['totalReturnPct'] if best_hold else '-'}%", flush=True)
 
     if promote and survivors:
-        _promote_survivors(survivors[:promote])
+        from intelligence.spread_gate import spread_gate_filter
+
+        candidates = survivors[:promote]
+        passed, spread_rejected = spread_gate_filter(
+            candidates,
+            selection_frac=0.6,
+            promotion_type="fleet_walkforward_promotion",
+            hypothesis_id_fn=lambda s: f"wf_promo_{_sig(s)}",
+        )
+        doc["spreadGate"] = {
+            "requested": promote,
+            "passed": len(passed),
+            "rejected": len(spread_rejected),
+            "rejectedIds": [r.get("id") for r in spread_rejected],
+        }
+        if spread_rejected:
+            print(
+                f"[walk-forward] spread gate rejected {len(spread_rejected)}/{len(candidates)} "
+                f"(holdout quintile spread must be > 0)",
+                flush=True,
+            )
+        if passed:
+            _promote_survivors(passed)
+            doc["spreadGate"]["promoted"] = len(passed)
+        else:
+            print("[walk-forward] no survivors passed spread gate — fleet promotion skipped", flush=True)
     try:
         from intelligence.brain.journal import log_fleet_walkforward
         log_fleet_walkforward(doc)
