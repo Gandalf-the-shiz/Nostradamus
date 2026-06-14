@@ -14,6 +14,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "scripts"))
 
 from intelligence.research_reasoner import (  # noqa: E402
+    _extract_json_array,
     filter_and_normalize,
     normalize_hypothesis,
     policy_violation,
@@ -115,6 +116,50 @@ def test_promotion_gate_forced_observe_only():
     assert norm["status"] == "blocked"
 
 
+def test_extract_json_array_fenced():
+    wrapped = 'Here are hypotheses:\n```json\n' + MOCK_LLM_RESPONSE + '\n```\n'
+    parsed = _extract_json_array(wrapped)
+    assert parsed is not None
+    assert len(parsed) == 2
+
+
+def test_reason_mock_fenced_gemini_style():
+    wrapped = 'Analysis complete.\n```json\n' + MOCK_LLM_RESPONSE + '\n```'
+    hyps, meta = reason(SAMPLE_OBS, mock_response=wrapped)
+    assert meta["ok"] is True
+    assert len(hyps) == 1
+
+
+def test_observe_only_overridden_for_genome_search():
+    raw = {
+        "type": "genome_search",
+        "hypothesis": "If we run alpha_neutral_wide genomes with liquidity caps, spread will improve because concentration drops",
+        "successCriteria": {"holdout_mean_quintile_spread_gt": 0.0},
+        "experiment": {"route": "observe_only", "params": {}},
+        "priority": 2,
+        "reasoning": "LLM wrongly chose observe_only",
+        "confidence": 0.7,
+    }
+    norm = normalize_hypothesis(raw, SAMPLE_OBS)
+    assert norm is not None
+    assert norm["route"] == "mad_scientist"
+
+
+def test_observe_only_overridden_for_alpha_tweak():
+    raw = {
+        "type": "alpha_tweak",
+        "hypothesis": "If we widen alpha neutralization breadth, tradeable spread will improve because transfer coefficient rises",
+        "successCriteria": {"holdout_mean_quintile_spread_gt": 0.0},
+        "experiment": {"route": "observe_only", "params": {}},
+        "priority": 2,
+        "reasoning": "LLM wrongly chose observe_only",
+        "confidence": 0.6,
+    }
+    norm = normalize_hypothesis(raw, SAMPLE_OBS)
+    assert norm is not None
+    assert norm["route"] == "walkforward_engine"
+
+
 def run_all() -> int:
     tests = [
         test_policy_violation_respawn,
@@ -123,6 +168,10 @@ def run_all() -> int:
         test_filter_rejects_policy_violation,
         test_reason_mock,
         test_promotion_gate_forced_observe_only,
+        test_extract_json_array_fenced,
+        test_reason_mock_fenced_gemini_style,
+        test_observe_only_overridden_for_genome_search,
+        test_observe_only_overridden_for_alpha_tweak,
     ]
     failed = 0
     for fn in tests:

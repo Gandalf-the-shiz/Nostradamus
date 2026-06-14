@@ -49,6 +49,22 @@ ALLOWED_ROUTES = frozenset({
     "act_only",
 })
 
+# Types that must run an experiment — observe_only from LLM is overridden.
+MAD_SCIENTIST_TYPES = frozenset({
+    "genome_search",
+    "genome_concentration",
+    "concentration_fix",
+})
+WALKFORWARD_TYPES = frozenset({
+    "alpha_neutralization",
+    "alpha_tweak",
+    "feature_add",
+    "raw_edge_check",
+    "sleeve_expand",
+})
+ACT_ONLY_TYPES = frozenset({"sleeve_decay"})
+EXPERIMENTABLE_TYPES = MAD_SCIENTIST_TYPES | WALKFORWARD_TYPES | ACT_ONLY_TYPES
+
 POLICY_VIOLATION_PATTERNS = (
     re.compile(r"\brespawn\b.*\bv[12]\b", re.I),
     re.compile(r"\bv[12]\b.*\brespawn\b", re.I),
@@ -258,7 +274,7 @@ def _call_gemini(obs: dict) -> tuple[str | None, str]:
         "Return ONLY the JSON array of hypotheses."
     )
     text, backend = complete(user, max_tokens=2000, message=user, context={"observation": obs})
-    if text and text.strip().startswith("["):
+    if text and text.strip() and _extract_json_array(text) is not None:
         return text.strip(), "gemini" if backend == "gemini" else backend
     return None, "gemini_skip"
 
@@ -326,6 +342,13 @@ def normalize_hypothesis(raw: dict, obs: dict | None = None) -> dict | None:
     if htype == "promotion_gate" and obs and not obs.get("edgeProven"):
         route = "observe_only"
         params = {}
+    elif route == "observe_only" and htype in EXPERIMENTABLE_TYPES:
+        if htype in MAD_SCIENTIST_TYPES:
+            route = "mad_scientist"
+        elif htype in WALKFORWARD_TYPES:
+            route = "walkforward_engine"
+        elif htype in ACT_ONLY_TYPES:
+            route = "act_only"
 
     criteria = _coerce_success_criteria(raw.get("successCriteria"))
     if route in ("walkforward_engine", "mad_scientist"):
