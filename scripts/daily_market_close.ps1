@@ -88,4 +88,6 @@ if ((Get-Date).DayOfWeek.ToString() -eq "Sunday") { $mode = "weekly" }
 Log "[close] learning harness ($mode)"
 & $Python "scripts\learning_harness.py" "--once" "--mode" $mode 2>&1 | ForEach-Object { Log "  $_" }
 
+Step "Mad Scientist panel (if stale)" "scripts\intelligence\historical\panel_builder.py" @("--if-stale")
+
 Log "[close] done"

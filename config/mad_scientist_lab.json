@@ -14,6 +14,7 @@
   "min_holdout_days": 15,
   "min_promote_holdout_sharpe": 0.5,
   "loop_sleep_minutes": 180,
+  "panel_stale_days": 7,
   "experiment_profiles": [
     {"name": "alpha_neutral_wide", "genomes": 400, "signal_bias": "alpha", "promote": 3},
     {"name": "edge_hunter", "genomes": 300, "signal_bias": "edge", "promote": 2},

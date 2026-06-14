@@ -60,7 +60,7 @@ data/intelligence/research/
 | megamind-agent | 5 min | Partial — queues Cursor tasks on approve |
 | reasoning | 15 min | Paper portfolio tick |
 | trader-arena | 1 h | Sim pulse (research) |
-| mad-scientist | 3 h | Genome experiments |
+| mad-scientist | 3 h | Genome experiments (auto-rebuilds panel when stale) |
 | intelligence | 2 h | Forward IC / alpha measure |
 | improve | 6 h | Harness |
 

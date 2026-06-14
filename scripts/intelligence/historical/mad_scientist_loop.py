@@ -22,9 +22,8 @@ REPO = Path(__file__).resolve().parents[3]
 STATE_PATH = REPO / "data" / "intelligence" / "historical" / "loop_state.json"
 LOG_PATH = REPO / "data" / "intelligence" / "historical" / "experiment_log.jsonl"
 CONFIG_PATH = REPO / "config" / "mad_scientist_lab.json"
-PANEL_META = REPO / "data" / "intelligence" / "historical" / "panel_meta.json"
-
 sys.path.insert(0, str(REPO / "scripts"))
+from intelligence.historical.panel_builder import panel_stale  # noqa: E402
 
 DEFAULT_PROFILES = [
     {"name": "alpha_neutral_wide", "genomes": 400, "signal_bias": "alpha", "promote": 3},
@@ -59,21 +58,6 @@ def _append_log(entry: dict) -> None:
         fh.write(json.dumps(entry, separators=(",", ":")) + "\n")
 
 
-def _panel_stale(max_age_days: int = 7) -> bool:
-    if not PANEL_META.exists():
-        return True
-    try:
-        meta = json.loads(PANEL_META.read_text(encoding="utf-8"))
-        gen = meta.get("generatedAt", "")
-        if not gen:
-            return True
-        ts = datetime.fromisoformat(gen.replace("Z", "+00:00"))
-        age = (datetime.now(timezone.utc) - ts).total_seconds() / 86400.0
-        return age >= max_age_days
-    except Exception:
-        return True
-
-
 def _run_profile(profile: dict, seed: int) -> dict:
     """Execute one experiment profile on the historical panel."""
     from intelligence.historical.walkforward_lab import run as lab_run
@@ -91,7 +75,7 @@ def _run_profile(profile: dict, seed: int) -> dict:
 
     lab_mod._spawn_genomes = _seeded_spawn
     try:
-        doc = lab_run(genomes=genomes, promote=promote, rebuild_panel=rebuild or _panel_stale())
+        doc = lab_run(genomes=genomes, promote=promote, rebuild_panel=rebuild or panel_stale())
     finally:
         lab_mod._spawn_genomes = orig_spawn
 

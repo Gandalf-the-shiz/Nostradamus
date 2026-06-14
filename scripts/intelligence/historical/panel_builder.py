@@ -46,6 +46,7 @@ def _load_config() -> dict:
         "walkforward_end": "2025-12-31",
         "panel_sources": ["val.csv", "test.csv"],
         "max_symbols_per_day": 0,
+        "panel_stale_days": 7,
     }
     if CONFIG_PATH.exists():
         try:
@@ -53,6 +54,48 @@ def _load_config() -> dict:
         except (OSError, json.JSONDecodeError):
             pass
     return defaults
+
+
+def _panel_source_paths(sources: list[str] | None = None) -> list[Path]:
+    cfg = _load_config()
+    names = sources or cfg.get("panel_sources") or ["val.csv", "test.csv"]
+    return [PRED_DIR / name for name in names]
+
+
+def panel_stale(*, max_age_days: int | None = None, sources: list[str] | None = None) -> bool:
+    """True when panel is missing, older than max_age_days, or pred exports are newer."""
+    cfg = _load_config()
+    max_age_days = max_age_days if max_age_days is not None else int(cfg.get("panel_stale_days") or 7)
+
+    if not META_PATH.exists():
+        return True
+    if not PANEL_PARQUET.exists() and not PANEL_CSV.exists():
+        return True
+
+    try:
+        meta = json.loads(META_PATH.read_text(encoding="utf-8"))
+        gen = meta.get("generatedAt", "")
+        if not gen:
+            return True
+        ts = datetime.fromisoformat(gen.replace("Z", "+00:00"))
+        age_days = (datetime.now(timezone.utc) - ts).total_seconds() / 86400.0
+        if age_days >= max_age_days:
+            return True
+        gen_ts = ts.timestamp()
+        for src in _panel_source_paths(sources):
+            if src.exists() and src.stat().st_mtime > gen_ts:
+                return True
+        return False
+    except Exception:
+        return True
+
+
+def ensure_panel(*, force: bool = False) -> dict | None:
+    """Rebuild panel when missing or stale; return meta or None if skipped."""
+    if force or panel_stale():
+        return build_panel()
+    print("[panel] fresh — skip rebuild", flush=True)
+    return json.loads(META_PATH.read_text(encoding="utf-8")) if META_PATH.exists() else None
 
 
 def _load_predictor_exports(sources: list[str]) -> pd.DataFrame:
@@ -218,5 +261,10 @@ if __name__ == "__main__":
     ap.add_argument("--start", default=None)
     ap.add_argument("--end", default=None)
     ap.add_argument("--max-per-day", type=int, default=0)
+    ap.add_argument("--if-stale", action="store_true", help="rebuild only when panel_stale()")
+    ap.add_argument("--force", action="store_true", help="always rebuild")
     args = ap.parse_args()
-    build_panel(start=args.start, end=args.end, max_per_day=args.max_per_day)
+    if args.if_stale and not args.force:
+        ensure_panel(force=False)
+    else:
+        build_panel(start=args.start, end=args.end, max_per_day=args.max_per_day)

@@ -163,9 +163,9 @@ def run(
     cfg = _load_config()
     selection_frac = selection_frac if selection_frac is not None else float(cfg.get("selection_frac") or 0.6)
 
-    if rebuild_panel or (not PANEL_PARQUET.exists() and not PANEL_CSV.exists()):
-        from intelligence.historical.panel_builder import build_panel
-        build_panel()
+    from intelligence.historical.panel_builder import ensure_panel
+
+    ensure_panel(force=rebuild_panel)
 
     try:
         df = load_panel()
