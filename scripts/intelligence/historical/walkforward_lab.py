@@ -297,7 +297,7 @@ def run(*, genomes: int | None = None, promote: int = 0, rebuild_panel: bool = F
     print(f"[mad-scientist] {genomes} genomes | {len(rows)} scored | held up {held_up}/{top_n} | "
           f"best holdout Sharpe={best_hold['holdout']['sharpe'] if best_hold else '-'}", flush=True)
 
-    promote_n = promote or int(cfg.get("promote_top") or 0)
+    promote_n = int(cfg.get("promote_top") or 0) if promote is None else int(promote)
     if promote_n and survivors:
         _promote_survivors(survivors[:promote_n])
     try:

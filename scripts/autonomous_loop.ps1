@@ -1,4 +1,5 @@
 # Nostradamus UI repo - always-on learning supervisor (no admin).
+#   - research controller every 30m (observe → hypothesize → experiment → decide)
 #   - mad-scientist historical lab every 3h (24/7 genome experiments)
 #   - reasoning tick every 15 min
 #   - intraday harness every 4h (weekdays)
@@ -20,6 +21,7 @@ $improveScript = Join-Path $ScriptRoot "continual_improve.ps1"
 $madScientistScript = Join-Path $ScriptRoot "continual_mad_scientist.ps1"
 $megamindAgentScript = Join-Path $ScriptRoot "continual_megamind_agent.ps1"
 $megamindTunnelScript = Join-Path $ScriptRoot "continual_megamind_tunnel.ps1"
+$researchScript = Join-Path $ScriptRoot "continual_research.ps1"
 $tunnelEnabled = $false
 $cfgPath = Join-Path $RepoRoot "config\megamind.json"
 if (Test-Path $cfgPath) {
@@ -52,6 +54,7 @@ $arena    = Start-Child "trader-arena" $arenaScript @("-IntervalHours", "1")
 $improve  = Start-Child "improve"    $improveScript @("-IntervalHours", "6")
 $madScientist = Start-Child "mad-scientist" $madScientistScript @("-SleepMinutes", "180")
 $megamindAgent = Start-Child "megamind-agent" $megamindAgentScript @("-IntervalMinutes", "5")
+$research = Start-Child "research-controller" $researchScript @("-IntervalMinutes", "30")
 $megamindTunnel = $null
 if ($tunnelEnabled) {
     $megamindTunnel = Start-Child "megamind-tunnel" $megamindTunnelScript @()
@@ -122,6 +125,7 @@ while ($true) {
         }
     }
     if ($megamindAgent.HasExited) { Log "[loop] megamind SDK watcher died; restarting"; $megamindAgent = Start-Child "megamind-agent" $megamindAgentScript @("-IntervalMinutes", "5") }
+    if ($research.HasExited) { Log "[loop] research controller died; restarting"; $research = Start-Child "research-controller" $researchScript @("-IntervalMinutes", "30") }
     if ($tunnelEnabled -and $megamindTunnel -and $megamindTunnel.HasExited) {
         Log "[loop] megamind tunnel died; restarting"
         $megamindTunnel = Start-Child "megamind-tunnel" $megamindTunnelScript @()
