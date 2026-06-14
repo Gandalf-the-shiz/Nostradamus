@@ -1,4 +1,4 @@
-# Research controller — OBSERVE → HYPOTHESIZE → EXPERIMENT → DECIDE (every 30 min).
+# Research controller - OBSERVE -> HYPOTHESIZE -> EXPERIMENT -> DECIDE (every 30 min).
 param(
     [int]$IntervalMinutes = 30,
     [int]$ErrorCooldownSec = 120
@@ -38,7 +38,7 @@ try {
 
 while ($true) {
     if (Test-Path $Paused) {
-        Log "[research] PAUSED.txt present — sleeping 10m"
+        Log "[research] PAUSED.txt present - sleeping 10m"
         Start-Sleep -Seconds 600
         continue
     }
@@ -48,7 +48,7 @@ while ($true) {
         Log "[research] tick done; sleeping ${IntervalMinutes}m"
         Start-Sleep -Seconds ([Math]::Max(60, $IntervalMinutes * 60))
     } catch {
-        Log "[research] error: $_"
+        Log ("[research] error: " + $_.Exception.Message)
         Start-Sleep -Seconds $ErrorCooldownSec
     }
 }
