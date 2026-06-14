@@ -130,6 +130,45 @@ def _load_env() -> None:
         pass
 
 
+def _has_openai_key() -> bool:
+    return bool(
+        (os.getenv("OPENAI_API_KEY") or os.getenv("NOSTRADAMUS_OPENAI_API_KEY") or "").strip()
+    )
+
+
+def _has_anthropic_key() -> bool:
+    return bool(
+        (os.getenv("ANTHROPIC_API_KEY") or os.getenv("NOSTRADAMUS_ANTHROPIC_API_KEY") or "").strip()
+    )
+
+
+def _has_google_key() -> bool:
+    if (os.getenv("GOOGLE_API_KEY") or os.getenv("NOSTRADAMUS_GOOGLE_API_KEY") or "").strip():
+        return True
+    try:
+        from npu_llm import _google_api_key
+        return bool(_google_api_key())
+    except Exception:
+        return False
+
+
+def resolve_llm_backend() -> str:
+    """Report which LLM provider would be tried first (no API call)."""
+    if llm_disabled():
+        return "disabled (rules only)"
+    _load_env()
+    if _has_openai_key():
+        model = os.getenv("OPENAI_MODEL") or os.getenv("RESEARCH_LLM_MODEL") or "gpt-4o-mini"
+        return f"openai:{model}"
+    if _has_anthropic_key():
+        model = os.getenv("ANTHROPIC_MODEL") or "claude-sonnet-4-20250514"
+        return f"anthropic:{model}"
+    if _has_google_key():
+        model = os.getenv("GOOGLE_MODEL") or "gemini-2.5-flash"
+        return f"gemini:{model}"
+    return "rules_fallback (no API keys)"
+
+
 def _extract_json_array(text: str) -> list | None:
     text = (text or "").strip()
     if not text:
@@ -211,16 +250,16 @@ def _call_anthropic(prompt: str, obs: dict) -> tuple[str | None, str]:
 
 def _call_gemini(obs: dict) -> tuple[str | None, str]:
     try:
-        from npu_llm import generate_text
+        from npu_llm import complete
     except ImportError:
         return None, "gemini_skip"
     user = (
         f"{SYSTEM_PROMPT}\n\nObservation JSON:\n{json.dumps(obs, indent=0)[:8000]}\n\n"
         "Return ONLY the JSON array of hypotheses."
     )
-    text = generate_text(user, max_tokens=2000)
+    text, backend = complete(user, max_tokens=2000, message=user, context={"observation": obs})
     if text and text.strip().startswith("["):
-        return text.strip(), "gemini"
+        return text.strip(), "gemini" if backend == "gemini" else backend
     return None, "gemini_skip"
 
 

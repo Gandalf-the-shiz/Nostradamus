@@ -18,12 +18,23 @@ New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $env:PYTHONPATH = Join-Path $RepoRoot "scripts"
 Set-Location $RepoRoot
 
+$loadEnvScript = Join-Path $ScriptRoot "load_repo_env.ps1"
+if (Test-Path $loadEnvScript) {
+    . $loadEnvScript -RepoRoot $RepoRoot
+}
+
 function Log($m) {
     $line = "$((Get-Date).ToString('s'))  $m"
     $line | Tee-Object -FilePath $log -Append
 }
 
 Log "[research] controller loop online (interval=${IntervalMinutes}m, PID $PID)"
+try {
+    $backend = & $Python -c "from app_secrets import load_secrets; load_secrets(); from intelligence.research_reasoner import resolve_llm_backend; print(resolve_llm_backend())" 2>$null
+    if ($backend) { Log "[research] LLM backend: $backend" }
+} catch {
+    Log "[research] LLM backend: unknown (could not resolve)"
+}
 
 while ($true) {
     if (Test-Path $Paused) {

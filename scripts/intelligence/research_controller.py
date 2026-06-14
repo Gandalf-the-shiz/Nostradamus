@@ -450,8 +450,20 @@ def log_verdict(hyp: dict, decision: dict, action: dict, result: dict) -> dict:
     return row
 
 
+def _log_llm_backend(use_llm: bool) -> None:
+    if not use_llm:
+        print("[research] LLM backend: skipped (--no-llm)", flush=True)
+        return
+    try:
+        from intelligence.research_reasoner import resolve_llm_backend
+        print(f"[research] LLM backend: {resolve_llm_backend()}", flush=True)
+    except Exception as exc:
+        print(f"[research] LLM backend: unknown ({exc})", flush=True)
+
+
 def tick(*, apply: bool = False, max_experiments: int = 2, use_llm: bool = True) -> dict:
     """Full OBSERVE → REASON → EXPERIMENT → DECIDE → ACT cycle."""
+    _log_llm_backend(use_llm)
     obs = observe()
     hyps, reason_meta = hypothesize(obs, use_llm=use_llm)
     decided_ids = _recent_verdict_ids()
@@ -509,6 +521,12 @@ def tick(*, apply: bool = False, max_experiments: int = 2, use_llm: bool = True)
 
 
 def main() -> int:
+    try:
+        from app_secrets import load_secrets
+        load_secrets()
+    except Exception:
+        pass
+
     ap = argparse.ArgumentParser(description="Treasure Droid research meta-controller")
     ap.add_argument("--tick", action="store_true", help="run full observe→decide cycle")
     ap.add_argument("--observe-only", action="store_true", help="print observation JSON only")
