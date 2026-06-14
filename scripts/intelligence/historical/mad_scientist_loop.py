@@ -1,7 +1,8 @@
 """Mad Scientist 24/7 loop — endless historical experiments → champion promotion.
 
 Rotates experiment profiles, spawns genomes on the historical panel, logs every
-run, promotes shadow fleet agents when holdout Sharpe clears the bar.
+run, promotes shadow fleet agents when holdout Sharpe clears the bar AND
+walkforward_engine confirms positive holdout quintile spread on tradeable names.
 
 Usage:
   python scripts/intelligence/historical/mad_scientist_loop.py --once
@@ -106,7 +107,6 @@ def one_cycle(state: dict | None = None) -> dict:
             pass
 
     profiles = cfg.get("experiment_profiles") or DEFAULT_PROFILES
-    min_holdout_sharpe = float(cfg.get("min_promote_holdout_sharpe") or 0.5)
 
     state = state or _load_state()
     idx = int(state.get("profile_idx") or 0) % len(profiles)
@@ -118,7 +118,6 @@ def one_cycle(state: dict | None = None) -> dict:
 
     best = (doc.get("leaderboard") or [{}])[0] if doc.get("ok") else {}
     survivors = doc.get("survivors") or []
-    promoted = [s for s in survivors if (s.get("holdout") or {}).get("sharpe", 0) >= min_holdout_sharpe]
 
     entry = {
         "ts": _now(),
@@ -130,7 +129,8 @@ def one_cycle(state: dict | None = None) -> dict:
         "bestHoldoutSharpe": best.get("holdSharpe"),
         "bestHoldoutReturnPct": best.get("holdReturnPct"),
         "nSurvivors": len(survivors),
-        "nPromoted": len(promoted),
+        "nPromoted": (doc.get("spreadGate") or {}).get("promoted", 0),
+        "spreadGate": doc.get("spreadGate"),
         "verdict": doc.get("verdict"),
     }
     _append_log(entry)

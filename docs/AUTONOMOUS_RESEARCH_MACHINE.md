@@ -32,7 +32,7 @@ flowchart LR
 |-------|--------|------|
 | **Meta-controller** | `scripts/intelligence/research_controller.py` | Reads all forward metrics; emits falsifiable hypotheses; routes experiments; logs verdicts |
 | **Walk-forward engine** | `scripts/intelligence/walkforward_engine.py` | Day-by-day historical replay; locked holdout tail; tradeable IC + quintile spread per day |
-| **Genome lab** | `scripts/intelligence/historical/walkforward_lab.py` | Genome tournament on same panel (upper bound); survivors need spread confirm |
+| **Genome lab** | `scripts/intelligence/historical/walkforward_lab.py` | Genome tournament on same panel (upper bound); fleet promotion requires walkforward spread confirm |
 | **Captain (narrative)** | `scripts/intelligence/ultimate_model.py` + `megamind.py` | Human-approvable recommendations; arena spawn/update decisions |
 | **Forward gate** | `scripts/intelligence/forward_gate.py` | Blocks promotion when forward paper / IC is red |
 | **Fleet scoreboard** | `data/fleet/summary.json` | Forward paper P&L per agent |
@@ -90,6 +90,8 @@ A hypothesis is **accepted** only when holdout metrics clear pre-registered crit
 3. **Auto-reject** if ICIR/Sharpe looks good but quintile spread ≤ 0 (selection bias trap)
 
 `--apply` does **not** open live trading. It logs dispatch hints for Megamind/arena (human approve still required).
+
+**Mad Scientist fleet promotion:** survivors with strong holdout Sharpe are only added to the shadow fleet when `walkforward_engine` confirms `holdout.mean_quintile_spread > 0` on tradeable names. High Sharpe + negative spread is auto-rejected; rejections append to `verdicts.jsonl`.
 
 ---
 
