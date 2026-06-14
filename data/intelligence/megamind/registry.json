@@ -156,10 +156,12 @@
       "priority": "high",
       "finding": "Winners cluster in ['SDOT', 'JDZG', 'XOS'] (often warrants).",
       "action": "Megamind will update the best v3+ arm or spawn a new one (profit-focused) \u2014 v1/v2 frozen.",
-      "status": "approved",
+      "status": "implemented",
       "firstSeenAt": "2026-06-08T18:18:15Z",
-      "lastSeenAt": "2026-06-08T18:21:17Z"
+      "lastSeenAt": "2026-06-08T18:21:17Z",
+      "implementedAt": "2026-06-14T02:13:43Z",
+      "implementationNote": "LLM research_reasoner + concentration_fix/genome_search hypotheses in research_controller"
     }
   },
-  "updatedAt": "2026-06-09T19:48:18Z"
+  "updatedAt": "2026-06-14T02:13:43Z"
 }
