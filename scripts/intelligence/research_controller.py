@@ -1,6 +1,6 @@
 """Autonomous Research Machine — meta-controller for Treasure Droid.
 
-Closed loop: OBSERVE forward metrics → REASON (rule-based hypotheses) →
+Closed loop: OBSERVE forward metrics → REASON (LLM + rule fallback) →
 EXPERIMENT (walkforward_engine / mad_scientist) → MEASURE (tradeable spread) →
 DECIDE (accept/reject) → ACT (log + optional fleet/arena dispatch).
 
@@ -10,6 +10,7 @@ Usage:
   python scripts/intelligence/research_controller.py --tick
   python scripts/intelligence/research_controller.py --observe-only
   python scripts/intelligence/research_controller.py --tick --apply
+  python scripts/intelligence/research_controller.py --tick --no-llm
 """
 from __future__ import annotations
 
@@ -133,8 +134,8 @@ def observe() -> dict:
     }
 
 
-def hypothesize(obs: dict) -> list[dict]:
-    """Emit falsifiable hypotheses with pre-registered success criteria (no vibes)."""
+def hypothesize_rules(obs: dict) -> list[dict]:
+    """Rule-based hypotheses — fallback when LLM unavailable or returns nothing valid."""
     hyps: list[dict] = []
 
     alpha_spread = obs.get("alphaSpread")
@@ -223,6 +224,32 @@ def hypothesize(obs: dict) -> list[dict]:
         })
 
     return hyps[:4]
+
+
+def hypothesize(obs: dict, *, use_llm: bool = True) -> tuple[list[dict], dict]:
+    """Try LLM reasoning first; fall back to rules. Returns (hypotheses, reasonMeta)."""
+    meta: dict = {"source": "rules", "backend": "rules"}
+    if use_llm:
+        try:
+            from intelligence.research_reasoner import llm_disabled, reason
+            if not llm_disabled():
+                llm_hyps, llm_meta = reason(obs)
+                meta = {**llm_meta, "source": "llm" if llm_hyps else "rules_fallback"}
+                if llm_hyps:
+                    print(
+                        f"[research] LLM reasoned {len(llm_hyps)} hypotheses via {llm_meta.get('backend')}",
+                        flush=True,
+                    )
+                    return llm_hyps, meta
+                print(
+                    f"[research] LLM unavailable/empty ({llm_meta.get('reason') or llm_meta.get('backend')}) — rules fallback",
+                    flush=True,
+                )
+        except Exception as exc:
+            meta = {"source": "rules_fallback", "error": str(exc)[:200]}
+            print(f"[research] LLM error — rules fallback: {exc}", flush=True)
+
+    return hypothesize_rules(obs), meta
 
 
 def _recent_verdict_ids(cooldown_hours: float = 6.0) -> set[str]:
@@ -354,6 +381,8 @@ def decide(hyp: dict, result: dict) -> dict:
 
 def act(hyp: dict, decision: dict, *, apply: bool = False) -> dict:
     """Log verdict; optionally dispatch arena/fleet actions (paper only)."""
+    import os
+
     action = {"applied": False, "dispatch": None, "note": "dry_run"}
 
     if decision.get("verdict") != "accept":
@@ -365,15 +394,27 @@ def act(hyp: dict, decision: dict, *, apply: bool = False) -> dict:
         action["note"] = "Recommend zero weight for decayed sleeves (manual confirm in alpha engine)"
         action["applied"] = False
 
-    if htype == "genome_search" and apply:
+    if htype in ("genome_search", "genome_concentration", "concentration_fix") and apply:
         action["dispatch"] = "mad_scientist_promote_shadow"
         action["note"] = "Run mad_scientist with --promote after walkforward spread confirm"
         action["applied"] = False
 
-    if htype == "alpha_neutralization" and apply:
+    if htype in ("alpha_neutralization", "alpha_tweak") and apply:
         action["dispatch"] = "megamind_recommendation"
         action["note"] = "Forward-positive alpha spread — queue Megamind champion update (human approve)"
         action["applied"] = False
+
+    bridge = (os.getenv("RESEARCH_MEGAMIND_BRIDGE") or "").strip().lower() in ("1", "true", "yes")
+    if bridge or apply:
+        try:
+            from intelligence.research_reasoner import enqueue_megamind_proposal
+            meg = enqueue_megamind_proposal(hyp, decision, dry_run=not (apply and bridge))
+            action["megamindBridge"] = meg
+            if meg.get("queued"):
+                action["dispatch"] = action.get("dispatch") or "megamind_proposed"
+                action["note"] = f"Megamind proposal {meg.get('recommendationId')} — human approve required"
+        except Exception as exc:
+            action["megamindBridge"] = {"queued": False, "error": str(exc)[:200]}
 
     return action
 
@@ -409,10 +450,10 @@ def log_verdict(hyp: dict, decision: dict, action: dict, result: dict) -> dict:
     return row
 
 
-def tick(*, apply: bool = False, max_experiments: int = 2) -> dict:
+def tick(*, apply: bool = False, max_experiments: int = 2, use_llm: bool = True) -> dict:
     """Full OBSERVE → REASON → EXPERIMENT → DECIDE → ACT cycle."""
     obs = observe()
-    hyps = hypothesize(obs)
+    hyps, reason_meta = hypothesize(obs, use_llm=use_llm)
     decided_ids = _recent_verdict_ids()
 
     for h in hyps:
@@ -450,9 +491,11 @@ def tick(*, apply: bool = False, max_experiments: int = 2) -> dict:
         "generatedAt": _now(),
         "observation": obs,
         "hypotheses": hyps,
+        "reasoning": reason_meta,
         "verdictsThisCycle": verdicts,
         "experimentsRun": experiments_run,
         "applyMode": apply,
+        "llmEnabled": use_llm,
         "status": "ok",
     }
     RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
@@ -470,6 +513,7 @@ def main() -> int:
     ap.add_argument("--tick", action="store_true", help="run full observe→decide cycle")
     ap.add_argument("--observe-only", action="store_true", help="print observation JSON only")
     ap.add_argument("--apply", action="store_true", help="allow dispatch actions (still paper-only)")
+    ap.add_argument("--no-llm", action="store_true", help="skip LLM reasoning; use rule-based hypotheses only")
     ap.add_argument("--max-experiments", type=int, default=2)
     args = ap.parse_args()
 
@@ -478,7 +522,7 @@ def main() -> int:
         return 0
 
     if args.tick or not args.observe_only:
-        tick(apply=args.apply, max_experiments=max(1, args.max_experiments))
+        tick(apply=args.apply, max_experiments=max(1, args.max_experiments), use_llm=not args.no_llm)
         return 0
 
     ap.print_help()
