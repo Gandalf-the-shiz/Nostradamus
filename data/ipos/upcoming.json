@@ -1,58 +1,7 @@
 {
-  "updatedAt": "2026-07-01T13:20:26Z",
+  "updatedAt": "2026-07-02T13:05:19Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
-  "ipos": [
-    {
-      "company": "Osprey Acquisition Corp. III",
-      "symbol": "OSPRU",
-      "expectedDate": "2026-07-01",
-      "exchange": "NASDAQ Global",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.3,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "Bending Spoons S.p.A.",
-      "symbol": "BSP",
-      "expectedDate": "2026-07-01",
-      "exchange": "NASDAQ Global Select",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 1.867,
-      "underwriterTier": 2,
-      "riskLevel": "medium"
-    },
-    {
-      "company": "ITG, Inc./DE/",
-      "symbol": "ITG",
-      "expectedDate": "2026-07-01",
-      "exchange": "NASDAQ Global Select",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.494,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "CopperTech Metals Inc.",
-      "symbol": "CUX",
-      "expectedDate": "2026-07-01",
-      "exchange": "NYSE",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.487,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "Neutron Holdings, Inc.",
-      "symbol": "LIME",
-      "expectedDate": "2026-07-01",
-      "exchange": "NASDAQ Global Select",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.208,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    }
-  ]
+  "ipos": []
 }
