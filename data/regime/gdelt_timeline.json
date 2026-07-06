@@ -1,38 +1,14 @@
 {
-  "generatedAt": "2026-07-03T10:25:45Z",
+  "generatedAt": "2026-07-06T11:11:57Z",
   "lookbackDays": 90,
-  "rowCount": 27,
+  "rowCount": 26,
   "rows": [
-    {
-      "date": "2026-06-04",
-      "avgTone": 0.2365,
-      "articleCount": 0,
-      "gdelt_tone_norm": 0.3901,
-      "gdelt_tone_delta_5d": 0.0,
-      "gdelt_article_z": 0.0
-    },
-    {
-      "date": "2026-06-05",
-      "avgTone": 0.2368,
-      "articleCount": 0,
-      "gdelt_tone_norm": 0.3904,
-      "gdelt_tone_delta_5d": 0.0003,
-      "gdelt_article_z": 0.0
-    },
-    {
-      "date": "2026-06-06",
-      "avgTone": 0.5966,
-      "articleCount": 0,
-      "gdelt_tone_norm": 0.7625,
-      "gdelt_tone_delta_5d": 0.3723,
-      "gdelt_article_z": 0.0
-    },
     {
       "date": "2026-06-07",
       "avgTone": 0.122,
       "articleCount": 0,
       "gdelt_tone_norm": 0.2717,
-      "gdelt_tone_delta_5d": -0.2427,
+      "gdelt_tone_delta_5d": 0.0,
       "gdelt_article_z": 0.0
     },
     {
@@ -40,7 +16,7 @@
       "avgTone": -0.1407,
       "articleCount": 0,
       "gdelt_tone_norm": 0.0,
-      "gdelt_tone_delta_5d": -0.4537,
+      "gdelt_tone_delta_5d": -0.2717,
       "gdelt_article_z": 0.0
     },
     {
@@ -48,7 +24,7 @@
       "avgTone": 0.1481,
       "articleCount": 0,
       "gdelt_tone_norm": 0.2987,
-      "gdelt_tone_delta_5d": -0.0575,
+      "gdelt_tone_delta_5d": 0.1628,
       "gdelt_article_z": 0.0
     },
     {
@@ -56,7 +32,7 @@
       "avgTone": 0.1355,
       "articleCount": 0,
       "gdelt_tone_norm": 0.2857,
-      "gdelt_tone_delta_5d": -0.0476,
+      "gdelt_tone_delta_5d": 0.0955,
       "gdelt_article_z": 0.0
     },
     {
@@ -217,6 +193,22 @@
       "articleCount": 0,
       "gdelt_tone_norm": 0.5399,
       "gdelt_tone_delta_5d": 0.0723,
+      "gdelt_article_z": 0.0
+    },
+    {
+      "date": "2026-07-05",
+      "avgTone": 0.1306,
+      "articleCount": 0,
+      "gdelt_tone_norm": 0.2806,
+      "gdelt_tone_delta_5d": -0.2195,
+      "gdelt_article_z": 0.0
+    },
+    {
+      "date": "2026-07-06",
+      "avgTone": 0.2377,
+      "articleCount": 0,
+      "gdelt_tone_norm": 0.3914,
+      "gdelt_tone_delta_5d": -0.029,
       "gdelt_article_z": 0.0
     }
   ]
