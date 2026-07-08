@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-07T13:10:32Z",
+  "updatedAt": "2026-07-08T12:57:28Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
@@ -13,6 +13,26 @@
       "expectedDealSizeUsdBn": 0.058,
       "underwriterTier": 2,
       "riskLevel": "high"
+    },
+    {
+      "company": "SK hynix Inc.",
+      "symbol": "SKHY",
+      "expectedDate": "2026-07-10",
+      "exchange": "NASDAQ Global Select",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 28.133,
+      "underwriterTier": 2,
+      "riskLevel": "low"
+    },
+    {
+      "company": "Csquare, Inc.",
+      "symbol": "CSQR",
+      "expectedDate": "2026-07-16",
+      "exchange": "NYSE",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 1.552,
+      "underwriterTier": 2,
+      "riskLevel": "medium"
     }
   ]
 }
