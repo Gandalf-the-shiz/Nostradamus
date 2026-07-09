@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-08T12:57:28Z",
+  "updatedAt": "2026-07-09T13:25:54Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
@@ -23,6 +23,16 @@
       "expectedDealSizeUsdBn": 28.133,
       "underwriterTier": 2,
       "riskLevel": "low"
+    },
+    {
+      "company": "Standard Nuclear, Inc.",
+      "symbol": "STDN",
+      "expectedDate": "2026-07-16",
+      "exchange": "NYSE",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.441,
+      "underwriterTier": 2,
+      "riskLevel": "high"
     },
     {
       "company": "Csquare, Inc.",
