@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-10T11:05:42Z",
+  "generatedAt": "2026-07-13T11:06:53Z",
   "leaderboard": [
     {
       "politician": "Rohit Khanna",
@@ -27,7 +27,7 @@
     },
     {
       "politician": "Donald J Trump",
-      "buys": 188,
+      "buys": 186,
       "sells": 147,
       "unique_symbols": 54,
       "weight": 1.0,
