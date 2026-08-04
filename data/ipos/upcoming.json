@@ -1,9 +1,29 @@
 {
-  "updatedAt": "2026-08-03T13:25:47Z",
+  "updatedAt": "2026-08-04T13:06:58Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
+    {
+      "company": "Phalanx Acquisition Corp I",
+      "symbol": "PHAXU",
+      "expectedDate": "2026-08-04",
+      "exchange": "NASDAQ Global",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.201,
+      "underwriterTier": 2,
+      "riskLevel": "high"
+    },
+    {
+      "company": "BOA Acquisition Corp. II",
+      "symbol": "THEOU",
+      "expectedDate": "2026-08-04",
+      "exchange": "NASDAQ Global",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.144,
+      "underwriterTier": 2,
+      "riskLevel": "high"
+    },
     {
       "company": "Attovia Therapeutics, Inc.",
       "symbol": "ATTO",
