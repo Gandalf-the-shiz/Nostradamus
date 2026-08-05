@@ -1,22 +1,14 @@
 {
-  "generatedAt": "2026-08-04T10:24:38Z",
+  "generatedAt": "2026-08-05T10:25:07Z",
   "lookbackDays": 90,
   "rowCount": 30,
   "rows": [
-    {
-      "date": "2026-07-06",
-      "avgTone": 0.2923,
-      "articleCount": 0,
-      "gdelt_tone_norm": 0.6313,
-      "gdelt_tone_delta_5d": 0.0,
-      "gdelt_article_z": 0.0
-    },
     {
       "date": "2026-07-07",
       "avgTone": 0.128,
       "articleCount": 0,
       "gdelt_tone_norm": 0.3763,
-      "gdelt_tone_delta_5d": -0.255,
+      "gdelt_tone_delta_5d": 0.0,
       "gdelt_article_z": 0.0
     },
     {
@@ -24,7 +16,7 @@
       "avgTone": -0.1145,
       "articleCount": 0,
       "gdelt_tone_norm": 0.0,
-      "gdelt_tone_delta_5d": -0.5038,
+      "gdelt_tone_delta_5d": -0.3763,
       "gdelt_article_z": 0.0
     },
     {
@@ -32,7 +24,7 @@
       "avgTone": 0.2334,
       "articleCount": 0,
       "gdelt_tone_norm": 0.5399,
-      "gdelt_tone_delta_5d": 0.204,
+      "gdelt_tone_delta_5d": 0.3517,
       "gdelt_article_z": 0.0
     },
     {
@@ -40,7 +32,7 @@
       "avgTone": 0.4399,
       "articleCount": 0,
       "gdelt_tone_norm": 0.8603,
-      "gdelt_tone_delta_5d": 0.4735,
+      "gdelt_tone_delta_5d": 0.5549,
       "gdelt_article_z": 0.0
     },
     {
@@ -229,18 +221,26 @@
     },
     {
       "date": "2026-08-03",
-      "avgTone": 0.3531,
+      "avgTone": 0.233,
       "articleCount": 0,
-      "gdelt_tone_norm": 0.7256,
-      "gdelt_tone_delta_5d": -0.1315,
+      "gdelt_tone_norm": 0.5393,
+      "gdelt_tone_delta_5d": -0.3179,
       "gdelt_article_z": 0.0
     },
     {
       "date": "2026-08-04",
-      "avgTone": 0.3848,
+      "avgTone": 0.2977,
       "articleCount": 0,
-      "gdelt_tone_norm": 0.7748,
-      "gdelt_tone_delta_5d": -0.0351,
+      "gdelt_tone_norm": 0.6397,
+      "gdelt_tone_delta_5d": -0.1237,
+      "gdelt_article_z": 0.0
+    },
+    {
+      "date": "2026-08-05",
+      "avgTone": 0.3678,
+      "articleCount": 0,
+      "gdelt_tone_norm": 0.7484,
+      "gdelt_tone_delta_5d": 0.0576,
       "gdelt_article_z": 0.0
     }
   ]
