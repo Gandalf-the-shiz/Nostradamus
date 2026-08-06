@@ -1,22 +1,14 @@
 {
-  "generatedAt": "2026-08-05T10:25:07Z",
+  "generatedAt": "2026-08-06T10:26:31Z",
   "lookbackDays": 90,
   "rowCount": 30,
   "rows": [
-    {
-      "date": "2026-07-07",
-      "avgTone": 0.128,
-      "articleCount": 0,
-      "gdelt_tone_norm": 0.3763,
-      "gdelt_tone_delta_5d": 0.0,
-      "gdelt_article_z": 0.0
-    },
     {
       "date": "2026-07-08",
       "avgTone": -0.1145,
       "articleCount": 0,
       "gdelt_tone_norm": 0.0,
-      "gdelt_tone_delta_5d": -0.3763,
+      "gdelt_tone_delta_5d": 0.0,
       "gdelt_article_z": 0.0
     },
     {
@@ -24,7 +16,7 @@
       "avgTone": 0.2334,
       "articleCount": 0,
       "gdelt_tone_norm": 0.5399,
-      "gdelt_tone_delta_5d": 0.3517,
+      "gdelt_tone_delta_5d": 0.5399,
       "gdelt_article_z": 0.0
     },
     {
@@ -32,7 +24,7 @@
       "avgTone": 0.4399,
       "articleCount": 0,
       "gdelt_tone_norm": 0.8603,
-      "gdelt_tone_delta_5d": 0.5549,
+      "gdelt_tone_delta_5d": 0.5904,
       "gdelt_article_z": 0.0
     },
     {
@@ -40,7 +32,7 @@
       "avgTone": 0.366,
       "articleCount": 0,
       "gdelt_tone_norm": 0.7457,
-      "gdelt_tone_delta_5d": 0.3015,
+      "gdelt_tone_delta_5d": 0.2789,
       "gdelt_article_z": 0.0
     },
     {
@@ -237,10 +229,18 @@
     },
     {
       "date": "2026-08-05",
-      "avgTone": 0.3678,
+      "avgTone": 0.3978,
       "articleCount": 0,
-      "gdelt_tone_norm": 0.7484,
-      "gdelt_tone_delta_5d": 0.0576,
+      "gdelt_tone_norm": 0.795,
+      "gdelt_tone_delta_5d": 0.1041,
+      "gdelt_article_z": 0.0
+    },
+    {
+      "date": "2026-08-06",
+      "avgTone": 0.4949,
+      "articleCount": 0,
+      "gdelt_tone_norm": 0.9457,
+      "gdelt_tone_delta_5d": 0.3061,
       "gdelt_article_z": 0.0
     }
   ]
