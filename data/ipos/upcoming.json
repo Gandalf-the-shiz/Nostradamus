@@ -1,19 +1,9 @@
 {
-  "updatedAt": "2026-08-05T13:03:53Z",
+  "updatedAt": "2026-08-06T13:03:55Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
-    {
-      "company": "Attovia Therapeutics, Inc.",
-      "symbol": "ATTO",
-      "expectedDate": "2026-08-05",
-      "exchange": "NASDAQ Global",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.244,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
     {
       "company": "Phalanx Acquisition Corp I",
       "symbol": "PHAXU",
@@ -36,7 +26,7 @@
     },
     {
       "company": "OceanLight Acquisition Corp",
-      "symbol": "OCLT",
+      "symbol": "OCLTU",
       "expectedDate": "2026-08-06",
       "exchange": "NASDAQ Global",
       "sector": "Other",
