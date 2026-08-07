@@ -1,7 +1,7 @@
 {
   "date": "2026-08-07",
   "predictionFor": "2026-08-10",
-  "generatedAt": "2026-08-07T01:06:30Z",
+  "generatedAt": "2026-08-07T23:34:03Z",
   "modelVersion": "3.0.0",
   "macroRegime": "SIDEWAYS",
   "ensembleSize": 1,
@@ -4969,7 +4969,7 @@
     "DCH": {
       "probability": 0.4687,
       "direction": "UP",
-      "confidence": 0.1374,
+      "confidence": 0.1373,
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": 0.0001,
@@ -5194,7 +5194,7 @@
     "GOOS": {
       "probability": 0.2232,
       "direction": "DOWN",
-      "confidence": 0.3536,
+      "confidence": 0.3535,
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0091,
@@ -5221,7 +5221,7 @@
     "GROV": {
       "probability": 0.4118,
       "direction": "UP",
-      "confidence": 0.0235,
+      "confidence": 0.0236,
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0017,
@@ -8177,7 +8177,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0108,
-      "ev": -0.006113
+      "ev": -0.006114
     },
     "ATO": {
       "probability": 0.6747,
@@ -8803,7 +8803,7 @@
     "OII": {
       "probability": 0.3207,
       "direction": "DOWN",
-      "confidence": 0.1586,
+      "confidence": 0.1585,
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0054,
@@ -11804,7 +11804,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0207,
-      "ev": -0.01638
+      "ev": -0.016381
     },
     "CORZ": {
       "probability": 0.552,
@@ -16061,7 +16061,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.01,
-      "ev": -0.005468
+      "ev": -0.005469
     },
     "AFG": {
       "probability": 0.5957,
@@ -16223,7 +16223,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": 0.007,
-      "ev": 0.002457
+      "ev": 0.002458
     },
     "AMP": {
       "probability": 0.3624,
@@ -17297,7 +17297,7 @@
       "ev": -0.003632
     },
     "GS": {
-      "probability": 0.4666,
+      "probability": 0.4665,
       "direction": "UP",
       "confidence": 0.1331,
       "ensembleStd": 0.0,
@@ -18170,7 +18170,7 @@
       "ev": -0.005226
     },
     "PBT": {
-      "probability": 0.3433,
+      "probability": 0.3432,
       "direction": "DOWN",
       "confidence": 0.1135,
       "ensembleStd": 0.0,
@@ -20525,7 +20525,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0033,
-      "ev": -0.000952
+      "ev": -0.000951
     },
     "BEATW": {
       "probability": 0.3869,
@@ -22703,7 +22703,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0047,
-      "ev": -0.00162
+      "ev": -0.001619
     },
     "HSIC": {
       "probability": 0.258,
@@ -30434,7 +30434,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0007,
-      "ev": -7.7e-05
+      "ev": -7.8e-05
     },
     "FTAIN": {
       "probability": 0.2173,
@@ -35033,7 +35033,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": 0.0022,
-      "ev": 0.000135
+      "ev": 0.000134
     },
     "GETY": {
       "probability": 0.4884,
@@ -35816,7 +35816,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0164,
-      "ev": -0.012294
+      "ev": -0.012293
     },
     "MPLX": {
       "probability": 0.3209,
@@ -39493,7 +39493,7 @@
     "IPI": {
       "probability": 0.4531,
       "direction": "UP",
-      "confidence": 0.1062,
+      "confidence": 0.1061,
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0004,
@@ -44603,7 +44603,7 @@
       "ev": 0.003684
     },
     "CVLT": {
-      "probability": 0.6245,
+      "probability": 0.6244,
       "direction": "UP",
       "confidence": 0.4489,
       "ensembleStd": 0.0,
@@ -46112,7 +46112,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0042,
-      "ev": -0.001259
+      "ev": -0.001258
     },
     "ERIC": {
       "probability": 0.375,
@@ -50732,7 +50732,7 @@
       "ev": -0.000137
     },
     "MEHA": {
-      "probability": 0.3839,
+      "probability": 0.384,
       "direction": "DOWN",
       "confidence": 0.0321,
       "ensembleStd": 0.0,
@@ -51656,7 +51656,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0165,
-      "ev": -0.012109
+      "ev": -0.012108
     },
     "NAN": {
       "probability": 0.3402,
@@ -57241,7 +57241,7 @@
     "TENB": {
       "probability": 0.5694,
       "direction": "UP",
-      "confidence": 0.3388,
+      "confidence": 0.3389,
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": 0.0035,
@@ -57425,7 +57425,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0125,
-      "ev": -0.007999
+      "ev": -0.008
     },
     "TRINI": {
       "probability": 0.6689,
@@ -58091,7 +58091,7 @@
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0095,
-      "ev": -0.005546
+      "ev": -0.005547
     },
     "VIA": {
       "probability": 0.3574,
@@ -58726,7 +58726,7 @@
     "WM": {
       "probability": 0.2543,
       "direction": "DOWN",
-      "confidence": 0.2914,
+      "confidence": 0.2913,
       "ensembleStd": 0.0,
       "decisionThreshold": 0.4,
       "predictedReturn": -0.0082,
