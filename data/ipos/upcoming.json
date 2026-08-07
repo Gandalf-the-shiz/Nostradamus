@@ -1,39 +1,9 @@
 {
-  "updatedAt": "2026-08-06T13:03:55Z",
+  "updatedAt": "2026-08-07T12:37:40Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
-    {
-      "company": "Phalanx Acquisition Corp I",
-      "symbol": "PHAXU",
-      "expectedDate": "2026-08-06",
-      "exchange": "NASDAQ Global",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.201,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "Braveheart Bio, Inc.",
-      "symbol": "BRVE",
-      "expectedDate": "2026-08-06",
-      "exchange": "NASDAQ Global",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.367,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "OceanLight Acquisition Corp",
-      "symbol": "OCLTU",
-      "expectedDate": "2026-08-06",
-      "exchange": "NASDAQ Global",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.115,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
     {
       "company": "BlossomHill Therapeutics, Inc.",
       "symbol": "BLSM",
