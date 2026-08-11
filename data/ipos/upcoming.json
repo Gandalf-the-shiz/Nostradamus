@@ -1,9 +1,19 @@
 {
-  "updatedAt": "2026-08-10T12:38:41Z",
+  "updatedAt": "2026-08-11T12:39:21Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
+    {
+      "company": "Southern Cross Acquisition II Corp.",
+      "symbol": "SCATU",
+      "expectedDate": "2026-08-12",
+      "exchange": "NASDAQ Global",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.115,
+      "underwriterTier": 2,
+      "riskLevel": "high"
+    },
     {
       "company": "SIYATA PTT",
       "symbol": "PTT",
