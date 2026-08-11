@@ -1,0 +1,14 @@
+{
+  "date": "2026-08-10",
+  "predictionFor": "2026-08-10",
+  "scoredAt": "2026-08-11T00:38:18Z",
+  "modelVersion": "3.0.0",
+  "metrics": {
+    "hitRate": null,
+    "total": 0,
+    "correct": 0
+  },
+  "detail": [],
+  "detailRows": 0,
+  "detailTruncated": false
+}

@@ -336,6 +336,17 @@
       "correct": 0,
       "rolling7day": null,
       "rolling30day": null
+    },
+    {
+      "date": "2026-08-10",
+      "recordedAt": "2026-08-11T00:38:18Z",
+      "modelVersion": "3.0.0",
+      "hitRate": null,
+      "regressionMAE": null,
+      "total": 0,
+      "correct": 0,
+      "rolling7day": null,
+      "rolling30day": null
     }
   ],
   "rolling": {
@@ -343,5 +354,5 @@
     "30day": null,
     "90day": 0.4179
   },
-  "updatedAt": "2026-08-07T01:34:50Z"
+  "updatedAt": "2026-08-11T00:38:18Z"
 }
