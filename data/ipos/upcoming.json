@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-11T12:39:21Z",
+  "updatedAt": "2026-08-12T12:38:46Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
@@ -11,6 +11,16 @@
       "exchange": "NASDAQ Global",
       "sector": "Other",
       "expectedDealSizeUsdBn": 0.115,
+      "underwriterTier": 2,
+      "riskLevel": "high"
+    },
+    {
+      "company": "Lyntris Inc.",
+      "symbol": "LYNX",
+      "expectedDate": "2026-08-19",
+      "exchange": "NYSE",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.607,
       "underwriterTier": 2,
       "riskLevel": "high"
     },
