@@ -1,16 +1,16 @@
 {
-  "updatedAt": "2026-08-12T12:38:46Z",
+  "updatedAt": "2026-08-13T12:38:35Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
     {
-      "company": "Southern Cross Acquisition II Corp.",
-      "symbol": "SCATU",
-      "expectedDate": "2026-08-12",
+      "company": "Thunder Bridge Capital Partners V, Ltd.",
+      "symbol": "TBCVU",
+      "expectedDate": "2026-08-13",
       "exchange": "NASDAQ Global",
       "sector": "Other",
-      "expectedDealSizeUsdBn": 0.115,
+      "expectedDealSizeUsdBn": 0.3,
       "underwriterTier": 2,
       "riskLevel": "high"
     },
