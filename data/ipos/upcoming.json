@@ -1,16 +1,26 @@
 {
-  "updatedAt": "2026-08-13T12:38:35Z",
+  "updatedAt": "2026-08-14T12:38:07Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
     {
-      "company": "Thunder Bridge Capital Partners V, Ltd.",
-      "symbol": "TBCVU",
-      "expectedDate": "2026-08-13",
+      "company": "NorthStrive Acquisition Corp I.",
+      "symbol": "NSAIU",
+      "expectedDate": "2026-08-14",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.115,
+      "underwriterTier": 2,
+      "riskLevel": "high"
+    },
+    {
+      "company": "Advasa Holdings, Inc.",
+      "symbol": "ADBT",
+      "expectedDate": "2026-08-17",
       "exchange": "NASDAQ Global",
       "sector": "Other",
-      "expectedDealSizeUsdBn": 0.3,
+      "expectedDealSizeUsdBn": 0.0,
       "underwriterTier": 2,
       "riskLevel": "high"
     },
