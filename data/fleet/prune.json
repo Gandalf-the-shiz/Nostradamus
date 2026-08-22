@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-08-22T14:54:31Z",
+  "ok": true,
+  "minForwardDays": 20,
+  "killReturnPct": 0.0,
+  "nRetired": 0,
+  "retired": [],
+  "honorRollSpared": [],
+  "arenaSkipped": 0,
+  "note": "Agent files and ledgers kept. Arena v1/v2 untouched."
+}

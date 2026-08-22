@@ -34,9 +34,11 @@ from intelligence.alpha.measure import _price_sleeves, _size_map  # noqa: E402
 
 _RET_COLS = ["y_ret", "fwd_ret", "forward_ret", "realized_ret", "target_ret", "ret_fwd_1"]
 SLEEVE_COL_PREFIX = "n_"
-MIN_FORWARD_DAYS = 5
+MIN_FORWARD_DAYS = 20
 DECAY_WINDOW = 10
 TRAILING_ICIR_WINDOW = 20
+RHO_KILL = 0.40
+RHO_MIN_OVERLAP = 40
 
 # Human labels for the dashboard.
 SLEEVE_LABELS = {
@@ -332,28 +334,116 @@ def score_forward(horizon_days: int = 1) -> dict:
     }
 
 
+def _edge_killed_sleeves() -> set[str]:
+    try:
+        from intelligence.edge_ledger import killed_ids
+        return killed_ids("sleeve")
+    except Exception as exc:  # noqa: BLE001
+        print(f"[sleeve-ic] edge ledger unread: {exc}", flush=True)
+        return set()
+
+
+def pairwise_sleeve_rho(min_overlap: int = RHO_MIN_OVERLAP) -> tuple[dict[str, dict[str, float]], bool]:
+    """Spearman ρ between neutralized sleeve columns on the latest snapshot.
+
+    Returns (rho_by_sleeve, skipped). Skipped when the snapshot is too thin —
+    we do not invent a correlation.
+    """
+    if not SNAP_DIR.exists():
+        return {}, True
+    files = sorted(SNAP_DIR.glob("*.json"))
+    if not files:
+        return {}, True
+    try:
+        snap = json.loads(files[-1].read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}, True
+    rows = snap.get("rows") or []
+    if len(rows) < min_overlap:
+        return {}, True
+    df = pd.DataFrame(rows)
+    cols = [c for c in df.columns if c.startswith(SLEEVE_COL_PREFIX)]
+    if len(cols) < 2:
+        return {}, True
+    rhos: dict[str, dict[str, float]] = {}
+    computed = False
+    for i, a in enumerate(cols):
+        for b in cols[i + 1:]:
+            pair = df[[a, b]].apply(pd.to_numeric, errors="coerce").dropna()
+            if len(pair) < min_overlap:
+                continue
+            rho = spearman_ic(pair[a], pair[b])
+            if not np.isfinite(rho):
+                continue
+            na, nb = a[len(SLEEVE_COL_PREFIX):], b[len(SLEEVE_COL_PREFIX):]
+            rhos.setdefault(na, {})[nb] = round(float(rho), 4)
+            rhos.setdefault(nb, {})[na] = round(float(rho), 4)
+            computed = True
+    return rhos, not computed
+
+
+def _apply_orthogonality(
+    effective: dict[str, float],
+    forward: dict,
+    rhos: dict[str, dict[str, float]],
+    notes: list[str],
+) -> dict[str, float]:
+    """Zero the newer/weaker live sleeve when |ρ| > 0.40 vs an already-live sleeve."""
+    by_sleeve = forward.get("by_sleeve") or {}
+    live = [k for k, v in effective.items() if v > 0]
+    live.sort(
+        key=lambda n: (
+            int((by_sleeve.get(n) or {}).get("n_days") or 0),
+            float((by_sleeve.get(n) or {}).get("icir") or 0.0),
+        ),
+        reverse=True,
+    )
+    kept: list[str] = []
+    out = dict(effective)
+    for name in live:
+        dropped = False
+        for older in kept:
+            rho = (rhos.get(name) or {}).get(older)
+            if rho is None:
+                continue
+            if abs(float(rho)) > RHO_KILL:
+                out[name] = 0.0
+                notes.append(f"{name}: zeroed |ρ|={abs(float(rho)):.2f} vs live {older}")
+                dropped = True
+                break
+        if not dropped:
+            kept.append(name)
+    return out
+
+
 def compute_icir_weights(
     forward: dict,
     config_weights: dict[str, float],
     *,
     min_days: int = MIN_FORWARD_DAYS,
+    pairwise_rho: dict[str, dict[str, float]] | None = None,
+    rho_skipped: bool = True,
 ) -> tuple[dict[str, float], str, list[str]]:
-    """ICIR-weighted blend with auto-decay for sleeves with negative trailing IC."""
-    n_days = forward.get("n_days") or 0
+    """ICIR-weighted blend. Nonzero weight requires 20 forward days. Ledger kills are hard zeros."""
     by_sleeve = forward.get("by_sleeve") or {}
     notes: list[str] = []
-
-    if n_days < min_days:
-        return dict(config_weights), "static_config", [
-            f"forward days {n_days}/{min_days} — using config weights until enough live proof"
-        ]
+    killed = _edge_killed_sleeves()
 
     raw: dict[str, float] = {}
     for name, base_w in config_weights.items():
+        if name in killed:
+            raw[name] = 0.0
+            notes.append(f"{name}: edge-ledger kill")
+            continue
+        stats = by_sleeve.get(name) or {}
+        n = int(stats.get("n_days") or 0)
+        if n < min_days:
+            raw[name] = 0.0
+            notes.append(f"{name}: shadow ({n}/{min_days} forward days — weight 0)")
+            continue
         if base_w <= 0:
             raw[name] = 0.0
             continue
-        stats = by_sleeve.get(name) or {}
         if stats.get("decayed"):
             raw[name] = 0.0
             notes.append(f"{name}: decayed (trailing IC {stats.get('trailing_mean_ic')})")
@@ -366,19 +456,28 @@ def compute_icir_weights(
             continue
         raw[name] = float(base_w) * float(icir)
 
+    # Do not fall back to config weights — that let 2–15 day samples run the book.
     total = sum(v for v in raw.values() if v > 0)
     if total <= 0:
-        return dict(config_weights), "static_fallback", notes + ["all ICIR weights zero — config fallback"]
+        zeros = {k: 0.0 for k in config_weights}
+        return zeros, "shadow_wait", notes + ["no sleeve has 20 forward days + positive ICIR"]
 
-    config_total = sum(v for v in config_weights.values() if v > 0)
+    config_total = sum(v for v in config_weights.values() if v > 0) or 1.0
     scale = config_total / total
-    effective = {k: round(v * scale, 4) for k, v in raw.items() if v > 0}
-    # Preserve explicit zero-weight sleeves from config.
+    effective = {k: round(v * scale, 4) if v > 0 else 0.0 for k, v in raw.items()}
     for k, v in config_weights.items():
-        if v <= 0:
+        if k not in effective:
             effective[k] = 0.0
-        elif k not in effective:
-            effective[k] = 0.0
+
+    if not rho_skipped and pairwise_rho:
+        effective = _apply_orthogonality(effective, forward, pairwise_rho, notes)
+        remain = sum(v for v in effective.values() if v > 0)
+        if remain > 0:
+            scale2 = config_total / remain
+            effective = {k: round(v * scale2, 4) if v > 0 else 0.0 for k, v in effective.items()}
+        else:
+            return {k: 0.0 for k in config_weights}, "shadow_wait", notes + ["all sleeves zero after ρ gate"]
+
     return effective, "icir_forward", notes
 
 
@@ -423,7 +522,12 @@ def run(*, snapshot: bool = True, horizon_days: int = 1) -> dict:
         except (OSError, json.JSONDecodeError):
             pass
 
-    effective, weight_mode, weight_notes = compute_icir_weights(forward, config_weights)
+    pairwise_rho, rho_skipped = pairwise_sleeve_rho()
+    effective, weight_mode, weight_notes = compute_icir_weights(
+        forward, config_weights, pairwise_rho=pairwise_rho, rho_skipped=rho_skipped
+    )
+    if rho_skipped:
+        weight_notes.append("rhoSkipped: snapshot too thin — pairwise ρ not invented")
 
     doc = {
         "generatedAt": _now(),
@@ -436,8 +540,17 @@ def run(*, snapshot: bool = True, horizon_days: int = 1) -> dict:
         "weight_notes": weight_notes,
         "min_forward_days": MIN_FORWARD_DAYS,
         "decay_window": DECAY_WINDOW,
+        "pairwiseRho": pairwise_rho,
+        "rhoSkipped": rho_skipped,
+        "rhoKill": RHO_KILL,
     }
     OUT_PATH.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+
+    try:
+        from intelligence.sleeves.registry import write_registry
+        write_registry(doc)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[sleeve-ic] sleeve registry skipped: {exc}", flush=True)
 
     if LIVE_ROOT.exists():
         mirror = LIVE_ROOT / "data" / "accuracy" / "sleeve_ic.json"

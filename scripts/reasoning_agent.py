@@ -47,8 +47,16 @@ def _top_picks(df: pd.DataFrame, k: int = 12) -> list[dict]:
     if df.empty:
         return []
     d = df.copy()
+    try:
+        from intelligence.tradeable_universe import filter_dataframe
+        d = filter_dataframe(d)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[reasoning] tradeable filter skipped: {exc}", flush=True)
+        return []
+    if d.empty:
+        return []
     d["edge"] = (d["pred_proba_up"] - 0.5) * 2.0 * d["pred_ret"].abs()
-    d = d.sort_values("edge", ascending=False).head(k)
+    d = d.sort_values("edge", ascending=False).head(max(k * 8, 80))
     picks = []
     for _, r in d.iterrows():
         sym = str(r["symbol"]).upper()
@@ -62,7 +70,13 @@ def _top_picks(df: pd.DataFrame, k: int = 12) -> list[dict]:
                 f"P(up)={float(r['pred_proba_up']):.1%}, E[ret]={float(r['pred_ret'])*100:+.2f}%"
             ),
         })
-    return picks
+    try:
+        from intelligence.tradeable_universe import filter_picks
+        picks = filter_picks(picks)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[reasoning] filter_picks failed: {exc}", flush=True)
+        return []
+    return picks[:k]
 
 
 def _append_journal(entry: dict) -> None:

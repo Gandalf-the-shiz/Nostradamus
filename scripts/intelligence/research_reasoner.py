@@ -9,7 +9,8 @@ Providers (first match wins):
   3. Google Gemini (GOOGLE_API_KEY / NOSTRADAMUS_GOOGLE_API_KEY)
   4. Rule-based fallback in research_controller.hypothesize_rules
 
-Set RESEARCH_LLM_DISABLED=1 to skip LLM entirely.
+LLM is default-off: unset env is disabled unless RESEARCH_LLM_ENABLED=1 is set.
+RESEARCH_LLM_DISABLED=1 still forces off (legacy).
 """
 from __future__ import annotations
 
@@ -129,8 +130,12 @@ def _append_jsonl(path: Path, row: dict) -> None:
 
 
 def llm_disabled() -> bool:
-    flag = (os.getenv("RESEARCH_LLM_DISABLED") or "").strip().lower()
-    return flag in ("1", "true", "yes", "on")
+    # Default-off: no paid LLM calls unless RESEARCH_LLM_ENABLED=1 is set explicitly.
+    disabled = (os.getenv("RESEARCH_LLM_DISABLED") or "").strip().lower()
+    if disabled in ("1", "true", "yes", "on"):
+        return True
+    enabled = (os.getenv("RESEARCH_LLM_ENABLED") or "").strip().lower()
+    return enabled not in ("1", "true", "yes", "on")
 
 
 def _load_env() -> None:

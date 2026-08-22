@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-08-22T14:54:38Z",
+  "ok": true,
+  "paused": true,
+  "stale": true,
+  "longVsEtfs": {
+    "available": false,
+    "reason": "no markable long-ETF equity series yet \u2014 book_long.json is a snapshot, not a curve",
+    "benchmarks": [
+      "SPY",
+      "QQQ",
+      "DIA",
+      "IWM"
+    ]
+  },
+  "neutralVsCash": {
+    "available": false,
+    "reason": "no clean T-bill series yet (data/benchmark/tbill.json missing) \u2014 will not invent cash returns"
+  },
+  "note": "Forward paper is the only scoreboard. Missing series stay unavailable."
+}

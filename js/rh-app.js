@@ -4,20 +4,15 @@
 import { openPageHelp } from './rh-help.js';
 import { renderHome } from './rh-pages/home.js';
 import { renderMarkets } from './rh-pages/markets.js';
-import { renderInvestorPage } from './rh-pages/investor-page.js';
-import { renderTrade } from './rh-pages/trade.js';
 import { renderStock } from './rh-pages/stock.js';
 import { renderArchitecture } from './rh-pages/architecture.js';
-import { renderPredictions } from './rh-pages/predictions.js';
-import { renderPenny } from './rh-pages/penny.js';
-import { renderArena } from './rh-pages/arena.js';
 import { renderMegamind } from './rh-pages/megamind.js';
 import { renderFleet } from './rh-pages/fleet.js';
 import { initStarfield } from './rh-starfield.js';
 
 const TITLES = {
-  home: 'Treasure Droid',
-  markets: 'Markets',
+  home: 'Deck',
+  markets: 'vs Market',
   investor: 'Investor',
   trade: 'Trade',
   predictions: 'Bounties',
@@ -25,8 +20,17 @@ const TITLES = {
   stock: 'Stock',
   architecture: 'Stack & Edge',
   arena: 'Investor Arena',
-  megamind: 'Treasure Droid · Captain',
-  fleet: 'The Fleet',
+  megamind: 'Captain',
+  fleet: 'Robots',
+};
+
+const DEFAULT_NAV = ['home', 'markets', 'fleet', 'megamind', 'architecture', 'stock'];
+const MOTHBALLED = {
+  investor: 'Investor book — leftover desk. Capital path is the sleeve factory + dual books.',
+  penny: 'Penny Wolf — leftover desk. Not on the default nav.',
+  arena: 'Arena genomes — leftover desk. v1/v2 stay frozen; pulse is post-close only.',
+  trade: 'Trade manifests — leftover desk. Live trading stays locked.',
+  predictions: 'Bounties / prediction markets — leftover desk.',
 };
 
 let currentPage = 'home';
@@ -59,7 +63,8 @@ function parseRoute() {
   if (parts[0] === 'chat') {
     return { page: 'megamind' };
   }
-  const page = ['home', 'markets', 'investor', 'trade', 'predictions', 'penny', 'arena', 'megamind', 'fleet', 'architecture'].includes(parts[0]) ? parts[0] : 'home';
+  const known = ['home', 'markets', 'investor', 'trade', 'predictions', 'penny', 'arena', 'megamind', 'fleet', 'architecture'];
+  const page = known.includes(parts[0]) ? parts[0] : 'home';
   return { page };
 }
 
@@ -70,7 +75,7 @@ function setActiveTab(page) {
       || (page === 'arena' && r === 'arena')
       || (page === 'megamind' && r === 'megamind')
       || (page === 'architecture' && r === 'architecture');
-    tab.classList.toggle('rh-tab--active', active && ['home', 'markets', 'investor', 'trade', 'predictions', 'penny', 'arena', 'megamind', 'fleet', 'architecture'].includes(r));
+    tab.classList.toggle('rh-tab--active', active && DEFAULT_NAV.includes(r));
     tab.toggleAttribute('aria-current', active && tab.classList.contains('rh-tab--active') ? 'page' : false);
   });
 }
@@ -112,21 +117,14 @@ async function render() {
   } else if (route.page === 'markets') {
     await renderMarkets(main, { navigate });
     if (stale()) return;
-  } else if (route.page === 'investor') {
-    await renderInvestorPage(main);
-    if (stale()) return;
-  } else if (route.page === 'trade') {
-    await renderTrade(main);
-    if (stale()) return;
-  } else if (route.page === 'predictions') {
-    await renderPredictions(main);
-    if (stale()) return;
-  } else if (route.page === 'penny') {
-    await renderPenny(main);
-    if (stale()) return;
-  } else if (route.page === 'arena') {
-    await renderArena(main, route, stale);
-    if (stale()) return;
+  } else if (MOTHBALLED[route.page]) {
+    main.innerHTML = `<section class="rh-card">
+      <h2>Mothballed desk</h2>
+      <p class="rh-muted">${MOTHBALLED[route.page]}</p>
+      <p class="rh-muted">Deep link kept so old bookmarks do not 500. Default nav is Deck / Robots / vs Market / Captain.</p>
+      <p><a href="#/home">← Back to the Deck</a></p>
+    </section>`;
+    return;
   } else if (route.page === 'megamind') {
     await renderMegamind(main, route);
     if (stale()) return;

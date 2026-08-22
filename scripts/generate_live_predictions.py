@@ -17,11 +17,11 @@ import numpy as np
 import pandas as pd
 
 REPO = Path(__file__).resolve().parents[1]
-HIST = REPO / "data" / "historical"
 MODEL_DIR = REPO / "models" / "v3" / "predictor"
 OUT = REPO / "data" / "predictions_v3"
 
 sys.path.insert(0, str(REPO / "scripts"))
+from live_panel import collect_panel_entries  # noqa: E402
 from overlay_features import attach_all_overlays  # noqa: E402
 
 
@@ -62,22 +62,17 @@ def main() -> int:
     frames: list[pd.DataFrame] = []
     n = 0
     t0 = time.time()
-    for fp in sorted(HIST.glob("*.json")):
-        if fp.name in {"manifest.json", "multiyear-coverage.json", "stooq-bulk-coverage.json", "_live.json"}:
-            continue
-        sector = fp.stem
-        data = json.loads(fp.read_text(encoding="utf-8"))
-        for sym, payload in (data.get("stocks") or {}).items():
-            if args.limit and n >= args.limit:
-                break
-            candles = (payload or {}).get("candles") or []
-            df = tpv3.build_features_for_ticker(sym, sector, candles)
-            if df is None or df.empty:
-                continue
-            frames.append(df.tail(1))
-            n += 1
+    # Liquid-first: drop warrants / illiquid names BEFORE the 2500 cap.
+    panel = collect_panel_entries(limit=args.limit, include_candles=True)
+    for entry in panel:
         if args.limit and n >= args.limit:
             break
+        candles = entry.get("candles") or []
+        df = tpv3.build_features_for_ticker(entry["symbol"], entry.get("sector") or "Other", candles)
+        if df is None or df.empty:
+            continue
+        frames.append(df.tail(1))
+        n += 1
 
     if not frames:
         raise SystemExit("no live rows built")

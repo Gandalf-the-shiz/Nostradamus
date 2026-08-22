@@ -74,4 +74,6 @@ export const api = {
   megamindImplemented: (id) => apiPost(`/api/megamind/recommendations/${id}/implemented`, {}),
   retrain: () => apiPost('/api/retrain', {}),
   retrainStatus: () => apiGet('/api/retrain/status'),
+  sleeves: (refresh = false) => apiGet(`/api/sleeves${refresh ? '?refresh=1' : ''}`),
+  benchmark: (refresh = false) => apiGet(`/api/benchmark${refresh ? '?refresh=1' : ''}`),
 };

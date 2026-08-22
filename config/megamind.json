@@ -2,7 +2,7 @@
   "approveSecret": "6e065c1fac69e6b5fccc25463e62cd19",
   "dashboardBaseUrl": "http://127.0.0.1:8000",
   "autoLaunch": "none",
-  "autoApproveEnabled": true,
+  "autoApproveEnabled": false,
   "autoApprovePriorities": [
     "critical",
     "high"

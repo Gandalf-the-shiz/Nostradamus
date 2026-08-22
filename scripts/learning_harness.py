@@ -68,6 +68,12 @@ def _backup_champion() -> None:
 
 
 def run_cycle(log: Path, train_predictor: bool, mode: str = "weekly") -> int:
+    paused = REPO / "data" / "PAUSED.txt"
+    if paused.exists():
+        print("[harness] idle — data/PAUSED.txt present; delete it and run post-close to resume", flush=True)
+        _write_state({"phase": "paused", "mode": mode, "reason": "PAUSED.txt"})
+        return 0
+
     sys.path.insert(0, str(REPO / "scripts"))
     from npu_runtime import write_status
 

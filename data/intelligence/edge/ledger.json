@@ -1,0 +1,6 @@
+{
+  "generatedAt": "2026-08-22T00:00:00Z",
+  "ok": true,
+  "notes": "Helios kill list. fleet:<id> or sleeve:<id> with verdict kill is applied on the next prune / sleeve_ic run. Empty until a human or the factory writes a verdict. Do not invent kills.",
+  "entries": []
+}

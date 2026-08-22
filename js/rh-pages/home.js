@@ -86,8 +86,10 @@ export async function renderHome(container) {
 
   let alpaca = null;
   let topTraders = { traders: [] };
+  let bench = cc.benchmark || {};
   try { alpaca = await api.alpacaAccount(); } catch (_) { alpaca = null; }
   try { topTraders = await api.bridgeTopTraders(3); } catch (_) { topTraders = { traders: [] }; }
+  try { bench = await api.benchmark(); } catch (_) { bench = cc.benchmark || {}; }
 
   const score = cc.healthScore ?? 0;
   const pipe = cc.pipeline || {};
@@ -103,6 +105,18 @@ export async function renderHome(container) {
   const trends = cc.trends || {};
   const liveOk = ft.liveTradingPermitted;
   const verdictTone = liveOk ? 'ok' : 'warn';
+  const paused = !!(cc.paused || bench.paused);
+  const benchAt = bench.generatedAt || '';
+  const benchAgeMs = benchAt ? (Date.now() - Date.parse(benchAt)) : Infinity;
+  const stale = paused || !Number.isFinite(benchAgeMs) || benchAgeMs > 7 * 86400000;
+  const longVs = bench.longVsEtfs || {};
+  const cash = bench.neutralVsCash || {};
+  const etfVerdict = longVs.available
+    ? (longVs.beatAllFour ? 'Beats SPY / QQQ / DIA / IWM' : (longVs.verdict || 'Does not beat all four ETFs'))
+    : '4-ETF verdict unavailable';
+  const cashVerdict = cash.available
+    ? (cash.beatCash ? 'Neutral book beats T-bills' : 'Neutral book does not beat cash')
+    : (cash.reason || 'Cash-neutral scoreboard not marked yet');
 
   const equity = alpaca?.ok ? alpaca.equity : null;
   const dayChange = alpaca?.ok ? alpaca.dayChangePct : null;
@@ -129,14 +143,21 @@ export async function renderHome(container) {
         </div>
       </div>
       <span class="td-hero-compact__pill td-hero-compact__pill--${verdictTone}">
-        ${liveOk ? 'CAPITAL READY' : 'MAD SCIENTIST MODE'}
+        ${liveOk ? 'CAPITAL READY' : 'PAPER ONLY'}
       </span>
     </header>
 
+    ${stale ? `<div class="td-callout td-callout--warn">
+      <strong>${paused ? 'Paused.' : 'Stale scoreboard.'}</strong>
+      ${paused ? (cc.pausedNote || 'data/PAUSED.txt is present — artifacts are not today.') : 'Scoreboard generatedAt is older than 7 days. July is not today.'}
+      ${benchAt ? ` Last mark: ${benchAt}.` : ' No scoreboard generatedAt on disk.'}
+    </div>` : ''}
+
     <section class="rh-glass-hero rh-glass-hero--${verdictTone} td-hero-strip">
       <div class="rh-glass-hero__verdict">
-        <h2 class="rh-glass-hero__headline">${gatesGreen}/${ftMetrics.length} gates green</h2>
-        <p class="rh-glass-hero__sub">I hoard forward proof, not backtest fairy tales. Tap any section below to drill in.</p>
+        <h2 class="rh-glass-hero__headline">${etfVerdict}</h2>
+        <p class="rh-glass-hero__sub">${cash.available ? cashVerdict : `Cash-neutral: ${cashVerdict}`}</p>
+        <p class="rh-muted" style="font-size:13px">${gatesGreen}/${ftMetrics.length} readiness gates green · live trading stays locked.</p>
       </div>
       <div class="rh-glass-hero__tiles">
         ${bigTile({
@@ -150,6 +171,18 @@ export async function renderHome(container) {
           value: upl != null ? `${upl >= 0 ? '+' : ''}${fmt(upl, 'usd2')}` : '—',
           sub: 'Unrealized · fake money, real prices',
           tone: paperTone,
+        })}
+        ${bigTile({
+          label: 'vs 4 ETFs',
+          value: longVs.available ? (longVs.beatAllFour ? 'WIN' : 'LOSE') : 'N/A',
+          sub: longVs.available ? (longVs.verdict || etfVerdict) : (longVs.reason || 'No marked long curve'),
+          tone: longVs.beatAllFour ? 'ok' : 'warn',
+        })}
+        ${bigTile({
+          label: 'vs cash',
+          value: cash.available ? (cash.beatCash ? 'WIN' : 'LOSE') : 'N/A',
+          sub: cash.available ? cashVerdict : 'T-bill series not invented',
+          tone: cash.available ? (cash.beatCash ? 'ok' : 'warn') : 'neutral',
         })}
         ${bigTile({
           label: 'Alpha edge',
@@ -175,11 +208,11 @@ export async function renderHome(container) {
             ${ft.reasons.length > 1 ? ` <button type="button" class="td-link-btn" id="td-show-gates">+${ft.reasons.length - 1} more</button>` : ''}
             <ul class="td-callout__list" id="td-gate-list" hidden>${ft.reasons.slice(1).map((r) => `<li>${r}</li>`).join('')}</ul>
           </div>` : ''}
-        <p class="td-section-label">Spawn charts · tap to open</p>
+        <p class="td-section-label">The two questions · tap to open</p>
         <div class="td-spawn-links">
-          <a class="td-spawn-link" href="#/fleet"><span class="td-spawn-link__icon">🏴‍☠️</span><span>Fleet agents</span><span class="td-spawn-link__hint">Per-trader equity + picks</span></a>
-          <a class="td-spawn-link" href="#/arena"><span class="td-spawn-link__icon">⚔</span><span>Arena genomes</span><span class="td-spawn-link__hint">200 ML traders compared</span></a>
-          <a class="td-spawn-link" href="#/investor"><span class="td-spawn-link__icon">◇</span><span>Investor book</span><span class="td-spawn-link__hint">Day-by-day playback</span></a>
+          <a class="td-spawn-link" href="#/fleet"><span class="td-spawn-link__icon">🏴‍☠️</span><span>Robots / sleeves</span><span class="td-spawn-link__hint">Factory crew, not 154 personalities</span></a>
+          <a class="td-spawn-link" href="#/markets"><span class="td-spawn-link__icon">◎</span><span>vs Market</span><span class="td-spawn-link__hint">Liquid names + 4-ETF window</span></a>
+          <a class="td-spawn-link" href="#/megamind"><span class="td-spawn-link__icon">🤖</span><span>Captain</span><span class="td-spawn-link__hint">Allocates weights. No tickets.</span></a>
         </div>
       </section>
 

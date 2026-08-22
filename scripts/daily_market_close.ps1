@@ -52,6 +52,7 @@ Step "Finnhub feed (PEAD+revisions)" "scripts\fetch_finnhub.py"
 Step "Sentiment feed (news+reddit gossip)" "scripts\fetch_sentiment_feed.py"
 Step "Alpha engine (market-neutral book)" "scripts\intelligence\alpha\engine.py"
 Step "Fleet — crew walks forward (paper)" "scripts\intelligence\fleet\run.py"
+Step "Fleet prune (20d kill loop)" "scripts\intelligence\fleet\prune.py"
 Step "Alpaca paper rebalance" "scripts\intelligence\alpha\alpaca_executor.py" @("--execute")
 Step "NPU status" "scripts\npu_runtime.py"
 Step "Congress trades" "scripts\fetch-congress-trades.py"
@@ -63,12 +64,15 @@ Step "Execution feedback" "scripts\intelligence\execution_feedback.py"
 Step "Forward IC" "scripts\intelligence\forward_score.py"
 Step "Alpha IC measure" "scripts\intelligence\alpha\measure.py"
 Step "Per-sleeve IC + ICIR weights" "scripts\intelligence\alpha\sleeve_ic.py"
+Step "Sleeve registry" "scripts\intelligence\sleeves\registry.py"
+Step "Benchmark scoreboard" "scripts\intelligence\benchmark.py"
 Step "Mad Scientist Lab (walk-forward)" "scripts\intelligence\historical\walkforward_lab.py" @("--genomes", "200", "--promote", "2")
 Step "Champion sync" "scripts\intelligence\champion_sync.py"
 Step "Arena consolidate" "scripts\intelligence\trader_arena.py" @("--consolidate")
 Step "Investor Arena pulse (active)" "scripts\intelligence\trader_arena.py" @("--migrate", "--pulse", "--version", "active", "--traders", "100")
 Step "Arena harvest+evolve" "scripts\intelligence\trader_arena.py" @("--harvest-evolve")
 Step "Treasure Droid (captain) tick" "scripts\intelligence\megamind.py" @("--tick")
+# Helios: captain allocates only. Auto-approve stays off (config + code default).
 Step "Intelligence brain" "scripts\intelligence\brain.py"
 Step "Trade manifests" "scripts\generate_trade_signals.py"
 

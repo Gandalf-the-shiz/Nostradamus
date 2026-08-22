@@ -118,31 +118,25 @@ def parse_args() -> argparse.Namespace:
 
 
 def collect_panel_tickers(limit: int = DEFAULT_PANEL_LIMIT) -> list[dict]:
-    """Walk sector historical files in live-panel order (matches generate_live_predictions)."""
+    """Walk sector historical files in live-panel order (matches generate_live_predictions).
+
+    Tradeable-universe filter runs before the 2500 cap (liquid-first).
+    """
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    from live_panel import collect_panel_entries
+
+    rows = collect_panel_entries(limit=limit, include_candles=False)
     tickers: list[dict] = []
-    if not HISTORICAL_DIR.exists():
-        return tickers
-    for fp in sorted(HISTORICAL_DIR.glob("*.json")):
-        if fp.name in SKIP_HIST_META:
-            continue
-        try:
-            with open(fp, encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            continue
-        sector = data.get("sector") or SECTOR_BY_FILENAME.get(fp.stem, "Other")
+    for row in rows:
+        sector = row.get("sector") or "Other"
         if sector not in SECTOR_FILES:
             sector = "Other"
-        for sym, payload in (data.get("stocks") or {}).items():
-            if limit and len(tickers) >= limit:
-                return tickers
-            info = payload if isinstance(payload, dict) else {}
-            tickers.append({
-                "symbol": sym,
-                "sector": sector,
-                "name": info.get("name", ""),
-                "exchange": info.get("exchange", ""),
-            })
+        tickers.append({
+            "symbol": row["symbol"],
+            "sector": sector,
+            "name": row.get("name", ""),
+            "exchange": row.get("exchange", ""),
+        })
     return tickers
 
 

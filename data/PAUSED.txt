@@ -1,0 +1,9 @@
+Helios Phase 0 — harness paused.
+
+Artifacts on disk are stale (July-era scoreboards are not "today").
+The learning harness stays idle while this file exists.
+
+A human must delete this file and run the post-close job
+(scripts/daily_market_close.ps1) before anything walks forward again.
+
+Live trading stays locked. Do not start autonomous_loop.ps1.

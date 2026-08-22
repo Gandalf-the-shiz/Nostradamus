@@ -234,8 +234,20 @@ def _pipeline_status() -> dict:
     }
 
 
+def _paused() -> dict:
+    path = ROOT / "data" / "PAUSED.txt"
+    note = ""
+    if path.exists():
+        try:
+            note = path.read_text(encoding="utf-8").strip().splitlines()[0]
+        except OSError:
+            note = "PAUSED.txt present"
+    return {"paused": path.exists(), "pausedNote": note}
+
+
 @app.get("/api/health")
 def health():
+    paused = _paused()
     return {
         "ok": True,
         "version": VERSION,
@@ -243,6 +255,7 @@ def health():
         "decisions": _file_meta(DECISIONS_PATH),
         "job": {k: v for k, v in _job.items() if k != "log_path"},
         "pipeline": _pipeline_status(),
+        **paused,
     }
 
 
@@ -1594,6 +1607,43 @@ def _alpaca_paper_cached() -> dict:
     }
 
 
+@app.get("/api/sleeves")
+def api_sleeves(refresh: int = 0):
+    """Sleeve factory registry — the crew that can earn weight."""
+    path = ROOT / "data" / "intelligence" / "sleeves" / "registry.json"
+    if refresh:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from intelligence.sleeves.registry import write_registry
+        return write_registry()
+    doc = _read_json(path)
+    if not doc:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from intelligence.sleeves.registry import write_registry
+        return write_registry()
+    return doc
+
+
+@app.get("/api/benchmark")
+def api_benchmark(refresh: int = 0):
+    """Two-product scoreboard: long vs 4 ETFs, cash-neutral vs T-bills."""
+    path = ROOT / "data" / "benchmark" / "scoreboard.json"
+    if refresh:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from intelligence.benchmark import run as bench_run
+        return bench_run()
+    doc = _read_json(path)
+    if not doc:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from intelligence.benchmark import run as bench_run
+        return bench_run()
+    paused = _paused()
+    doc = dict(doc)
+    doc["paused"] = paused["paused"] or bool(doc.get("paused"))
+    if paused["pausedNote"]:
+        doc["pausedNote"] = paused["pausedNote"]
+    return doc
+
+
 @app.get("/api/fleet")
 def fleet_summary():
     """The crew: all forward-paper agents with equity, return, positions, status."""
@@ -1842,96 +1892,46 @@ def command_center():
 
     ov = models_overview()
 
-    # App module highlights for command center navigation
-    exp_path = ROOT / "data" / "trader_arena" / "experiment.json"
-    exp = _read_json(exp_path) or {}
-    om = exp.get("operatingModel") or {}
     meg_report = _read_json(ROOT / "data" / "intelligence" / "megamind" / "latest_report.json") or {}
     meg_recs = meg_report.get("recommendations") or []
     meg_pending = sum(1 for r in meg_recs if (r.get("status") or "") in ("pending", "proposed"))
-    penny_ml = _read_json(ROOT / "data" / "penny" / "ml" / "search_status.json") or {}
+    paused = _paused()
+    bench = _read_json(ROOT / "data" / "benchmark" / "scoreboard.json") or {}
 
-    pmp_root = Path(os.getenv("NOSTRA_PMP_ROOT", r"C:\Users\nicho\prediction-market-predictor"))
-    pmp_port = _read_json(pmp_root / "data" / "learning" / "portfolio.json") or {}
-
+    # Default nav: Deck / Robots / vs Market / Captain. Leftover desks stay
+    # on disk for deep links (mothball), not on the command-center tiles.
     app_modules = [
         {
-            "route": "markets",
-            "title": "Markets",
-            "icon": "◎",
-            "tagline": "Live ML-ranked universe",
-            "stat": f"{live_count:,} predictions",
+            "route": "home",
+            "title": "Deck",
+            "icon": "🪐",
+            "tagline": "Two questions: beat the 4 ETFs, beat cash",
+            "stat": "Forward paper",
             "tone": "ok",
         },
         {
             "route": "fleet",
-            "title": "The Fleet",
+            "title": "Robots",
             "icon": "\U0001f3f4\u200d\u2620\ufe0f",
-            "tagline": "Crew of ML agents · forward paper",
+            "tagline": "Sleeves first · agents as drill-down",
             "stat": "Walking forward",
             "tone": "ok",
         },
         {
-            "route": "investor",
-            "title": "Investor",
-            "icon": "◇",
-            "tagline": "Kelly allocator book",
-            "stat": f"{inv_sum.get('total_return_pct', 0):+.1f}% backtest" if inv_sum.get("total_return_pct") is not None else "Portfolio policy",
-            "tone": "ok" if (inv_sum.get("total_return_pct") or 0) > 0 else "muted",
-        },
-        {
-            "route": "arena",
-            "title": "Arena",
-            "icon": "⚔",
-            "tagline": "Evolutionary traders",
-            "stat": f"Pulse {', '.join(om.get('pulseVersions') or ['v1','v2','v3'])}" if om else "Trader genomes",
+            "route": "markets",
+            "title": "vs Market",
+            "icon": "◎",
+            "tagline": "SPY QQQ DIA IWM + cash-neutral",
+            "stat": f"{live_count:,} liquid names" if live_count else "Scoreboard",
             "tone": "ok",
         },
         {
             "route": "megamind",
-            "title": "Megamind",
-            "icon": "🧠",
-            "tagline": "Meta-agent improvements",
-            "stat": f"{meg_pending} pending approvals" if meg_pending else "Watching",
+            "title": "Captain",
+            "icon": "🤖",
+            "tagline": "Allocates. Does not file tickets.",
+            "stat": f"{meg_pending} pending" if meg_pending else "Watching",
             "tone": "warn" if meg_pending else "ok",
-        },
-        {
-            "route": "predictions",
-            "title": "Prophecy Markets",
-            "icon": "⊙",
-            "tagline": "Kalshi / Polymarket paper",
-            "stat": (
-                f"${pmp_port.get('totalEquityUsd', 0):,.0f} equity · {pmp_port.get('nOpen', 0)} open"
-                if pmp_port.get("nOpen") is not None else "Prediction sleeve"
-            ),
-            "tone": "ok" if pmp_port.get("totalEquityUsd") else "muted",
-        },
-        {
-            "route": "penny",
-            "title": "Penny Wolf",
-            "icon": "🐺",
-            "tagline": "Sub-$5 momentum desk",
-            "stat": (
-                f"ML obj {penny_ml.get('bestObjective', 0):.2f}"
-                if penny_ml.get("bestObjective") is not None else "Penny scanner"
-            ),
-            "tone": "ok",
-        },
-        {
-            "route": "trade",
-            "title": "Trade",
-            "icon": "↗",
-            "tagline": "Manifests & signals",
-            "stat": "Robinhood prep",
-            "tone": "muted",
-        },
-        {
-            "route": "architecture",
-            "title": "Stack & Edge",
-            "icon": "⬡",
-            "tagline": "How it all connects",
-            "stat": f"Health {ov.get('healthScore', 0)}/100",
-            "tone": "ok" if (ov.get("healthScore") or 0) >= 60 else "warn",
         },
     ]
 
@@ -1959,6 +1959,9 @@ def command_center():
             "npuAvailable": npu.get("available", []),
         },
         "appModules": app_modules,
+        "paused": paused["paused"],
+        "pausedNote": paused["pausedNote"],
+        "benchmark": bench,
         "brand": {
             "name": "Treasure Droid",
             "epithet": "Greedy Salvage Droid",

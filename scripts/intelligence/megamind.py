@@ -61,7 +61,7 @@ def _config() -> dict:
             "approveSecret": secret,
             "dashboardBaseUrl": "http://127.0.0.1:8000",
             "autoLaunch": "both",
-            "autoApproveEnabled": True,
+            "autoApproveEnabled": False,
             "autoApprovePriorities": ["critical", "high"],
             "cursorModel": "composer-2.5",
             "_note": "autoLaunch: ide | sdk | both | none. API key in config/megamind.secrets.json",
@@ -357,7 +357,10 @@ def auto_approve_high_priority(recs: list[dict]) -> None:
     order = {"critical": 0, "high": 1, "medium": 2, "info": 3}
     candidates = [
         r for r in recs
-        if r.get("status") == "proposed" and r.get("priority") in allowed
+        if r.get("status") == "proposed"
+        and r.get("priority") in allowed
+        and (r.get("area") or "") != "allocation"
+        and (r.get("kind") or "") not in {"set_weight", "retire", "shadow_new"}
     ]
     candidates.sort(key=lambda x: order.get(x.get("priority"), 9))
     for r in candidates[:1]:

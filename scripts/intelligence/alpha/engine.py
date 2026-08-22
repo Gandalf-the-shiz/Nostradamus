@@ -21,6 +21,8 @@ REPO = Path(__file__).resolve().parents[3]
 LIVE_CSV = REPO / "data" / "predictions_v3" / "live.csv"
 HIST_DIR = REPO / "data" / "historical"
 OUT_PATH = REPO / "data" / "intelligence" / "alpha" / "book.json"
+NEUTRAL_PATH = REPO / "data" / "intelligence" / "alpha" / "book_neutral.json"
+LONG_PATH = REPO / "data" / "intelligence" / "alpha" / "book_long.json"
 CONFIG_PATH = REPO / "config" / "alpha_engine.json"
 
 import sys
@@ -63,7 +65,7 @@ def _load_config() -> dict:
         from intelligence.alpha.sleeve_ic import load_effective_weights
 
         eff, mode = load_effective_weights()
-        if eff and mode in {"icir_forward", "static_fallback"}:
+        if eff and mode in {"icir_forward", "static_fallback", "shadow_wait"}:
             cfg["sleeve_weights"] = eff
             cfg["weight_mode"] = mode
     except Exception:
@@ -315,6 +317,32 @@ def build_alpha_frame(cfg: dict | None = None, panel: pd.DataFrame | None = None
     return df, used, cfg
 
 
+def _side_weights(side: pd.DataFrame, sign: float, cfg: dict, price_map: dict, gross: float) -> list[dict]:
+    if side.empty:
+        return []
+    raw = side["alpha"].abs()
+    if raw.sum() == 0:
+        w = pd.Series(1.0 / len(side), index=side.index)
+    else:
+        w = raw / raw.sum()
+    cap = float(cfg["max_name_weight"])
+    w = w.clip(upper=cap)
+    w = w / w.sum() if w.sum() > 0 else w
+    out = []
+    for (_, row), wt in zip(side.iterrows(), w):
+        out.append({
+            "symbol": row["symbol"],
+            "sector": row.get("sector", "—"),
+            "side": "long" if sign > 0 else "short",
+            "weight": round(float(wt) * gross * sign, 5),
+            "price": round(float(price_map.get(str(row["symbol"]).upper(), 0.0)), 2),
+            "alpha": round(float(row["alpha"]), 5),
+            "pred_proba_up": round(float(row.get("pred_proba_up", 0)), 4),
+            "pred_ret": round(float(row.get("pred_ret", 0)), 5),
+        })
+    return out
+
+
 def _build_book(df: pd.DataFrame, alpha: pd.Series, cfg: dict, price_map: dict | None = None) -> dict:
     price_map = price_map or {}
     work = df.copy()
@@ -326,35 +354,9 @@ def _build_book(df: pd.DataFrame, alpha: pd.Series, cfg: dict, price_map: dict |
 
     longs = work.head(k).copy()
     shorts = work.tail(k).copy()
-
-    def _weights(side: pd.DataFrame, sign: float) -> list[dict]:
-        if side.empty:
-            return []
-        raw = side["alpha"].abs()
-        if raw.sum() == 0:
-            w = pd.Series(1.0 / len(side), index=side.index)
-        else:
-            w = raw / raw.sum()
-        cap = float(cfg["max_name_weight"])
-        w = w.clip(upper=cap)
-        w = w / w.sum() if w.sum() > 0 else w
-        gross = float(cfg["gross_exposure"]) / 2.0
-        out = []
-        for (_, row), wt in zip(side.iterrows(), w):
-            out.append({
-                "symbol": row["symbol"],
-                "sector": row.get("sector", "—"),
-                "side": "long" if sign > 0 else "short",
-                "weight": round(float(wt) * gross * sign, 5),
-                "price": round(float(price_map.get(str(row["symbol"]).upper(), 0.0)), 2),
-                "alpha": round(float(row["alpha"]), 5),
-                "pred_proba_up": round(float(row.get("pred_proba_up", 0)), 4),
-                "pred_ret": round(float(row.get("pred_ret", 0)), 5),
-            })
-        return out
-
-    long_book = _weights(longs, +1.0)
-    short_book = _weights(shorts, -1.0)
+    half = float(cfg["gross_exposure"]) / 2.0
+    long_book = _side_weights(longs, +1.0, cfg, price_map, half)
+    short_book = _side_weights(shorts, -1.0, cfg, price_map, half)
     net = sum(p["weight"] for p in long_book + short_book)
     gross = sum(abs(p["weight"]) for p in long_book + short_book)
     return {
@@ -367,20 +369,46 @@ def _build_book(df: pd.DataFrame, alpha: pd.Series, cfg: dict, price_map: dict |
     }
 
 
+def _build_long_book(df: pd.DataFrame, alpha: pd.Series, cfg: dict, price_map: dict | None = None) -> dict:
+    """Long-only top-decile of neutralized alpha. No shorts."""
+    price_map = price_map or {}
+    work = df.copy()
+    work["alpha"] = alpha.reindex(work.index).fillna(0.0)
+    work = work.sort_values("alpha", ascending=False).reset_index(drop=True)
+    n = len(work)
+    k = max(int(cfg["min_names_per_side"]), int(n * float(cfg["top_frac"])))
+    k = min(k, n)
+    longs = work.head(k).copy()
+    long_book = _side_weights(longs, +1.0, cfg, price_map, float(cfg["gross_exposure"]))
+    net = sum(p["weight"] for p in long_book)
+    return {
+        "longs": long_book,
+        "shorts": [],
+        "nLong": len(long_book),
+        "nShort": 0,
+        "netExposure": round(net, 4),
+        "grossExposure": round(sum(abs(p["weight"]) for p in long_book), 4),
+    }
+
+
 def run() -> dict:
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     df, used, cfg = build_alpha_frame()
     if df is None or df.empty:
         doc = {"generatedAt": _now(), "ok": False, "message": "no tradeable live data"}
         OUT_PATH.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+        NEUTRAL_PATH.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+        LONG_PATH.write_text(json.dumps({**doc, "product": "long_etf"}, indent=2), encoding="utf-8")
         return doc
 
     price_map = dict(zip(df["symbol"], df["price"]))
     book = _build_book(df, df["alpha"], cfg, price_map)
+    long_book = _build_long_book(df, df["alpha"], cfg, price_map)
 
     doc = {
         "generatedAt": _now(),
         "ok": True,
+        "product": "neutral",
         "universe": int(len(df)),
         "sleevesUsed": {n: cfg["sleeve_weights"].get(n) for n in used},
         "weightMode": cfg.get("weight_mode", "static_config"),
@@ -389,9 +417,24 @@ def run() -> dict:
         "note": "Market-neutral candidate. Forward IC must be proven before capital.",
     }
     OUT_PATH.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+    NEUTRAL_PATH.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+
+    long_doc = {
+        "generatedAt": doc["generatedAt"],
+        "ok": True,
+        "product": "long_etf",
+        "universe": int(len(df)),
+        "sleevesUsed": doc["sleevesUsed"],
+        "weightMode": doc["weightMode"],
+        "config": cfg,
+        "book": long_book,
+        "note": "Long-only top-decile of neutralized alpha. Sector residual is already in the alpha column. Paper only.",
+    }
+    LONG_PATH.write_text(json.dumps(long_doc, indent=2), encoding="utf-8")
     print(
         f"[alpha-engine] universe={len(df)} sleeves={used} "
-        f"long={book['nLong']} short={book['nShort']} net={book['netExposure']}",
+        f"long={book['nLong']} short={book['nShort']} net={book['netExposure']} "
+        f"long_etf={long_book['nLong']}",
         flush=True,
     )
     return doc

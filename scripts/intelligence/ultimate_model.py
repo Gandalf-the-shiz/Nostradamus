@@ -107,11 +107,7 @@ def _forward_context() -> dict:
 
 
 def _captain_recommendations(ctx: dict) -> list[dict]:
-    """Treasure Droid's forward/fleet-driven next actions (human approves from email/UI).
-
-    Stable finding/action text so each dedupes to one registry id (no daily churn);
-    live numbers go in `detail`. Medium priority => surfaced for approval, not auto-spawned
-    (except the consumer-sentiment feed, which is the highest-ROI new sleeve)."""
+    """Captain allocates. No coding tickets, no Cursor spawn rules, no auto-approve."""
     recs: list[dict] = []
     leader = ctx.get("fleetLeader") or {}
     laggards = [a for a in (ctx.get("fleetAgents") or []) if a.get("returnPct") is not None]
@@ -119,159 +115,66 @@ def _captain_recommendations(ctx: dict) -> list[dict]:
 
     if leader:
         recs.append({
-            "priority": "medium", "area": "fleet_allocation",
+            "kind": "set_weight",
+            "priority": "medium",
+            "area": "allocation",
             "finding": "Capital should follow the forward-paper leader of the crew, not sim winners.",
-            "action": "Allocate more of the Alpaca paper book to the leading forward agent and demote laggards as track records build.",
+            "action": "set_weight: raise paper allocation to the leading forward agent; cut laggards.",
             "detail": f"Leader {leader.get('name')} {leader.get('returnPct')}% | laggard {worst.get('name')} {worst.get('returnPct')}%",
         })
-
-    recs.append({
-        "priority": "medium", "area": "data_pipelines",
-        "finding": "Consumer/crowd sentiment is an ML-proxy only \u2014 a real consumer-sentiment feed is the biggest untapped uncorrelated sleeve.",
-        "action": "Build a consumer-sentiment pipeline (Reddit + news + Google Trends), wire it as a new alpha sleeve and a Treasure Arena feed, and prove forward IC before weighting it.",
-        "spawnSpec": {"action": "auto", "label": "Treasure Droid \u2014 consumer sentiment feed",
-                      "selection_mode": "rank_v2", "feed_name": "arena_consumer_sentiment"},
-    })
 
     decayed = ctx.get("decayedSleeves") or []
     if decayed:
         recs.append({
-            "priority": "medium", "area": "sleeve_decay",
-            "finding": "Per-sleeve forward IC shows decay — some alpha sleeves are hurting the blend.",
-            "action": "Review decayed sleeves on the Bridge scoreboard; keep them at zero weight until trailing forward IC turns positive.",
-            "detail": f"decayed: {', '.join(decayed)} | weight mode {ctx.get('sleeveWeightMode')}",
+            "kind": "set_weight",
+            "priority": "medium",
+            "area": "allocation",
+            "finding": "Per-sleeve forward IC shows decay — those sleeves should not run the book.",
+            "action": f"set_weight: keep {', '.join(decayed)} at 0 until trailing forward IC is positive.",
+            "detail": f"weight mode {ctx.get('sleeveWeightMode')}",
         })
 
-    recs.append({
-        "priority": "medium", "area": "arena_expansion",
-        "finding": "Worth testing whether tilting genome/sleeve weights toward fundamental sleeves (PEAD, analyst revisions) raises forward IC.",
-        "action": "Spawn a Treasure Arena vX with re-weighted genomes and compare its forward IC against the champion before promoting.",
-        "detail": f"alpha spread {ctx.get('alphaSpread')}, ICIR {ctx.get('alphaIcir')}, sleeve forward days {ctx.get('sleeveForwardDays')}",
-        "spawnSpec": {"action": "auto", "label": "Treasure Droid \u2014 re-weighted arena",
-                      "selection_mode": "rank_v2", "feed_name": "arena_reweighted"},
-    })
+    days = int(ctx.get("sleeveForwardDays") or 0)
+    if days < 20:
+        recs.append({
+            "kind": "shadow_new",
+            "priority": "info",
+            "area": "allocation",
+            "finding": f"Sleeve factory has {days}/20 forward days — nothing earns a live weight yet.",
+            "action": "shadow_new: hold all sleeves in shadow until 20 forward days and a positive ICIR.",
+            "detail": f"weight mode {ctx.get('sleeveWeightMode')}",
+        })
 
-    days = ctx.get("liveIcDays") or 0
-    mic = ctx.get("liveIcMean")
-    supportive = bool(days >= 20 and mic is not None and mic >= 0.01)
-    recs.append({
-        "priority": "high", "area": "mad_scientist_lab",
-        "finding": "Mad Scientist Lab walks 500 genomes day-by-day on the 2yr historical panel (matching live outputs). Survivors need forward paper proof next.",
-        "action": "Review lab leaderboard on Bridge; ensure weekly lab run promotes shadow fleet agents; kill laggards after 20d forward.",
-        "detail": f"sleeve forward days {ctx.get('sleeveForwardDays')}, weight mode {ctx.get('sleeveWeightMode')}",
-    })
-
-    recs.append({
-        "priority": "medium", "area": "model_promotion",
-        "finding": "ML challengers should only be promoted on forward proof, never backtest.",
-        "action": ("Forward IC clears the gate \u2014 run promotion_gate_v3 + promotion_gate_investor to promote challengers."
-                   if supportive else
-                   "Keep accumulating forward IC before promoting challengers; gate not yet cleared."),
-        "detail": f"live forward IC {mic} over {days}/20 days",
-    })
+    if worst and (worst.get("returnPct") or 0) < 0 and worst.get("id"):
+        recs.append({
+            "kind": "retire",
+            "priority": "medium",
+            "area": "allocation",
+            "finding": "A forward-paper agent is underwater — prune should retire it after 20 days.",
+            "action": f"retire: {worst.get('id')} if 20-day forward return stays ≤ 0.",
+            "detail": f"{worst.get('name')} {worst.get('returnPct')}%",
+        })
     return recs
 
 
 def _build_recommendations(v1: dict, v2: dict, compare: dict) -> list[dict]:
-    recs = []
-    v2_wins = compare.get("v2BeatingV1")
-    if v2_wins is True:
+    """Allocation recs only. No live_gate / data_pipelines tickets, no Cursor spawnSpec."""
+    recs: list[dict] = []
+    top_syms = [s for s, _ in (v1.get("topSymbols") or [])[:3] if s]
+    if top_syms:
         recs.append({
-            "priority": "high",
-            "area": "arena_selection",
-            "finding": "Arena v2 (rank-unified) leads v1 on mean cumulative return.",
-            "action": "Consider promoting rank_v2 selection into investor manifests after forward validation.",
-        })
-    elif v2_wins is False:
-        recs.append({
+            "kind": "retire",
             "priority": "medium",
-            "area": "arena_selection",
-            "finding": "Arena v1 still ahead on cumulative mean — threshold gate may be filtering noise.",
-            "action": "Keep v1 for production hints; use v2 for diversification research only.",
+            "area": "allocation",
+            "finding": f"Sim winners still cluster in {top_syms} (often warrants/units).",
+            "action": "retire: keep those names out of the live panel via the fail-closed universe; do not spawn a new arena.",
+            "detail": "Helios tradeable filter (suffix + 20d ADV) is the capital path, not another genome.",
         })
 
-    if v1.get("avgTradesPerPulse", 0) < 1.5:
-        recs.append({
-            "priority": "high",
-            "area": "v1_starvation",
-            "finding": "v1 agents often take 0-1 trades (strict proba/pred_ret filters on sparse panel).",
-            "action": "Already addressed in v2; do not tighten v1 further.",
-        })
-
-    if v2.get("avgTradesPerPulse", 0) > 3:
-        recs.append({
-            "priority": "info",
-            "area": "v2_diversification",
-            "finding": "v2 holds more names per book — better use of 800-symbol panel.",
-            "action": "Monitor forward IC; sim returns still upper bound.",
-        })
-
-    top_syms = set(s for s, _ in (v1.get("topSymbols") or [])[:3])
-    if top_syms and len(top_syms) <= 3:
-        recs.append({
-            "priority": "high",
-            "area": "concentration_risk",
-            "finding": f"Winners cluster in {list(top_syms)} (often warrants).",
-            "action": "Megamind will update the best v3+ arm or spawn a new one (profit-focused) — v1/v2 frozen.",
-            "spawnSpec": {
-                "action": "auto",
-                "label": "Megamind experimental — liquidity-aware rank panel",
-                "selection_mode": "rank_v2",
-                "feed_name": "arena_v3_liquidity_panel",
-            },
-        })
-
-    from intelligence.arena.operating import champion_version
-
-    if not champion_version() and v2_wins is True:
-        recs.append({
-            "priority": "medium",
-            "area": "arena_expansion",
-            "finding": "v2 leads v1; no experimental arm beyond frozen baselines yet.",
-            "action": "Megamind will spawn or improve v3+ to hunt profit beyond frozen baselines.",
-            "spawnSpec": {
-                "action": "auto",
-                "label": "Megamind rank-unified experimental",
-                "selection_mode": "rank_v2",
-                "feed_name": "arena_v3_panel",
-            },
-        })
-
-    recs.append({
-        "priority": "high",
-        "area": "data_pipelines",
-        "finding": "Insider Form 4 and Reddit crowd feeds remain weak or blocked.",
-        "action": "Keep SEC insider fetch on schedule; crowd uses ML-proxy until Reddit API restored.",
-    })
-
-    recs.append({
-        "priority": "critical",
-        "area": "live_gate",
-        "finding": "Arena sim profit does not prove forward edge.",
-        "action": "Ultimate Model must not open live trading — only suggest paper experiments.",
-    })
-
-    # Treasure Droid captain — forward/fleet-driven next actions
     try:
         recs.extend(_captain_recommendations(_forward_context()))
     except Exception as exc:  # noqa: BLE001
         print(f"[treasure-droid] captain recs skipped: {exc}", flush=True)
-
-    from intelligence.arena.decision import enrich_spawn_spec
-
-    report_stub = {"compare": compare, "v1": v1, "v2": v2}
-    for r in recs:
-        if r.get("spawnSpec") is not None or (r.get("area") or "") in (
-            "concentration_risk", "arena_expansion", "arena_spawn", "data_pipelines"
-        ):
-            if "spawnSpec" not in r:
-                r["spawnSpec"] = {"action": "auto"}
-            r["spawnSpec"] = enrich_spawn_spec(r, report_stub)
-            if r["spawnSpec"].get("reason"):
-                r["megamindPlan"] = (
-                    f"{r['spawnSpec'].get('action', 'auto').upper()} "
-                    f"{r['spawnSpec'].get('version') or 'new arm'}: {r['spawnSpec']['reason']}"
-                )
     return recs
 
 

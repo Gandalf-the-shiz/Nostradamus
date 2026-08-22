@@ -43,35 +43,55 @@ function agentCard(a, leaderId) {
   </button>`;
 }
 
+function sleeveCard(s) {
+  const tone = s.status === 'live' ? 'ok' : (s.status === 'killed' ? 'neg' : 'warn');
+  const rho = s.pairwiseRho
+    ? Object.entries(s.pairwiseRho).slice(0, 3).map(([k, v]) => `${k} ${Number(v).toFixed(2)}`).join(' · ')
+    : '';
+  return `<div class="td-agent-card td-agent-card--v2">
+    <div class="td-agent-card__top">
+      <span class="td-agent-card__name">${s.label || s.id}</span>
+      ${statusPill(s.status)}
+    </div>
+    <div class="td-agent-card__big ${tone === 'ok' ? 'edge-pos' : (tone === 'neg' ? 'edge-neg' : '')}">${s.weight != null ? Number(s.weight).toFixed(2) : '—'}</div>
+    <div class="td-agent-card__row">
+      <span>IC ${s.forwardIC != null ? Number(s.forwardIC).toFixed(3) : '—'}</span>
+      <span>${s.nDays || 0}d · ${s.family || ''}</span>
+    </div>
+    <span class="td-agent-card__cta">${rho || s.horizon || 'shadow until 20d'}</span>
+  </div>`;
+}
+
 export async function renderFleet(main, route = {}, stale = () => false) {
   if (route.agentId) return renderAgent(main, route.agentId, stale);
 
-  main.innerHTML = '<div class="rh-loading">Mustering spawns…</div>';
+  main.innerHTML = '<div class="rh-loading">Mustering the crew…</div>';
   let data;
+  let sleeves = { sleeves: [] };
   try { data = await api.fleet(); } catch (e) {
-    main.innerHTML = `<section class="rh-card"><h2>🏴‍☠️ The Fleet</h2><p class="rh-muted">${e.message}</p></section>`;
-    return;
+    data = { ok: false, message: e.message, agents: [] };
   }
+  try { sleeves = await api.sleeves(); } catch (_) { sleeves = { sleeves: [] }; }
   if (stale()) return;
-  if (!data.ok) {
-    main.innerHTML = `<section class="rh-card"><h2>🏴‍☠️ The Fleet</h2><p class="rh-muted">${data.message || 'No fleet data yet.'}</p></section>`;
-    return;
-  }
 
   const agents = data.agents || [];
   const leaderId = data.leader?.id;
   const leader = agents.find((a) => a.id === leaderId);
+  const crew = sleeves.sleeves || [];
 
   main.innerHTML = `
     <header class="td-fleet-hero">
-      <h2 class="td-fleet-hero__title">🏴‍☠️ The Fleet</h2>
-      <p class="td-fleet-hero__sub">Every spawn walks forward on paper. I promote the greediest survivor — not the best backtest.</p>
+      <h2 class="td-fleet-hero__title">🏴‍☠️ Robots</h2>
+      <p class="td-fleet-hero__sub">Sleeves are the capital path. Agent personalities stay as drill-down — they do not run the book.</p>
       <div class="td-fleet-hero__stats">
-        <span class="rh-chip rh-chip--ok">${agents.length} spawns</span>
-        <span class="rh-chip">${data.date || '—'}</span>
-        ${leader ? `<span class="rh-chip">Leader <b>${leader.name || leader.id}</b> ${fmtPct(leader.returnPct)}</span>` : ''}
+        <span class="rh-chip rh-chip--ok">${crew.length} sleeves</span>
+        <span class="rh-chip">${sleeves.weightMode || 'shadow'}</span>
+        ${sleeves.rhoSkipped ? '<span class="rh-chip">ρ skipped (thin snapshots)</span>' : ''}
       </div>
     </header>
+    <p class="td-section-label">The crew · sleeves</p>
+    <div class="td-fleet-grid">${crew.length ? crew.map(sleeveCard).join('') : '<p class="rh-muted">No sleeve registry yet — next post-close writes it.</p>'}</div>
+    <p class="td-section-label">Agent drill-down · not the capital path</p>
     <div class="td-fleet-grid">${agents.map((a) => agentCard(a, leaderId)).join('')}</div>`;
 
   main.querySelectorAll('.td-agent-card').forEach((b) =>

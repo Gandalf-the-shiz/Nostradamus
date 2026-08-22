@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, str(REPO / "scripts"))
 from intelligence.alpha.engine import build_alpha_frame  # noqa: E402
-from intelligence.fleet import paper, registry  # noqa: E402
+from intelligence.fleet import paper, prune, registry  # noqa: E402
 
 
 def _now() -> str:
@@ -36,9 +36,16 @@ def run() -> dict:
     sleeve_cols = [f"n_{s}" for s in sleeves_used]
     date = str(df["date"].max()) if "date" in df.columns else datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
+    try:
+        prune.prune()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[fleet] prune skipped: {exc}", flush=True)
+
     reg = registry.load_registry()
     results = []
     for agent in reg.get("agents", []):
+        if str(agent.get("status") or "").lower() == "retired":
+            continue
         try:
             results.append(paper.step_agent(agent, df, date, sleeve_cols, cfg,
                                             starting_cash=float(agent.get("capital", 100000.0))))
