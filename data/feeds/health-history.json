@@ -3231,6 +3231,47 @@
           "latencyMs": 0.0
         }
       }
+    },
+    {
+      "timestamp": "2026-08-27T12:49:45Z",
+      "criticalReady": true,
+      "providers": {
+        "yfinance": {
+          "ok": true,
+          "rows": 10,
+          "latencyMs": 615.46
+        },
+        "gdelt": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 50639.7
+        },
+        "stooq": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 0.0
+        },
+        "fred": {
+          "ok": true,
+          "rows": 89,
+          "latencyMs": 549.09
+        },
+        "reddit": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 110.82
+        },
+        "tiingo": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 0.0
+        },
+        "alphavantage": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 0.0
+        }
+      }
     }
   ]
 }
