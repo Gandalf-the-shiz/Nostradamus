@@ -1,39 +1,9 @@
 {
-  "updatedAt": "2026-08-14T12:38:07Z",
+  "updatedAt": "2026-09-01T12:42:44Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
-    {
-      "company": "NorthStrive Acquisition Corp I.",
-      "symbol": "NSAIU",
-      "expectedDate": "2026-08-14",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.115,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "Advasa Holdings, Inc.",
-      "symbol": "ADBT",
-      "expectedDate": "2026-08-17",
-      "exchange": "NASDAQ Global",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.0,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "Lyntris Inc.",
-      "symbol": "LYNX",
-      "expectedDate": "2026-08-19",
-      "exchange": "NYSE",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.607,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
     {
       "company": "SIYATA PTT",
       "symbol": "PTT",
