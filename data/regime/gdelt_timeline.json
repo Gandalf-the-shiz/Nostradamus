@@ -1,6 +1,23 @@
 {
-  "generatedAt": "2026-09-03T09:41:34Z",
+  "generatedAt": "2026-09-04T09:41:27Z",
   "lookbackDays": 90,
-  "rowCount": 0,
-  "rows": []
+  "rowCount": 2,
+  "rows": [
+    {
+      "date": "2026-09-03",
+      "avgTone": 0.0315,
+      "articleCount": 0,
+      "gdelt_tone_norm": 0.0,
+      "gdelt_tone_delta_5d": 0.0,
+      "gdelt_article_z": 0.0
+    },
+    {
+      "date": "2026-09-04",
+      "avgTone": 0.7028,
+      "articleCount": 0,
+      "gdelt_tone_norm": 1.0,
+      "gdelt_tone_delta_5d": 1.0,
+      "gdelt_article_z": 0.0
+    }
+  ]
 }
