@@ -1,18 +1,7 @@
 {
-  "updatedAt": "2026-09-08T12:43:53Z",
+  "updatedAt": "2026-09-09T12:43:55Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
-  "ipos": [
-    {
-      "company": "SIYATA PTT",
-      "symbol": "PTT",
-      "expectedDate": "2026-09-08",
-      "exchange": "NASDAQ Capital",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.0,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    }
-  ]
+  "ipos": []
 }
