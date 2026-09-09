@@ -1,42 +1,6 @@
 {
   "entries": [
     {
-      "timestamp": "2026-05-29T01:01:55Z",
-      "criticalReady": true,
-      "providers": {
-        "yfinance": {
-          "ok": true,
-          "rows": 9,
-          "latencyMs": 2317.54
-        },
-        "stooq": {
-          "ok": false,
-          "rows": 0,
-          "latencyMs": 0.0
-        },
-        "fred": {
-          "ok": false,
-          "rows": 0,
-          "latencyMs": 30328.82
-        },
-        "gdelt": {
-          "ok": true,
-          "rows": 8,
-          "latencyMs": 29242.49
-        },
-        "tiingo": {
-          "ok": false,
-          "rows": 0,
-          "latencyMs": 0.0
-        },
-        "alphavantage": {
-          "ok": false,
-          "rows": 0,
-          "latencyMs": 0.0
-        }
-      }
-    },
-    {
       "timestamp": "2026-05-29T01:30:01Z",
       "criticalReady": true,
       "providers": {
@@ -3622,6 +3586,47 @@
           "ok": false,
           "rows": 0,
           "latencyMs": 273.51
+        },
+        "tiingo": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 0.0
+        },
+        "alphavantage": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-09T09:31:24Z",
+      "criticalReady": true,
+      "providers": {
+        "yfinance": {
+          "ok": true,
+          "rows": 9,
+          "latencyMs": 346.45
+        },
+        "gdelt": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 49325.57
+        },
+        "stooq": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 0.0
+        },
+        "fred": {
+          "ok": true,
+          "rows": 89,
+          "latencyMs": 502.97
+        },
+        "reddit": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 101.42
         },
         "tiingo": {
           "ok": false,
