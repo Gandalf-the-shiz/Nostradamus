@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-16T12:43:41Z",
+  "updatedAt": "2026-09-17T12:44:18Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
@@ -33,6 +33,16 @@
       "expectedDealSizeUsdBn": 1.035,
       "underwriterTier": 2,
       "riskLevel": "medium"
+    },
+    {
+      "company": "Amaero Inc.",
+      "symbol": "AMRO",
+      "expectedDate": "2026-09-23",
+      "exchange": "NASDAQ Global Select",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.061,
+      "underwriterTier": 2,
+      "riskLevel": "high"
     },
     {
       "company": "Bamboo Insurance Services, Inc.",
