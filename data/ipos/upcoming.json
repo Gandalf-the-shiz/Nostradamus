@@ -1,39 +1,9 @@
 {
-  "updatedAt": "2026-09-18T12:42:07Z",
+  "updatedAt": "2026-09-21T12:41:54Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
-    {
-      "company": "Electra Therapeutics, Inc.",
-      "symbol": "ETRA",
-      "expectedDate": "2026-09-18",
-      "exchange": "NASDAQ Global Select",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.399,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "Orion180 Insurance Group Inc.",
-      "symbol": "OIG",
-      "expectedDate": "2026-09-18",
-      "exchange": "NASDAQ Global Select",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.391,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "Holtec Nuclear Corp",
-      "symbol": "HNUC",
-      "expectedDate": "2026-09-18",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 1.035,
-      "underwriterTier": 2,
-      "riskLevel": "medium"
-    },
     {
       "company": "Amaero Inc.",
       "symbol": "AMRO",
