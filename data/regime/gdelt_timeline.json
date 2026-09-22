@@ -1,22 +1,14 @@
 {
-  "generatedAt": "2026-09-21T09:48:10Z",
+  "generatedAt": "2026-09-22T09:41:05Z",
   "lookbackDays": 90,
   "rowCount": 24,
   "rows": [
-    {
-      "date": "2026-08-23",
-      "avgTone": 0.4474,
-      "articleCount": 0,
-      "gdelt_tone_norm": 0.7914,
-      "gdelt_tone_delta_5d": 0.0,
-      "gdelt_article_z": 0.0
-    },
     {
       "date": "2026-08-24",
       "avgTone": 0.1161,
       "articleCount": 0,
       "gdelt_tone_norm": 0.2592,
-      "gdelt_tone_delta_5d": -0.5321,
+      "gdelt_tone_delta_5d": 0.0,
       "gdelt_article_z": 0.0
     },
     {
@@ -24,7 +16,7 @@
       "avgTone": 0.1873,
       "articleCount": 0,
       "gdelt_tone_norm": 0.3736,
-      "gdelt_tone_delta_5d": -0.1517,
+      "gdelt_tone_delta_5d": 0.1144,
       "gdelt_article_z": 0.0
     },
     {
@@ -32,7 +24,7 @@
       "avgTone": 0.3333,
       "articleCount": 0,
       "gdelt_tone_norm": 0.6081,
-      "gdelt_tone_delta_5d": 0.1334,
+      "gdelt_tone_delta_5d": 0.2917,
       "gdelt_article_z": 0.0
     },
     {
@@ -40,7 +32,7 @@
       "avgTone": 0.4873,
       "articleCount": 0,
       "gdelt_tone_norm": 0.8554,
-      "gdelt_tone_delta_5d": 0.3474,
+      "gdelt_tone_delta_5d": 0.4418,
       "gdelt_article_z": 0.0
     },
     {
@@ -189,10 +181,18 @@
     },
     {
       "date": "2026-09-21",
-      "avgTone": 0.1675,
+      "avgTone": 0.1762,
       "articleCount": 0,
-      "gdelt_tone_norm": 0.3418,
-      "gdelt_tone_delta_5d": -0.1162,
+      "gdelt_tone_norm": 0.3558,
+      "gdelt_tone_delta_5d": -0.1022,
+      "gdelt_article_z": 0.0
+    },
+    {
+      "date": "2026-09-22",
+      "avgTone": 0.5197,
+      "articleCount": 0,
+      "gdelt_tone_norm": 0.9075,
+      "gdelt_tone_delta_5d": 0.4468,
       "gdelt_article_z": 0.0
     }
   ]
