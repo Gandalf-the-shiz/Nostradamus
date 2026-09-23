@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-22T12:44:04Z",
+  "updatedAt": "2026-09-23T12:45:05Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
@@ -23,6 +23,26 @@
       "expectedDealSizeUsdBn": 0.805,
       "underwriterTier": 2,
       "riskLevel": "medium"
+    },
+    {
+      "company": "ADARx Pharmaceuticals, Inc.",
+      "symbol": "ADRX",
+      "expectedDate": "2026-09-25",
+      "exchange": "NASDAQ Global Select",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.428,
+      "underwriterTier": 2,
+      "riskLevel": "high"
+    },
+    {
+      "company": "Oura Inc.",
+      "symbol": "OURA",
+      "expectedDate": "2026-09-30",
+      "exchange": "NASDAQ Global Select",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 2.53,
+      "underwriterTier": 2,
+      "riskLevel": "low"
     },
     {
       "company": "SIYATA PTT",
