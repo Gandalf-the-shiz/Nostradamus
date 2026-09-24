@@ -1,29 +1,9 @@
 {
-  "updatedAt": "2026-09-23T12:45:05Z",
+  "updatedAt": "2026-09-24T12:45:16Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
-    {
-      "company": "Amaero Inc.",
-      "symbol": "AMRO",
-      "expectedDate": "2026-09-23",
-      "exchange": "NASDAQ Global Select",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.061,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "Bamboo Insurance Services, Inc.",
-      "symbol": "BMB",
-      "expectedDate": "2026-09-23",
-      "exchange": "NYSE",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.805,
-      "underwriterTier": 2,
-      "riskLevel": "medium"
-    },
     {
       "company": "ADARx Pharmaceuticals, Inc.",
       "symbol": "ADRX",
@@ -43,6 +23,16 @@
       "expectedDealSizeUsdBn": 2.53,
       "underwriterTier": 2,
       "riskLevel": "low"
+    },
+    {
+      "company": "Accelevation Holdings Corp.",
+      "symbol": "ACCV",
+      "expectedDate": "2026-09-30",
+      "exchange": "NASDAQ Global Select",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.828,
+      "underwriterTier": 2,
+      "riskLevel": "medium"
     },
     {
       "company": "SIYATA PTT",
