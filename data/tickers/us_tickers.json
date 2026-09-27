@@ -2,14 +2,14 @@
   "metadata": {
     "source": "SEC EDGAR",
     "url": "https://www.sec.gov/files/company_tickers_exchange.json",
-    "fetchedAt": "2026-09-20T00:33:09Z",
-    "totalTickers": 7227,
+    "fetchedAt": "2026-09-27T00:34:45Z",
+    "totalTickers": 7219,
     "exchanges": {
       "NYSE": 2857,
-      "NASDAQ": 4370
+      "NASDAQ": 4362
     },
     "sectors": {
-      "Other": 7227
+      "Other": 7219
     }
   },
   "tickers": [
@@ -2590,14 +2590,6 @@
       "sicCode": null
     },
     {
-      "symbol": "ALPX",
-      "name": "Alpex Acquisition Corp",
-      "cik": "0002125551",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "ALPXR",
       "name": "Alpex Acquisition Corp",
       "cik": "0002125551",
@@ -3033,6 +3025,14 @@
       "symbol": "AMRN",
       "name": "AMARIN CORP PLC\\UK",
       "cik": "0000897448",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "AMRO",
+      "name": "Amaero Inc.",
+      "cik": "0002141616",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -8362,14 +8362,6 @@
       "name": "BARNWELL INDUSTRIES INC",
       "cik": "0000010048",
       "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "BRNS",
-      "name": "Barinthus Biotherapeutics plc.",
-      "cik": "0001828185",
-      "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
     },
@@ -14102,14 +14094,6 @@
       "sicCode": null
     },
     {
-      "symbol": "CYCN",
-      "name": "Korsana Biosciences, Inc.",
-      "cik": "0001755237",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "CYCU",
       "name": "Cycurion, Inc.",
       "cik": "0001868419",
@@ -15439,7 +15423,7 @@
     },
     {
       "symbol": "DOMO",
-      "name": "DOMO, INC.",
+      "name": "Huckleberry.ai, Inc.",
       "cik": "0001505952",
       "exchange": "NASDAQ",
       "sector": "Other",
@@ -19094,14 +19078,6 @@
       "sicCode": null
     },
     {
-      "symbol": "FEED",
-      "name": "ENvue Medical, Inc.",
-      "cik": "0001326706",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "FEIM",
       "name": "FREQUENCY ELECTRONICS INC",
       "cik": "0000039020",
@@ -22294,14 +22270,6 @@
       "sicCode": null
     },
     {
-      "symbol": "GLMD",
-      "name": "Galmed Pharmaceuticals Ltd.",
-      "cik": "0001595353",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "GLND",
       "name": "Greenland Energy Co",
       "cik": "0002093507",
@@ -24119,7 +24087,7 @@
     },
     {
       "symbol": "HCWC",
-      "name": "HEALTHY CHOICE WELLNESS CORP.",
+      "name": "Host Digital Inc.",
       "cik": "0001948864",
       "exchange": "NYSE",
       "sector": "Other",
@@ -24769,6 +24737,14 @@
       "symbol": "HOS",
       "name": "HORNBECK OFFSHORE SERVICES, INC.",
       "cik": "0000866829",
+      "exchange": "NYSE",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
+      "symbol": "HOST",
+      "name": "Host Digital Inc.",
+      "cik": "0001948864",
       "exchange": "NYSE",
       "sector": "Other",
       "sicCode": null
@@ -29626,22 +29602,6 @@
       "name": "Klaviyo, Inc.",
       "cik": "0001835830",
       "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "KWM",
-      "name": "Nexus Advanced Technologies Inc.",
-      "cik": "0002000756",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "KWMWW",
-      "name": "Nexus Advanced Technologies Inc.",
-      "cik": "0002000756",
-      "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
     },
@@ -37446,6 +37406,14 @@
       "sicCode": null
     },
     {
+      "symbol": "NWCL",
+      "name": "newcleo plc",
+      "cik": "0002131813",
+      "exchange": "NASDAQ",
+      "sector": "Other",
+      "sicCode": null
+    },
+    {
       "symbol": "NWE",
       "name": "NorthWestern Energy Group, Inc.",
       "cik": "0001993004",
@@ -40798,14 +40766,6 @@
       "sicCode": null
     },
     {
-      "symbol": "PHGE",
-      "name": "Tessera Defense & Homeland Security Inc.",
-      "cik": "0001739174",
-      "exchange": "NYSE",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "PHI",
       "name": "PLDT Inc.",
       "cik": "0000078150",
@@ -43281,14 +43241,6 @@
       "symbol": "RAVE",
       "name": "RAVE RESTAURANT GROUP, INC.",
       "cik": "0000718332",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "RAY",
-      "name": "Raytech Holding Ltd",
-      "cik": "0001948443",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
@@ -48070,14 +48022,6 @@
       "sicCode": null
     },
     {
-      "symbol": "SOBR",
-      "name": "SOBR Safe, Inc.",
-      "cik": "0001425627",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
       "symbol": "SOC",
       "name": "Sable Offshore Corp.",
       "cik": "0001831481",
@@ -51305,14 +51249,6 @@
       "symbol": "TMCR",
       "name": "Metals Royalty Co Inc.",
       "cik": "0002087398",
-      "exchange": "NASDAQ",
-      "sector": "Other",
-      "sicCode": null
-    },
-    {
-      "symbol": "TMCWW",
-      "name": "TMC the metals Co Inc.",
-      "cik": "0001798562",
       "exchange": "NASDAQ",
       "sector": "Other",
       "sicCode": null
