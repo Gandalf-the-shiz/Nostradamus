@@ -1,48 +1,7 @@
 {
-  "updatedAt": "2026-09-25T12:46:04Z",
+  "updatedAt": "2026-10-01T12:48:22Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
-  "ipos": [
-    {
-      "company": "ADARx Pharmaceuticals, Inc.",
-      "symbol": "ADRX",
-      "expectedDate": "2026-09-25",
-      "exchange": "NASDAQ Global Select",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.428,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "Oura Inc.",
-      "symbol": "OURA",
-      "expectedDate": "2026-09-30",
-      "exchange": "NASDAQ Global Select",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 2.53,
-      "underwriterTier": 2,
-      "riskLevel": "low"
-    },
-    {
-      "company": "Accelevation Holdings Corp.",
-      "symbol": "ACCV",
-      "expectedDate": "2026-09-30",
-      "exchange": "NASDAQ Global Select",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.828,
-      "underwriterTier": 2,
-      "riskLevel": "medium"
-    },
-    {
-      "company": "SIYATA PTT",
-      "symbol": "PTT",
-      "expectedDate": "2026-09-30",
-      "exchange": "NASDAQ Capital",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.0,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    }
-  ]
+  "ipos": []
 }
