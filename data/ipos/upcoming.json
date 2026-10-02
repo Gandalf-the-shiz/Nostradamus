@@ -1,7 +1,18 @@
 {
-  "updatedAt": "2026-10-01T12:48:22Z",
+  "updatedAt": "2026-10-02T12:48:15Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
-  "ipos": []
+  "ipos": [
+    {
+      "company": "AfterNext Acquisition I Corp.",
+      "symbol": "AFNXU",
+      "expectedDate": "2026-10-07",
+      "exchange": "NASDAQ Global",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.115,
+      "underwriterTier": 2,
+      "riskLevel": "high"
+    }
+  ]
 }
