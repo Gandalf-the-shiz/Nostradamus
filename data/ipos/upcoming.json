@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-06T12:48:28Z",
+  "updatedAt": "2026-10-07T12:49:18Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
@@ -11,6 +11,26 @@
       "exchange": "NASDAQ Global",
       "sector": "Other",
       "expectedDealSizeUsdBn": 0.115,
+      "underwriterTier": 2,
+      "riskLevel": "high"
+    },
+    {
+      "company": "TRex Bio, Inc.",
+      "symbol": "TRXB",
+      "expectedDate": "2026-10-09",
+      "exchange": "NASDAQ Global Select",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.153,
+      "underwriterTier": 2,
+      "riskLevel": "high"
+    },
+    {
+      "company": "Retension Pharmaceuticals, Inc.",
+      "symbol": "RTSN",
+      "expectedDate": "2026-10-09",
+      "exchange": "NASDAQ Capital",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.049,
       "underwriterTier": 2,
       "riskLevel": "high"
     }
