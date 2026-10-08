@@ -1,19 +1,9 @@
 {
-  "updatedAt": "2026-10-07T12:49:18Z",
+  "updatedAt": "2026-10-08T12:50:10Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
-    {
-      "company": "AfterNext Acquisition I Corp.",
-      "symbol": "AFNXU",
-      "expectedDate": "2026-10-07",
-      "exchange": "NASDAQ Global",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.115,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
     {
       "company": "TRex Bio, Inc.",
       "symbol": "TRXB",
