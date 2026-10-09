@@ -1,22 +1,14 @@
 {
-  "generatedAt": "2026-10-08T09:47:22Z",
+  "generatedAt": "2026-10-09T09:46:23Z",
   "lookbackDays": 90,
-  "rowCount": 18,
+  "rowCount": 17,
   "rows": [
-    {
-      "date": "2026-09-09",
-      "avgTone": 0.1222,
-      "articleCount": 0,
-      "gdelt_tone_norm": 0.3038,
-      "gdelt_tone_delta_5d": 0.0,
-      "gdelt_article_z": 0.0
-    },
     {
       "date": "2026-09-10",
       "avgTone": 0.1688,
       "articleCount": 0,
       "gdelt_tone_norm": 0.3715,
-      "gdelt_tone_delta_5d": 0.0676,
+      "gdelt_tone_delta_5d": 0.0,
       "gdelt_article_z": 0.0
     },
     {
@@ -24,7 +16,7 @@
       "avgTone": 0.1696,
       "articleCount": 0,
       "gdelt_tone_norm": 0.3726,
-      "gdelt_tone_delta_5d": 0.035,
+      "gdelt_tone_delta_5d": 0.0012,
       "gdelt_article_z": 0.0
     },
     {
@@ -32,7 +24,7 @@
       "avgTone": 0.5433,
       "articleCount": 0,
       "gdelt_tone_norm": 0.9151,
-      "gdelt_tone_delta_5d": 0.5658,
+      "gdelt_tone_delta_5d": 0.543,
       "gdelt_article_z": 0.0
     },
     {
@@ -40,7 +32,7 @@
       "avgTone": 0.2457,
       "articleCount": 0,
       "gdelt_tone_norm": 0.4831,
-      "gdelt_tone_delta_5d": -0.0077,
+      "gdelt_tone_delta_5d": -0.07,
       "gdelt_article_z": 0.0
     },
     {
