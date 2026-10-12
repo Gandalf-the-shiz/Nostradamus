@@ -1,26 +1,16 @@
 {
-  "updatedAt": "2026-10-09T12:46:46Z",
+  "updatedAt": "2026-10-12T13:07:31Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
   "ipos": [
     {
-      "company": "TRex Bio, Inc.",
-      "symbol": "TRXB",
-      "expectedDate": "2026-10-09",
+      "company": "Iambic Therapeutics, Inc.",
+      "symbol": "IAM",
+      "expectedDate": "2026-10-15",
       "exchange": "NASDAQ Global Select",
       "sector": "Other",
-      "expectedDealSizeUsdBn": 0.153,
-      "underwriterTier": 2,
-      "riskLevel": "high"
-    },
-    {
-      "company": "Retension Pharmaceuticals, Inc.",
-      "symbol": "RTSN",
-      "expectedDate": "2026-10-09",
-      "exchange": "NASDAQ Capital",
-      "sector": "Other",
-      "expectedDealSizeUsdBn": 0.049,
+      "expectedDealSizeUsdBn": 0.183,
       "underwriterTier": 2,
       "riskLevel": "high"
     }
