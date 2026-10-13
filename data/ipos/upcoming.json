@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-12T13:07:31Z",
+  "updatedAt": "2026-10-13T12:51:59Z",
   "sources": [
     "finnhub-ipo-calendar"
   ],
@@ -11,6 +11,16 @@
       "exchange": "NASDAQ Global Select",
       "sector": "Other",
       "expectedDealSizeUsdBn": 0.183,
+      "underwriterTier": 2,
+      "riskLevel": "high"
+    },
+    {
+      "company": "CITY THERAPEUTICS, INC.",
+      "symbol": "CTY",
+      "expectedDate": "2026-10-16",
+      "exchange": "NASDAQ Global",
+      "sector": "Other",
+      "expectedDealSizeUsdBn": 0.212,
       "underwriterTier": 2,
       "riskLevel": "high"
     }
