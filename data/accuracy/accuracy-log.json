@@ -614,7 +614,7 @@
     },
     {
       "date": "2026-10-12",
-      "recordedAt": "2026-10-13T00:26:36Z",
+      "recordedAt": "2026-10-14T00:29:33Z",
       "modelVersion": "3.0.0",
       "hitRate": null,
       "regressionMAE": null,
@@ -629,5 +629,5 @@
     "30day": null,
     "90day": null
   },
-  "updatedAt": "2026-10-13T00:26:36Z"
+  "updatedAt": "2026-10-14T00:29:33Z"
 }
