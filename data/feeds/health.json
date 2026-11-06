@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-11-05T09:22:36Z",
+  "generatedAt": "2026-11-06T09:21:19Z",
   "probeSymbol": "AAPL",
   "providers": {
     "yfinance": {
       "ok": true,
       "rows": 10,
-      "latencyMs": 631.01,
+      "latencyMs": 332.33,
       "error": ""
     },
     "gdelt": {
       "ok": true,
-      "rows": 1,
-      "latencyMs": 52650.67,
+      "rows": 4,
+      "latencyMs": 15306.49,
       "error": ""
     },
     "stooq": {
@@ -24,7 +24,7 @@
     "fred": {
       "ok": true,
       "rows": 89,
-      "latencyMs": 534.04,
+      "latencyMs": 462.52,
       "error": ""
     },
     "reddit": {
@@ -33,7 +33,7 @@
       "blocked": true,
       "error": "r/wallstreetbets: blocked (403) - set REDDIT_CLIENT_ID/SECRET or use ML panel proxy; r/stocks: blocked (403) - set REDDIT_CLIENT_ID/SECRET or use ML panel proxy",
       "skipped": false,
-      "latencyMs": 277.28
+      "latencyMs": 132.37
     },
     "tiingo": {
       "ok": false,
