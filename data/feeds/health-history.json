@@ -1,47 +1,6 @@
 {
   "entries": [
     {
-      "timestamp": "2026-08-25T09:29:06Z",
-      "criticalReady": true,
-      "providers": {
-        "yfinance": {
-          "ok": true,
-          "rows": 10,
-          "latencyMs": 633.95
-        },
-        "gdelt": {
-          "ok": false,
-          "rows": 0,
-          "latencyMs": 69026.02
-        },
-        "stooq": {
-          "ok": false,
-          "rows": 0,
-          "latencyMs": 0.0
-        },
-        "fred": {
-          "ok": true,
-          "rows": 87,
-          "latencyMs": 761.86
-        },
-        "reddit": {
-          "ok": false,
-          "rows": 0,
-          "latencyMs": 174.81
-        },
-        "tiingo": {
-          "ok": false,
-          "rows": 0,
-          "latencyMs": 0.0
-        },
-        "alphavantage": {
-          "ok": false,
-          "rows": 0,
-          "latencyMs": 0.0
-        }
-      }
-    },
-    {
       "timestamp": "2026-08-26T09:29:34Z",
       "criticalReady": true,
       "providers": {
@@ -3677,6 +3636,47 @@
           "ok": false,
           "rows": 0,
           "latencyMs": 59.72
+        },
+        "tiingo": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 0.0
+        },
+        "alphavantage": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-23T09:26:34Z",
+      "criticalReady": true,
+      "providers": {
+        "yfinance": {
+          "ok": true,
+          "rows": 10,
+          "latencyMs": 370.46
+        },
+        "gdelt": {
+          "ok": true,
+          "rows": 7,
+          "latencyMs": 31630.68
+        },
+        "stooq": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 0.0
+        },
+        "fred": {
+          "ok": true,
+          "rows": 87,
+          "latencyMs": 460.2
+        },
+        "reddit": {
+          "ok": false,
+          "rows": 0,
+          "latencyMs": 65.58
         },
         "tiingo": {
           "ok": false,
